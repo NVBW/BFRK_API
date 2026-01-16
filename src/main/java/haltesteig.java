@@ -20,20 +20,20 @@ import de.nvbw.bfrk.util.DBVerbindung;
 /**
  * Servlet implementation class haltestelle
  */
-@WebServlet(name = "bahnsteig", 
-			urlPatterns = {"/bahnsteig/*"}
+@WebServlet(name = "haltesteig", 
+			urlPatterns = {"/haltesteig/*"}
 		)
-public class bahnsteig extends HttpServlet {
+public class haltesteig extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
     private static Connection bfrkConn = null;
 
-
+    public static int SC_NOTFOUND = 404;
     
     /**
      * @see HttpServlet#HttpServlet()
      */
-    public bahnsteig() {
+    public haltesteig() {
         super();
         // TODO Auto-generated constructor stub
     }
@@ -71,15 +71,16 @@ public class bahnsteig extends HttpServlet {
 		}
 
 		long paramObjektid = 0;
+		String paramDhid = "";
 		if(request.getParameter("dhid") != null) {
 			System.out.println("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
-			paramObjektid = Long.parseLong(request.getParameter("dhid"));
+			paramDhid = request.getParameter("dhid");
 		} else {
 			System.out.println("url-Parameter dhid fehlt ...");
 			String requesturi = request.getRequestURI();
 			System.out.println("requesturi ===" + requesturi + "===");
-			if(requesturi.indexOf("/bahnsteig") != -1) {
-				int startpos = requesturi.indexOf("/bahnsteig");
+			if(requesturi.indexOf("/haltesteig") != -1) {
+				int startpos = requesturi.indexOf("/haltesteig");
 				System.out.println("startpos #1: " + startpos);
 				if(requesturi.indexOf("/",startpos + 1) != -1) {
 					paramObjektid = Long.parseLong(requesturi.substring(requesturi.indexOf("/",startpos + 1) + 1));
@@ -88,23 +89,39 @@ public class bahnsteig extends HttpServlet {
 			}
 		}
 
+		if((paramObjektid == 0) && paramDhid.isEmpty()) {
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "Angabe objektid oder Parameter dhid fehlen");
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			return;
+		}
+		
 		response.setContentType("application/json");
 		response.setCharacterEncoding("UTF-8");
 		response.setHeader("Access-Control-Allow-Origin", "*");
 		response.setHeader("Access-Control-Allow-Headers", "*");
 
-//TODO Merkmalkorrekturen einarbeiten
-		String selectHaltestelleSql = "SELECT objekt.dhid, merkmal.name, merkmal.wert, typ FROM merkmal "
-			+ "JOIN objekt on objekt.id = merkmal.objekt_id "
-			+ "WHERE objekt_id = ?;";
+		String selectHaltestelleSql = "";
+		if(paramObjektid != 0)
+			selectHaltestelleSql = "SELECT o.dhid, merkmal.name, merkmal.wert, typ FROM merkmal "
+				+ "JOIN objekt AS o ON objekt.id = merkmal.objekt_id "
+				+ "WHERE objekt_id = ?;";
+		else
+			selectHaltestelleSql = "SELECT o.dhid, merkmal.name, merkmal.wert, typ FROM merkmal "
+				+ "JOIN objekt AS o ON o.id = merkmal.objekt_id "
+				+ "WHERE objektart IN ('Haltesteig', 'SEVHaltesteig') AND dhid = ?;";
 
 		JSONObject merkmaleJsonObject = new JSONObject();
-		//merkmaleJsonObject.put("objektid", paramObjektid);		// evtl. in API in Response weglassen
 
 		PreparedStatement selectHaltestelleStmt;
 		try {
 			selectHaltestelleStmt = bfrkConn.prepareStatement(selectHaltestelleSql);
-			selectHaltestelleStmt.setLong(1, paramObjektid);
+			if(paramObjektid != 0)
+				selectHaltestelleStmt.setLong(1, paramObjektid);
+			else
+				selectHaltestelleStmt.setString(1, paramDhid);
 			System.out.println("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
 
 			ResultSet selectMerkmaleRS = selectHaltestelleStmt.executeQuery();
@@ -116,62 +133,77 @@ public class bahnsteig extends HttpServlet {
 				String name = selectMerkmaleRS.getString("name");
 				String wert = selectMerkmaleRS.getString("wert");
 				String typ = selectMerkmaleRS.getString("typ");
-				if(name.equals("STG_Abfallbehaelter"))
+
+				//       Beginn spezifische Haltesteig-Merkmale				
+				if(name.equals("STG_EinstiegStrassenmitte_D2140"))
+					merkmaleJsonObject.put("einstiegstrassenmitte", wert.equals("true"));
+				else if(name.equals("STG_Hochbord_vorhanden"))
+					merkmaleJsonObject.put("hochbordvorhanden", wert.equals("true"));
+				else if(name.equals("STG_Steighoehe_cm_D1170"))
+					merkmaleJsonObject.put("hochbordhoehe_cm", (int) Double.parseDouble(wert));
+				else if(name.equals("STG_Hochbord_Art"))
+					merkmaleJsonObject.put("hochboardart", wert);
+				else if(name.equals("STG_Steigtyp"))
+					merkmaleJsonObject.put("steigtyp", wert);
+				else if(name.equals("STG_Tuer2_Laenge_cm"))
+					merkmaleJsonObject.put("tuer2laenge_cm", (int) Double.parseDouble(wert));
+				else if(name.equals("STG_Tuer2_Breite_cm"))
+					merkmaleJsonObject.put("tuer2breite_cm", (int) Double.parseDouble(wert));
+				else if(name.equals("STG_Tuer2_Einstiegsflaeche_ausreichend"))
+					merkmaleJsonObject.put("tuer2eintiegsflaechevorhanden", wert.equals("true"));
+				else if(name.equals("STG_Unterstand_offiziell_jn"))
+					merkmaleJsonObject.put("unterstand_offiziell", wert.equals("true"));
+				else if(name.equals("STG_ZUS_Buchtlaenge_m"))
+					merkmaleJsonObject.put("buchtlaenge_cm", (int) (Double.parseDouble(wert)*100.0));
+				else if(name.equals("STG_Zuweg1_Zugangstyp"))
+					merkmaleJsonObject.put("zuweg1typ", wert);
+				else if(name.equals("STG_Zuweg1_weniger2Prozent_jn"))
+					merkmaleJsonObject.put("zuweg1weniger2prozent", wert.equals("true"));
+				else if(name.equals("STG_Zuweg1_eben_Laenge_cm"))
+					merkmaleJsonObject.put("zuweg1ebenlaenge_cm", (int) Double.parseDouble(wert));
+				else if(name.equals("STG_Zuweg1_eben_Breite_cm"))
+					merkmaleJsonObject.put("zuweg1ebenbreite_cm", (int) Double.parseDouble(wert));
+				else if(name.equals("STG_Zuweg1_Rampe_Laenge_cm"))
+					merkmaleJsonObject.put("zuweg1rampelaenge_cm", (int) Double.parseDouble(wert));
+				else if(name.equals("STG_Zuweg1_Rampe_Breite_cm"))
+					merkmaleJsonObject.put("zuweg1rampebreite_cm", (int) Double.parseDouble(wert));
+				else if(name.equals("STG_Zuweg1_Rampe_Neigung_prozent"))
+					merkmaleJsonObject.put("zuweg1rampelaengsneigung_prozent", Double.parseDouble(wert));
+				else if(name.equals("STG_Zuweg1_Rampe_Querneigung_prozent"))
+					merkmaleJsonObject.put("zuweg1rampequerneigung_prozent", Double.parseDouble(wert));
+				else if(name.equals("STG_Zuweg1_Stufe_Hoehe_cm") ||
+						name.equals("STG_Zuweg1_ZuwegmitStufe_Hoehe_cm"))
+					merkmaleJsonObject.put("zuweg1stufehoehe_cm", (int) Double.parseDouble(wert));
+				else if(name.equals("STG_Zuweg1_Notiz"))
+					merkmaleJsonObject.put("zuweg1notiz", wert);
+				else if(name.equals("STG_Zuweg2_Zugangstyp"))
+					merkmaleJsonObject.put("zuweg2typ", wert);
+				else if(name.equals("STG_Zuweg2_weniger2Prozent_jn"))
+					merkmaleJsonObject.put("zuweg2weniger2prozent", wert.equals("true"));
+				else if(name.equals("STG_Zuweg2_eben_Laenge_cm"))
+					merkmaleJsonObject.put("zuweg2ebenlaenge_cm", (int) Double.parseDouble(wert));
+				else if(name.equals("STG_Zuweg2_eben_Breite_cm"))
+					merkmaleJsonObject.put("zuweg2ebenbreite_cm", (int) Double.parseDouble(wert));
+				else if(name.equals("STG_Zuweg2_Rampe_Laenge_cm"))
+					merkmaleJsonObject.put("zuweg2rampelaenge_cm", (int) Double.parseDouble(wert));
+				else if(name.equals("STG_Zuweg2_Rampe_Breite_cm"))
+					merkmaleJsonObject.put("zuweg2rampebreite_cm", (int) Double.parseDouble(wert));
+				else if(name.equals("STG_Zuweg2_Rampe_Neigung_prozent"))
+					merkmaleJsonObject.put("zuweg2rampelaengsneigung_prozent", Double.parseDouble(wert));
+				else if(name.equals("STG_Zuweg2_Rampe_Querneigung_prozent"))
+					merkmaleJsonObject.put("zuweg2rampequerneigung_prozent", Double.parseDouble(wert));
+				else if(name.equals("STG_Zuweg2_Stufe_Hoehe_cm") ||
+						name.equals("STG_Zuweg2_ZuwegmitStufe_Hoehe_cm"))
+					merkmaleJsonObject.put("zuweg2stufehoehe_cm", (int) Double.parseDouble(wert));
+				else if(name.equals("STG_Zuweg2_Notiz"))
+					merkmaleJsonObject.put("zuweg2notiz", wert);
+				//       Ende spezifische Haltesteig-Merkmale
+
+				else if(name.equals("STG_Abfallbehaelter"))
 					merkmaleJsonObject.put("abfallbehaelter", wert.equals("true"));
 				else if(name.equals("STG_Ansagen_Vorhanden_D1150"))
 					merkmaleJsonObject.put("ansage", wert.equals("true"));
-				else if(name.equals("STG_Bahnsteig_Abschnitt_Lon"))
-					merkmaleJsonObject.put("abschnitt1_lon", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Abschnitt_Lat"))
-					merkmaleJsonObject.put("abschnitt1_lat", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Abschnitt2_Lon"))
-					merkmaleJsonObject.put("abschnitt2_lon", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Abschnitt2_Lat"))
-					merkmaleJsonObject.put("abschnitt2_lat", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Abschnitt3_Lon"))
-					merkmaleJsonObject.put("abschnitt3_lon", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Abschnitt3_Lat"))
-					merkmaleJsonObject.put("abschnitt3_lat", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Abschnitt4_Lon"))
-					merkmaleJsonObject.put("abschnitt4_lon", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Abschnitt4_Lat"))
-					merkmaleJsonObject.put("abschnitt4_lat", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Abschnitt5_Lon"))
-					merkmaleJsonObject.put("abschnitt5_lon", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Abschnitt5_Lat"))
-					merkmaleJsonObject.put("abschnitt5_lat", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Abschnitt6_Lon"))
-					merkmaleJsonObject.put("abschnitt6_lon", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Abschnitt6_Lat"))
-					merkmaleJsonObject.put("abschnitt6_lat", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Abschnitt7_Lon"))
-					merkmaleJsonObject.put("abschnitt7_lon", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Abschnitt7_Lat"))
-					merkmaleJsonObject.put("abschnitt7_lat", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Abschnitt8_Lon"))
-					merkmaleJsonObject.put("abschnitt8_lon", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Abschnitt8_Lat"))
-					merkmaleJsonObject.put("abschnitt8_lat", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Haltepunkt_Lon"))
-					merkmaleJsonObject.put("haltepunkt1_lon", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Haltepunkt_Lat"))
-					merkmaleJsonObject.put("haltepunkt1_lat", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Haltepunkt2_Lon"))
-					merkmaleJsonObject.put("haltepunkt2_lon", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Haltepunkt2_Lat"))
-					merkmaleJsonObject.put("haltepunkt2_lat", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Haltepunkt3_Lon"))
-					merkmaleJsonObject.put("haltepunkt3_lon", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Haltepunkt3_Lat"))
-					merkmaleJsonObject.put("haltepunkt3_lat", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Haltepunkt4_Lon"))
-					merkmaleJsonObject.put("haltepunkt4_lon", Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Haltepunkt4_Lat"))
-					merkmaleJsonObject.put("haltepunkt4_lat", Double.parseDouble(wert));
-				
-				else if(name.equals("STG_Bahnsteig_Sitzplaetz_Summe"))
-					merkmaleJsonObject.put("summesitzplaetze", (int) Double.parseDouble(wert));
-				else if(name.equals("STG_Bahnsteig_Uhr_vorhanden"))
+				else if(name.equals("STG_ZUS_Uhr_jn"))
 					merkmaleJsonObject.put("uhr", wert.equals("true"));
 				else if(name.equals("STG_Beleuchtung"))
 					merkmaleJsonObject.put("beleuchtung", wert.equals("true"));
@@ -187,7 +219,6 @@ public class bahnsteig extends HttpServlet {
 					merkmaleJsonObject.put("bodenindikator_einstiegauffind", wert.equals("true"));
 				else if(name.equals("STG_Bodenindikator_Leitstreifen_D2072"))
 					merkmaleJsonObject.put("bodenindikator_leitstreifen", wert.equals("true"));
-
 				else if(name.equals("STG_DynFahrtzielanzeiger_Vorhanden_D1140"))
 					merkmaleJsonObject.put("dynfahrtzielanzeiger", wert.equals("true"));
 				else if(name.equals("STG_DynFahrtzielanzeiger_Akustisch_D1141"))
@@ -249,6 +280,33 @@ public class bahnsteig extends HttpServlet {
 
 					// ===============================================================================
 					// Fotos
+
+				//       Beginn spezifische Haltesteig-Fotos
+				else if(name.equals("STG_Zuweg1_direkt_Foto"))
+					merkmaleJsonObject.put("zuweg1direkt_Foto", Bild.getBildUrl(wert, dhid));
+				else if(name.equals("STG_Zuweg1_eben_Foto"))
+					merkmaleJsonObject.put("zuweg1eben_Foto", Bild.getBildUrl(wert, dhid));
+				else if(name.equals("STG_Zuweg1_nurStufe_Foto"))
+					merkmaleJsonObject.put("zuweg1nurstufe_Foto", Bild.getBildUrl(wert, dhid));
+				else if(name.equals("STG_Zuweg1_Rampe_Foto"))
+					merkmaleJsonObject.put("zuweg1rampe_Foto", Bild.getBildUrl(wert, dhid));
+				else if(name.equals("STG_Zuweg1_sonstiges_Foto"))
+					merkmaleJsonObject.put("zuweg1sonstiges_Foto", Bild.getBildUrl(wert, dhid));
+				else if(name.equals("STG_Zuweg1_Weg_Stufe_Foto"))
+					merkmaleJsonObject.put("zuweg1wegstufe_Foto", Bild.getBildUrl(wert, dhid));
+				else if(name.equals("STG_Zuweg2_direkt_Foto"))
+					merkmaleJsonObject.put("zuweg2direkt_Foto", Bild.getBildUrl(wert, dhid));
+				else if(name.equals("STG_Zuweg2_eben_Foto"))
+					merkmaleJsonObject.put("zuweg2eben_Foto", Bild.getBildUrl(wert, dhid));
+				else if(name.equals("STG_Zuweg2_nurStufe_Foto"))
+					merkmaleJsonObject.put("zuweg2nurstufe_Foto", Bild.getBildUrl(wert, dhid));
+				else if(name.equals("STG_Zuweg2_Rampe_Foto"))
+					merkmaleJsonObject.put("zuweg2rampe_Foto", Bild.getBildUrl(wert, dhid));
+				else if(name.equals("STG_Zuweg2_sonstiges_Foto"))
+					merkmaleJsonObject.put("zuweg2sonstiges_Foto", Bild.getBildUrl(wert, dhid));
+				else if(name.equals("STG_Zuweg2_Weg_Stufe_Foto"))
+					merkmaleJsonObject.put("zuweg2wegstufe_Foto", Bild.getBildUrl(wert, dhid));
+				//       Ende spezifische Haltesteig-Fotos
 
 				else if(name.equals("STG_Foto"))
 					merkmaleJsonObject.put("steig_Foto", Bild.getBildUrl(wert, dhid));

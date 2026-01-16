@@ -1,13 +1,8 @@
 
 import java.io.IOException;
-import java.net.URLDecoder;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -15,33 +10,21 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.json.JSONObject;
-
-import de.nvbw.base.NVBWLogger;
-import de.nvbw.bfrk.base.BFRKFeld;
-import de.nvbw.bfrk.util.Bild;
-import de.nvbw.bfrk.util.DBVerbindung;
-import de.nvbw.bfrk.util.OpenStreetMap;
-import de.nvbw.bfrk.util.ReaderBase;
-
 
 /**
  * Servlet implementation class haltestelle
  */
-@WebServlet(name = "landingpage", 
-			urlPatterns = {"/"}
+@WebServlet(name = "landingpage2", 
+			urlPatterns = {""}
 		)
-public class _landingpage extends HttpServlet {
+public class _landingpage2 extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
-	private static DateFormat date_rfc3339_formatter = new SimpleDateFormat("yyyy-MM-dd");
-
-    private static Connection bfrkConn = null;
 
     /**
      * @see HttpServlet#HttpServlet()
      */
-    public _landingpage() {
+    public _landingpage2() {
         super();
         // TODO Auto-generated constructor stub
     }
@@ -70,9 +53,10 @@ public class _landingpage extends HttpServlet {
 		output.append("  </head>\r\n");
 		output.append("  <body>\r\n");
 		output.append("    <h1>BFRK-API</h1>\r\n");
-		output.append("    <p>Version 0.3.6\r\n");
+		output.append("    <p>Version 0.4.3\r\n");
 		output.append("    <h2>Dokumentation zur BFRK-API</h2>\r\n");
-		output.append("    <p>Die Dokumentation ist auf <a href=\"https://app.swaggerhub.com/apis/NVBWSeifert/BFRK_API\">Swaggerhub</a> einsehbar.\r\n");
+		output.append("    <p>Die Dokumentation ist auf <a href=\"https://app.swaggerhub.com/apis/NVBWSeifert/BFRK_API\">Swaggerhub</a> einsehbar.</p>\r\n");
+		output.append("    <p>landingpage2 innerhalb Tomcat Servlet\r\n");
 		output.append("  </body>\r\n");
 		output.append("</html>\r\n");
 		

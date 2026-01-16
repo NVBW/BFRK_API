@@ -1619,7 +1619,9 @@ public class ExportNachEYEvisObjektpruefung {
 			hst_dhid = haltestelleDaten.get(BFRKFeld.Name.HST_DHID).getTextWert();
 		}
 
+		String steig_dhid = "";
 		if(objektDaten.containsKey(BFRKFeld.Name.STG_DHID)) {
+			steig_dhid = objektDaten.get(BFRKFeld.Name.STG_DHID).getTextWert();
 			felder.put("DHID", new Excelfeld(Datentyp.Text, 
 				objektDaten.get(BFRKFeld.Name.STG_DHID).getTextWert(), 
 				okFarbstyle));
@@ -1744,7 +1746,8 @@ public class ExportNachEYEvisObjektpruefung {
 
 		if(objektDaten.containsKey(BFRKFeld.Name.STG_Steiglaenge)) {
 			double wert = objektDaten.get(BFRKFeld.Name.STG_Steiglaenge).getZahlWert();
-			felder.put("STG_Steiglaenge", new Excelfeld(Datentyp.Zahl_Nachkomma2, 
+			NVBWLogger.info("DHID: " + steig_dhid + ", Merkmal STG_Steiglänge: " + wert);
+			felder.put("STG_ZUS_Laenge_m", new Excelfeld(Datentyp.Zahl_Nachkomma2, 
 				wert, unsicherFarbstyle));
 		}
 
@@ -1963,7 +1966,7 @@ public class ExportNachEYEvisObjektpruefung {
 
 		if(objektDaten.containsKey(BFRKFeld.Name.STG_Haltestellenmast_Foto)) {
 			String dateiname = objektDaten.get(BFRKFeld.Name.STG_Haltestellenmast_Foto).getTextWert();
-			felder.put("STG_Haltestellenmast_Foto", new Excelfeld(Datentyp.Text, 
+			felder.put("STG_ZUS_Haltestellenmast_Foto", new Excelfeld(Datentyp.Text, 
 				dateiname,
 				unsicherFarbstyle));
 			if(ExportNachEYEvisObjektpruefung.bilderkopieren)
@@ -2015,7 +2018,7 @@ public class ExportNachEYEvisObjektpruefung {
 		}
 
 		if(objektDaten.containsKey(BFRKFeld.Name.STG_Lageinnerorts)) {
-			String wert = objektDaten.get(BFRKFeld.Name.STG_Beleuchtung).getTextWert();
+			String wert = objektDaten.get(BFRKFeld.Name.STG_Lageinnerorts).getTextWert();
 			felder.put("STG_ZUS_Lageinnerorts", new Excelfeld(Datentyp.Text, 
 				wert,
 				unsicherFarbstyle));

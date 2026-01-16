@@ -391,6 +391,7 @@ public class ExportNachEYEvis {
 
 			ResultSet haltestelleSelectRs = haltestelleSelectStmt.executeQuery();
 			int bruttoanzahl = 0;
+NVBWLogger.info("in holhaltestellen for DB-Datesatzschleife ...");
 			while( haltestelleSelectRs.next() ) {
 				bruttoanzahl++;
 				Map<Name, BFRKFeld> hstdatensatz = new HashMap<>();
@@ -409,7 +410,7 @@ public class ExportNachEYEvis {
 				String dateiname = haltestelleSelectRs.getString("dateiname");
 				String datenlieferant = haltestelleSelectRs.getString("datenlieferant");
 				String status = haltestelleSelectRs.getString("status");
-
+NVBWLogger.info("Objekt-Id: " + dbid + ", DHID: " + dhid + ", Objektart: " + objektart.toString());
 				String ds100 = haltestelleSelectRs.getString("ds100");
 				int dbkategorie = haltestelleSelectRs.getInt("dbkategorie");
 				String bahnhofname = haltestelleSelectRs.getString("bahnhofname");
@@ -491,6 +492,7 @@ public class ExportNachEYEvis {
 					dhidListe.add(dhid);
 				}
 			}
+NVBWLogger.info("in holhaltestellen nach DB-Datesatzschleife");
 			haltestelleSelectRs.close();
 			haltestelleSelectStmt.close();
 
@@ -1127,6 +1129,7 @@ wunschidprefix = objektid;
 			boolean haltestellenobjektVorhanden = false;
 			int lfdnr = 0;
 			
+NVBWLogger.info("Vor Schleife über die Haltestellen-Objekte ...");
 
 				// Schleife über die Haltestellen-Objekte
 			for(Map.Entry<Long, Map<Name, BFRKFeld>> hstentry: hstdatensaetze.entrySet()) {
@@ -1137,7 +1140,9 @@ wunschidprefix = objektid;
 				Map<Name, BFRKFeld> hstMerkmale = hstentry.getValue();
 	
 				hst_dhid = hstMerkmale.get(BFRKFeld.Name.HST_DHID).getTextWert();
-
+NVBWLogger.info("Objekt-Id: " + hstdbnr + ", DHID: " + hst_dhid);
+if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
+	NVBWLogger.info(", Objektart: " + hstMerkmale.get(BFRKFeld.Name.Objektart).getTextWert());
 				lfdnr++;
 				if((lfdnr % 100) == 0)
 					NVBWLogger.info("Anzahl Haltestellen bisher: " + lfdnr);
@@ -1219,6 +1224,10 @@ wunschidprefix = objektid;
 						}
 
 						if(objektart == Objektart.Haltestelle) {
+NVBWLogger.info("bei Bearbeitung Haltstelle - Objekt-Id: " + hstdbnr + ", DHID: " + hst_dhid);
+if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
+	NVBWLogger.info(", Objektart: " + hstMerkmale.get(BFRKFeld.Name.Objektart).getTextWert());
+
 							eyevisWerte = exportNachEYEvisPruefung.generateHaltestelle(hstMerkmale, objekt);
 							haltestellenobjektVorhanden = true;
 						}
@@ -1298,102 +1307,6 @@ wunschidprefix = objektid;
 
 						if(		(eyevisWerte != null) 
 							&& 	(eyevisWerte.size() > 0)) {
-
-								// wenn es zum aktuellen (nicht-Hauptobjekt) kein Hauptobjekt (Haltestelle oder Bahnhof) gibt,
-								// dann hier vorab ein Hauptobjekt erstellen und in Excel speichern
-							if(		!(objektart == Objektart.Bahnhof) 
-								&& 	!(objektart == Objektart.Haltestelle)
-								&&	!haltestellenobjektVorhanden) {
-								NVBWLogger.info("Für Objekt mit Objektart: " + objektart.name() + " muss ein Hauptobjekt erzeugt werden ...");
-								if((objekt != null) && objekt.containsKey(BFRKFeld.Name.STG_Soll_Steig))
-									NVBWLogger.info(objekt.get(BFRKFeld.Name.STG_Soll_Steig).getTextWert());
-								if(hstMerkmale != null)
-									NVBWLogger.info("hstMerkmale-Properties: " + hstMerkmale.toString());
-								if(objekt != null)
-									NVBWLogger.info("Objekt-Properties: " + objekt.toString());
-								else
-									NVBWLogger.warning("objekt ist null");
-								Map<String, Excelfeld> hstExcelwerte = new HashMap<>();
-
-								StringBuffer hstcsvzeile = new StringBuffer();
-
-								if((hstMerkmale != null) && hstMerkmale.containsKey(BFRKFeld.Name.HST_DHID)) {
-									hstExcelwerte.put("DHID", new Excelfeld(de.nvbw.bfrk.base.Excelfeld.Datentyp.Text, 
-										ExportNachEYEvisObjektpruefung.Textausgabe(hstMerkmale.get(BFRKFeld.Name.HST_DHID).getTextWert()), 
-										ExportNachEYEvisObjektpruefung.unsicherFarbstyle));
-									hstcsvzeile.append(ExportNachEYEvisObjektpruefung.Textausgabe(hstMerkmale.get(BFRKFeld.Name.HST_DHID).getTextWert()));
-								}
-								hstcsvzeile.append(";");
-
-								if(hstMerkmale.containsKey(BFRKFeld.Name.HST_Gemeinde)) {
-									hstExcelwerte.put("Gemeinde", new Excelfeld(de.nvbw.bfrk.base.Excelfeld.Datentyp.Text, 
-										hstMerkmale.get(BFRKFeld.Name.HST_Gemeinde).getTextWert(), 
-										ExportNachEYEvisObjektpruefung.unsicherFarbstyle));
-									hstcsvzeile.append(ExportNachEYEvisObjektpruefung.Textausgabe(hstMerkmale.get(BFRKFeld.Name.HST_Gemeinde).getTextWert()));
-								}
-								hstcsvzeile.append(";");
-
-								if(hstMerkmale.containsKey(BFRKFeld.Name.HST_Ortsteil)) {
-									hstExcelwerte.put("Ortsteil", new Excelfeld(de.nvbw.bfrk.base.Excelfeld.Datentyp.Text, 
-										hstMerkmale.get(BFRKFeld.Name.HST_Ortsteil).getTextWert(), 
-										ExportNachEYEvisObjektpruefung.unsicherFarbstyle));
-									hstcsvzeile.append(ExportNachEYEvisObjektpruefung.Textausgabe(hstMerkmale.get(BFRKFeld.Name.HST_Ortsteil).getTextWert()));
-								}
-								hstcsvzeile.append(";");
-								if(hstMerkmale.containsKey(BFRKFeld.Name.BF_Name)) {
-									String text = hstMerkmale.get(BFRKFeld.Name.BF_Name).getTextWert();
-									if(!text.isEmpty() && text.length() > EYEvisNameMaxlength) {
-										text = text.replace(" / ", "/");
-										if(text.length() > EYEvisNameMaxlength)
-										text = text.substring(0,EYEvisNameMaxlength - 1);
-									}
-									hstExcelwerte.put("Name", new Excelfeld(de.nvbw.bfrk.base.Excelfeld.Datentyp.Text, 
-										ExportNachEYEvisObjektpruefung.Textausgabe(text), 
-										ExportNachEYEvisObjektpruefung.unsicherFarbstyle));
-									hstcsvzeile.append(ExportNachEYEvisObjektpruefung.Textausgabe(text));
-								}
-								hstcsvzeile.append(";");
-
-								hstExcelwerte.put("Objekt", new Excelfeld(de.nvbw.bfrk.base.Excelfeld.Datentyp.Text, 
-									"0", 
-									ExportNachEYEvisObjektpruefung.unsicherFarbstyle));
-								hstcsvzeile.append("0;");
-
-								if(hstMerkmale.containsKey(BFRKFeld.Name.BF_Name)) {
-									String text = "HST: " + ExportNachEYEvisObjektpruefung.Textausgabe(hstMerkmale.get(BFRKFeld.Name.BF_Name).getTextWert());
-									if(!text.isEmpty() && text.length() > EYEvisBeschreibungMaxlength) {
-										text = text.replace(" / ", "/");
-										if(text.length() > EYEvisBeschreibungMaxlength)
-										text = text.substring(0,EYEvisBeschreibungMaxlength - 1);
-									}
-									hstExcelwerte.put("Beschreibung", new Excelfeld(de.nvbw.bfrk.base.Excelfeld.Datentyp.Text, 
-										text, 
-										ExportNachEYEvisObjektpruefung.unsicherFarbstyle));
-									hstcsvzeile.append(text);
-								}
-								hstcsvzeile.append(";");
-
-								hstExcelwerte.put("lat", new Excelfeld(de.nvbw.bfrk.base.Excelfeld.Datentyp.Text, 
-										ExportNachEYEvisObjektpruefung.Textausgabe("" + hstMerkmale.get(BFRKFeld.Name.HST_Soll_Lat).getZahlWert()), 
-										ExportNachEYEvisObjektpruefung.okFarbstyle));
-								hstcsvzeile.append(ExportNachEYEvisObjektpruefung.Textausgabe("" + hstMerkmale.get(BFRKFeld.Name.HST_Soll_Lat).getZahlWert()));
-								hstcsvzeile.append(";");
-
-								hstExcelwerte.put("lon", new Excelfeld(de.nvbw.bfrk.base.Excelfeld.Datentyp.Text, 
-									ExportNachEYEvisObjektpruefung.Textausgabe("" + hstMerkmale.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert()), 
-									ExportNachEYEvisObjektpruefung.okFarbstyle));
-								hstcsvzeile.append(ExportNachEYEvisObjektpruefung.Textausgabe("" + hstMerkmale.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert()));
-
-								schreibeExcelZeile(sheetname, naechsteZeilennrMap.get(sheetname), hstExcelwerte);
-								naechsteZeilennrMap.put(sheetname, 1 + naechsteZeilennrMap.get(sheetname));
-								haltestellenobjektVorhanden = true;
-
-								NVBWLogger.info("Für Objekt mit Objektart: " + objektart.name() + " wurde ein Hauptobjekt erzeugt");
-								if((objekt != null) && objekt.containsKey(BFRKFeld.Name.STG_Soll_Steig))
-									NVBWLogger.info(objekt.get(BFRKFeld.Name.STG_Soll_Steig).getTextWert());
-
-								eyevisCSVOutput.append(hstcsvzeile.toString() + "\r\n");
-							}
 
 							if(eyevisWerte.containsKey("Name"))
 								hst_name = eyevisWerte.get("Name").getTextWert();
@@ -1511,9 +1424,94 @@ wunschidprefix = objektid;
 								eyevisCSVOutput.append(eyevisWerte.get("lon").getTextWert());
 							eyevisCSVOutput.append("\r\n");
 						}
+					}	// Ende Schleife über alle Objekte des Bahnhofs / der Haltestelle					
+				}	// Schleife über die Objekte (Steig, BuR, PuR, etc.) zur aktuellen Haltestelle
+
+					// wenn es zum aktuellen (nicht-Hauptobjekt) kein Hauptobjekt (Haltestelle oder Bahnhof) gibt,
+					// dann hier vorab ein Hauptobjekt erstellen und in Excel speichern
+				if(!haltestellenobjektVorhanden) {
+					NVBWLogger.info("Es gab kein Hauptobjekt für die DHID: " + hst_dhid 
+						+ ", daher wird jetzt noch ein Not-Hauptobjekt erstellt");
+					if(hstMerkmale != null)
+						NVBWLogger.info("hstMerkmale-Properties: " + hstMerkmale.toString());
+					Map<String, Excelfeld> hstExcelwerte = new HashMap<>();
+	
+					StringBuffer hstcsvzeile = new StringBuffer();
+	
+					if((hstMerkmale != null) && hstMerkmale.containsKey(BFRKFeld.Name.HST_DHID)) {
+						hstExcelwerte.put("DHID", new Excelfeld(de.nvbw.bfrk.base.Excelfeld.Datentyp.Text, 
+							ExportNachEYEvisObjektpruefung.Textausgabe(hstMerkmale.get(BFRKFeld.Name.HST_DHID).getTextWert()), 
+							ExportNachEYEvisObjektpruefung.unsicherFarbstyle));
+						hstcsvzeile.append(ExportNachEYEvisObjektpruefung.Textausgabe(hstMerkmale.get(BFRKFeld.Name.HST_DHID).getTextWert()));
 					}
-				}	// Ende Schleife über die Objekte eines Bahnhofs / einer Haltestelle
-				
+					hstcsvzeile.append(";");
+	
+					if(hstMerkmale.containsKey(BFRKFeld.Name.HST_Gemeinde)) {
+						hstExcelwerte.put("Gemeinde", new Excelfeld(de.nvbw.bfrk.base.Excelfeld.Datentyp.Text, 
+							hstMerkmale.get(BFRKFeld.Name.HST_Gemeinde).getTextWert(), 
+							ExportNachEYEvisObjektpruefung.unsicherFarbstyle));
+						hstcsvzeile.append(ExportNachEYEvisObjektpruefung.Textausgabe(hstMerkmale.get(BFRKFeld.Name.HST_Gemeinde).getTextWert()));
+					}
+					hstcsvzeile.append(";");
+	
+					if(hstMerkmale.containsKey(BFRKFeld.Name.HST_Ortsteil)) {
+						hstExcelwerte.put("Ortsteil", new Excelfeld(de.nvbw.bfrk.base.Excelfeld.Datentyp.Text, 
+							hstMerkmale.get(BFRKFeld.Name.HST_Ortsteil).getTextWert(), 
+							ExportNachEYEvisObjektpruefung.unsicherFarbstyle));
+						hstcsvzeile.append(ExportNachEYEvisObjektpruefung.Textausgabe(hstMerkmale.get(BFRKFeld.Name.HST_Ortsteil).getTextWert()));
+					}
+					hstcsvzeile.append(";");
+					if(hstMerkmale.containsKey(BFRKFeld.Name.BF_Name)) {
+						String text = hstMerkmale.get(BFRKFeld.Name.BF_Name).getTextWert();
+						if(!text.isEmpty() && text.length() > EYEvisNameMaxlength) {
+							text = text.replace(" / ", "/");
+							if(text.length() > EYEvisNameMaxlength)
+							text = text.substring(0,EYEvisNameMaxlength - 1);
+						}
+						hstExcelwerte.put("Name", new Excelfeld(de.nvbw.bfrk.base.Excelfeld.Datentyp.Text, 
+							ExportNachEYEvisObjektpruefung.Textausgabe(text), 
+							ExportNachEYEvisObjektpruefung.unsicherFarbstyle));
+						hstcsvzeile.append(ExportNachEYEvisObjektpruefung.Textausgabe(text));
+					}
+					hstcsvzeile.append(";");
+	
+					hstExcelwerte.put("Objekt", new Excelfeld(de.nvbw.bfrk.base.Excelfeld.Datentyp.Text, 
+						"0", 
+						ExportNachEYEvisObjektpruefung.unsicherFarbstyle));
+					hstcsvzeile.append("0;");
+	
+					if(hstMerkmale.containsKey(BFRKFeld.Name.BF_Name)) {
+						String text = "HST: " + ExportNachEYEvisObjektpruefung.Textausgabe(hstMerkmale.get(BFRKFeld.Name.BF_Name).getTextWert());
+						if(!text.isEmpty() && text.length() > EYEvisBeschreibungMaxlength) {
+							text = text.replace(" / ", "/");
+							if(text.length() > EYEvisBeschreibungMaxlength)
+							text = text.substring(0,EYEvisBeschreibungMaxlength - 1);
+						}
+						hstExcelwerte.put("Beschreibung", new Excelfeld(de.nvbw.bfrk.base.Excelfeld.Datentyp.Text, 
+							text, 
+							ExportNachEYEvisObjektpruefung.unsicherFarbstyle));
+						hstcsvzeile.append(text);
+					}
+					hstcsvzeile.append(";");
+	
+					hstExcelwerte.put("lat", new Excelfeld(de.nvbw.bfrk.base.Excelfeld.Datentyp.Text, 
+							ExportNachEYEvisObjektpruefung.Textausgabe("" + hstMerkmale.get(BFRKFeld.Name.HST_Soll_Lat).getZahlWert()), 
+							ExportNachEYEvisObjektpruefung.okFarbstyle));
+					hstcsvzeile.append(ExportNachEYEvisObjektpruefung.Textausgabe("" + hstMerkmale.get(BFRKFeld.Name.HST_Soll_Lat).getZahlWert()));
+					hstcsvzeile.append(";");
+	
+					hstExcelwerte.put("lon", new Excelfeld(de.nvbw.bfrk.base.Excelfeld.Datentyp.Text, 
+						ExportNachEYEvisObjektpruefung.Textausgabe("" + hstMerkmale.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert()), 
+						ExportNachEYEvisObjektpruefung.okFarbstyle));
+					hstcsvzeile.append(ExportNachEYEvisObjektpruefung.Textausgabe("" + hstMerkmale.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert()));
+	
+					schreibeExcelZeile(sheetname, naechsteZeilennrMap.get(sheetname), hstExcelwerte);
+					naechsteZeilennrMap.put(sheetname, 1 + naechsteZeilennrMap.get(sheetname));
+					haltestellenobjektVorhanden = true;
+
+					eyevisCSVOutput.append(hstcsvzeile.toString() + "\r\n");
+				}
+			
 			} // Ende über alle Haltstellenobjekte (normalerweise genau 1)
 
 

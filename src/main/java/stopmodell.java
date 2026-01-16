@@ -147,10 +147,11 @@ public class stopmodell extends HttpServlet {
 		int dbrelease = 0;
 		int dbmayorversion = 0;
 		int dbminorversion = 0;
+		long dbid = 0;
 		PreparedStatement selectneuestesModellStmt = null;
 		try {
 				// ==================== ermitteln der neuesten Version (ggfs. gibt es auch gar keine Version) =========================
-			String selectneuestesModellSql = "SELECT release, mayorversion, minorversion FROM objektmodell "
+			String selectneuestesModellSql = "SELECT id, release, mayorversion, minorversion FROM objektmodell "
 				+ "WHERE dhid = ? ORDER BY release ASC, mayorversion ASC, minorversion ASC;";
 
 			selectneuestesModellStmt = bfrkConn.prepareStatement(selectneuestesModellSql);
@@ -160,11 +161,17 @@ public class stopmodell extends HttpServlet {
 			ResultSet selectneuestesModellRS = selectneuestesModellStmt.executeQuery();
 
 			while(selectneuestesModellRS.next()) {
+				dbid = selectneuestesModellRS.getLong("id");
 				dbrelease = selectneuestesModellRS.getInt("release");
 				dbmayorversion = selectneuestesModellRS.getInt("mayorversion");
 				dbminorversion = selectneuestesModellRS.getInt("minorversion");
-				if((dbrelease == release) && (dbmayorversion == mayorversion) && (dbminorversion == minorversion))
-					break;
+				if((release != 0) || (mayorversion != 0) || (minorversion != 0)) {
+					System.out.println("ok, es wurde ein spezielle Version abgefragt: " + release + "/" + mayorversion + "/" + minorversion);
+					if((dbrelease == release) && (dbmayorversion == mayorversion) && (dbminorversion == minorversion)) {
+						System.out.println("ok, die speziell abgefragte Version wurde gefunden, sie hat DB-Id: " + dbid);
+						break;
+					}
+				}
 			}
 			selectneuestesModellRS.close();
 			selectneuestesModellStmt.close();
@@ -181,6 +188,8 @@ public class stopmodell extends HttpServlet {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
+
+		System.out.println("nach Select auf objektmodell gefundende Version: " + dbrelease + "/" + dbmayorversion + "/" + dbminorversion);
 
 		release = dbrelease;
 		mayorversion = dbmayorversion;

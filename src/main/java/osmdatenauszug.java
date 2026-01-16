@@ -1,4 +1,5 @@
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -8,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.io.OutputStream;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -57,18 +59,54 @@ public class osmdatenauszug extends HttpServlet {
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		DateFormat datetime_dateistempel_formatter = new SimpleDateFormat("yyyyMMdd_HHmmss");
 
-		response.setContentType("text/xml");
-		response.setCharacterEncoding("UTF-8");
 		response.setHeader("Access-Control-Allow-Origin", "*");
 		response.setHeader("Access-Control-Allow-Methods", "GET");
 		response.setHeader("Access-Control-Allow-Headers", "*");
 
+		
 			// ==================== Parameter auslesen =========================
 		double links = 0;
 		double rechts = 0;
 		double oben = 0;
 		double unten = 0;
+		String osmextension = "osm";
+		String contenttype = "text/xml";
+		String characterencoding = "UTF-8";
+		if(request.getHeader("accept") != null) {
+			System.out.println("Request Header accept vorhanden ===" + request.getHeader("accept") + "===");
+			if(request.getHeader("accept").contains("application/x-protobuf")) {
+				osmextension = "pbf";
+				contenttype = "application/x-protobuf";
+				characterencoding = "";
+			}
+		}
+		NVBWLogger.info("gesetzte OSM-Extension: " + osmextension);
+		response.setContentType(contenttype);
+		if(!characterencoding.isEmpty())
+			response.setCharacterEncoding(characterencoding);
+
 		try {
+				// Abruf nur mit accesstoken erlaubt, sonst Fehler-Abbruch
+/*			String accesstoken = "";
+			if(request.getHeader("accesstoken") == null) {
+				JSONObject ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "Pflicht Header accesstoken fehlt");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+				return;
+			} else {
+			System.out.println("Request Header accesstoken vorhanden ===" + request.getHeader("accesstoken") + "===");
+			accesstoken = request.getHeader("accesstoken");
+			if(accesstoken.isEmpty()) {
+				JSONObject ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "Authentifizierung fehlgeschlagen, weil Header accesstoken leer ist");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+				return;
+			}
+*/
 			if(request.getParameter("links") != null) {
 				System.out.println("url-Parameter links vorhanden ===" + request.getParameter("links"));
 				links = Double.parseDouble(request.getParameter("links"));
@@ -96,7 +134,7 @@ public class osmdatenauszug extends HttpServlet {
 		}
 
 		Date jetzt = new Date();
-		String filename = datetime_dateistempel_formatter.format(jetzt) + ".osm";
+		String filename = datetime_dateistempel_formatter.format(jetzt) + "." + osmextension;
 		String workingdir = "/home/NVBWAdmin/tomcat-deployment/bfrk_api_home/openstreetmap";
 		File workingdirHandle = new File(workingdir);
 		String programm = "osmiumextract.sh";
@@ -137,34 +175,22 @@ public class osmdatenauszug extends HttpServlet {
 			return;
 		}
 			
-			
-			// wenn von Osmium eine extract-Datei herauskam, als http-Response bereitstellen
-		StringBuilder content = new StringBuilder();
+		response.setContentLengthLong(outputdateiHandle.length());
+		response.setHeader("Content-Disposition", "attachment; filename=\"auszug.osm.pbf\"");
 
-		try {
-			BufferedReader  dateireader = new BufferedReader(new InputStreamReader(
-				new FileInputStream(outputdateiHandle), 
-				StandardCharsets.UTF_8));
+	    // Datei auslesen und in Response schreiben
+        try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(outputdateiHandle));
+             OutputStream out = response.getOutputStream()) {
 
-			String line = "";
-			while ((line = dateireader.readLine()) != null) {
-				content.append(line + "\r\n");
-			}
-			dateireader.close();
-			NVBWLogger.info("OSM-Outputdatei Länge: " + content.length());
-		} catch (IOException ioe) {
-			NVBWLogger.warning("Fehler bei Datei lesen " + outputdateiHandle.getAbsolutePath());
-			NVBWLogger.warning(ioe.toString());
-			String fehlertext = "Der OSM-Dateiauszug ist nicht lesbar";
-			JSONObject ergebnisJsonObject = new JSONObject();
-			ergebnisJsonObject.put("status", "fehler");
-			ergebnisJsonObject.put("fehlertext", fehlertext);
-			response.getWriter().append(ergebnisJsonObject.toString());
-			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-			return;
-		}
+            byte[] buffer = new byte[2 * 8192];
+            int bytesRead;
 
-		response.getWriter().append(content.toString());
+            while ((bytesRead = in.read(buffer)) != -1) {
+                out.write(buffer, 0, bytesRead);
+            }
+        }
+
+		
 		response.setStatus(HttpServletResponse.SC_OK);
 		return;
 	}

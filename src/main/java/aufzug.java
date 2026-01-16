@@ -1,6 +1,5 @@
 
 import java.io.IOException;
-import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -20,11 +19,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import de.nvbw.base.NVBWLogger;
-import de.nvbw.bfrk.base.BFRKFeld;
 import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
 import de.nvbw.bfrk.util.OpenStreetMap;
-import de.nvbw.bfrk.util.ReaderBase;
 
 
 /**

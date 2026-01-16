@@ -1,10 +1,6 @@
 
 import java.io.IOException;
-import java.net.URLDecoder;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -15,10 +11,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 
-import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.DBVerbindung;
 import de.nvbw.diva.graph.Grapherzeugung;
 
@@ -93,6 +87,7 @@ public class status extends HttpServlet {
 		String grapherzeugungversion = Grapherzeugung.getVersion();
 		merkmaleJsonObject.put("Grapherzeugung Programmversion", grapherzeugungversion);
 
+		merkmaleJsonObject.put("BFRK-API manuell gesetzte Programmversion", "20251027-220700");
 		response.getWriter().append(merkmaleJsonObject.toString());
 
 		response.setStatus(HttpServletResponse.SC_OK);

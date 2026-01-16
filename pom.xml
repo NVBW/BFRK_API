@@ -2,9 +2,11 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>BFRK_API</groupId>
   <artifactId>bfrk_api</artifactId>
-  <version>20251007-snapshot</version>
+  <version>20260106-snapshot</version>
   <packaging>war</packaging>
   <properties>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
     <maven.dependency.version>3.1.1</maven.dependency.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -17,10 +19,12 @@
           <version>3.0.2</version>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.1</version>
+        <version>3.11.0</version>
         <configuration>
           <release>17</release>
+          <target>17</target>
         </configuration>
       </plugin>
        <plugin>
@@ -29,6 +33,7 @@
       </plugin>
       <plugin>
         <!-- Build an WAR File with all dependencies -->
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-war-plugin</artifactId>
         <version>3.4.0</version>
         <configuration>
@@ -81,19 +86,21 @@
         <version>3.4.0</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api -->
-    <!--<dependency>
+    <dependency>
         <groupId>javax.servlet</groupId>
         <artifactId>javax.servlet-api</artifactId>
         <version>4.0.1</version>
         <scope>provided</scope>
-    </dependency>-->
+    </dependency>
     <!-- https://mvnrepository.com/artifact/jakarta.servlet/jakarta.servlet-api -->
-    <dependency>
+    <!-- Jakarta Servlet deaktiviert, ist laut chatgpt erst ab Tomcat 10 -->
+<!--    <dependency>
       <groupId>jakarta.servlet</groupId>
       <artifactId>jakarta.servlet-api</artifactId>
       <version>6.0.0</version>
       <scope>provided</scope>
     </dependency>
+-->
     <!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
     <dependency>
         <groupId>org.apache.logging.log4j</groupId>
@@ -233,7 +240,7 @@
       <dependency>
       	<groupId>Divagraph</groupId>
       	<artifactId>Divagraph</artifactId>
-      	<version>20251007-Divagraph-SNAPSHOT</version>
+      	<version>20251126-Divagraph-SNAPSHOT</version>
       </dependency>
   </dependencies>
     <organization>
