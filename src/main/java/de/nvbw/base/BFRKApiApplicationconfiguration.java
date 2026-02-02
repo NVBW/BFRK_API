@@ -24,9 +24,9 @@ public class BFRKApiApplicationconfiguration extends Applicationconfiguration {
 		System.out.println("current dir, is it good?   ===" + userdir);
 		
 		if(File.separator.equals("\\"))
-			configuration_filename = "C:\\Users\\SEI\\eclipse-workspace\\BFRK_API\\bfrk_api.properties";
+			configuration_filename = "C:\\Users\\SEI\\eclipse-workspace\\BFRK_API\\bfrk_api_testing.properties";
 		else
-			configuration_filename = "/home/NVBWAdmin/tomcat-deployment/bfrk_api_home/bfrk_api.properties"; 
+			configuration_filename = "/home/NVBWAdmin/tomcat-deployment/bfrk_api_testing_home/bfrk_api_testing.properties"; 
 
 		if(debugoutput)
 			System.out.println("configuration_filename ===" + configuration_filename+ "===");

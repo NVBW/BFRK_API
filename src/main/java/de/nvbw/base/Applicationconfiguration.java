@@ -35,18 +35,10 @@ public class Applicationconfiguration {
 		System.out.println("current dir, is it good?   ===" + userdir);
 		
 		// get some configuration infos
-/*		if(userdir.indexOf("tomcat") != -1) {
-			configuration_filename =  userdir + File.separator + "webapps" + File.separator + "bfrk_api.properties";
-			System.out.println("found tomcat in userdir");
-		} else if(path.length() > 2)
-			configuration_filename =  path + File.separator + "bfrk_api.properties";
-		else
-*/
-//		configuration_filename = "C:\\Users\\sei\\git\\BFRK_API\\bfrk_api.properties";
 		if(File.separator.equals("\\"))
-			configuration_filename = "C:\\Users\\SEI\\eclipse-workspace\\BFRK_API\\bfrk_api.properties";
+			configuration_filename = "C:\\Users\\SEI\\eclipse-workspace\\BFRK_API\\bfrk_api_testing.properties";
 		else
-			configuration_filename = "/home/NVBWAdmin/tomcat-deployment/bfrk_api_home/bfrk_api.properties"; 
+			configuration_filename = "/home/NVBWAdmin/tomcat-deployment/bfrk_api_testing_home/bfrk_api_testing.properties"; 
 
 		if(debugoutput)
 			System.out.println("configuration_filename ===" + configuration_filename+ "===");
