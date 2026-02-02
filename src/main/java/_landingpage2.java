@@ -53,7 +53,7 @@ public class _landingpage2 extends HttpServlet {
 		output.append("  </head>\r\n");
 		output.append("  <body>\r\n");
 		output.append("    <h1>BFRK-API</h1>\r\n");
-		output.append("    <p>Version 0.4.3\r\n");
+		output.append("    <p>Version 0.4.5\r\n");
 		output.append("    <h2>Dokumentation zur BFRK-API</h2>\r\n");
 		output.append("    <p>Die Dokumentation ist auf <a href=\"https://app.swaggerhub.com/apis/NVBWSeifert/BFRK_API\">Swaggerhub</a> einsehbar.</p>\r\n");
 		output.append("    <p>landingpage2 innerhalb Tomcat Servlet\r\n");

@@ -27,6 +27,7 @@ import org.json.JSONObject;
 import de.nvbw.base.BFRKApiApplicationconfiguration;
 import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.DBVerbindung;
+import de.nvbw.diva.graph.Graphaktualisierung;
 import de.nvbw.diva.graph.Grapherzeugung;
 
 
@@ -86,6 +87,8 @@ public class stopmodell extends HttpServlet {
 			System.out.println("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
 			dhid = request.getParameter("dhid");
 		}
+
+			// optional wurde eine spezielle Version angefordert
 		if(request.getParameter("release") != null) {
 			System.out.println("url-Parameter release vorhanden ===" + request.getParameter("release"));
 			try {
@@ -150,8 +153,8 @@ public class stopmodell extends HttpServlet {
 		long dbid = 0;
 		PreparedStatement selectneuestesModellStmt = null;
 		try {
-				// ==================== ermitteln der neuesten Version (ggfs. gibt es auch gar keine Version) =========================
-			String selectneuestesModellSql = "SELECT id, release, mayorversion, minorversion FROM objektmodell "
+				// ==================== ermitteln der neuesten Version =========================
+			String selectneuestesModellSql = "SELECT id, release, mayorversion, minorversion, benutzer FROM objektmodell "
 				+ "WHERE dhid = ? ORDER BY release ASC, mayorversion ASC, minorversion ASC;";
 
 			selectneuestesModellStmt = bfrkConn.prepareStatement(selectneuestesModellSql);
@@ -306,6 +309,7 @@ public class stopmodell extends HttpServlet {
 						insertModellStmt.execute();
 						insertModellStmt.close();
 
+							// Ergebnis verschicken und beenden
 						response.getWriter().append(modellJson.toString());
 						response.setStatus(HttpServletResponse.SC_OK);
 						return;
@@ -367,8 +371,9 @@ public class stopmodell extends HttpServlet {
 			}
 		}
 		
-		
-			// ==================== die neueste Version holen =========================
+			// ==================== hier angekommen, gibt es bereits eine gespeicherte Version und die wurde ermittelt ===================
+
+			// ==================== die neueste bzw. gewünschte Version holen =========================
 		try {
 			String selectModellSql = "SELECT dhid, release, mayorversion, minorversion, "
 				+ "benutzer, kommentar, content FROM objektmodell "
@@ -388,9 +393,12 @@ public class stopmodell extends HttpServlet {
 
 			JSONObject ergebnisJsonObject = new JSONObject();
 
+			String graphbenutzer = "";
 			if(selectModellRS.next()) {
+				graphbenutzer = selectModellRS.getString("benutzer");
 				String content = selectModellRS.getString("content");
 				ergebnisJsonObject = new JSONObject(content);
+				ergebnisJsonObject = Graphaktualisierung.aktualisiereBFRKObjekteImGraph(ergebnisJsonObject, release, mayorversion, minorversion, graphbenutzer);
 			} else {
 				String fehlertext = "unerwarteter Fehler aufgetreten beim Versuch, den Graphen zu holen";
 				ergebnisJsonObject.put("status", "fehler");
@@ -398,6 +406,7 @@ public class stopmodell extends HttpServlet {
 			}
 			selectModellRS.close();
 			selectModellStmt.close();
+
 
 			response.getWriter().append(ergebnisJsonObject.toString());
 			response.setStatus(HttpServletResponse.SC_OK);

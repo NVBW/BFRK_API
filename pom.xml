@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>BFRK_API</groupId>
   <artifactId>bfrk_api</artifactId>
-  <version>20260106-snapshot</version>
+  <version>20260116-snapshot</version>
   <packaging>war</packaging>
   <properties>
     <maven.compiler.source>17</maven.compiler.source>
@@ -23,8 +23,8 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.11.0</version>
         <configuration>
-          <release>17</release>
-          <target>17</target>
+          <release>${maven.compiler.source}</release>
+          <target>${maven.compiler.target}</target>
         </configuration>
       </plugin>
        <plugin>
@@ -240,7 +240,7 @@
       <dependency>
       	<groupId>Divagraph</groupId>
       	<artifactId>Divagraph</artifactId>
-      	<version>20251126-Divagraph-SNAPSHOT</version>
+      	<version>20260116-Divagraph-SNAPSHOT</version>
       </dependency>
   </dependencies>
     <organization>
