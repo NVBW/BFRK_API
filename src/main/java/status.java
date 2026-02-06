@@ -69,6 +69,9 @@ public class status extends HttpServlet {
 
 		merkmaleJsonObject.put("API Abfragezeitpunkt", datetime_de_formatter.format(jetzt));
 
+		String dbname = DBVerbindung.getDBName();
+		merkmaleJsonObject.put("DB-Name", dbname);
+
 		Date startzeitpunkt = DBVerbindung.getDBVerbindungsaufbauzeitpunkt();
 		merkmaleJsonObject.put("DB-Verbindungsaufbauzeitpunkt", datetime_de_formatter.format(startzeitpunkt));
 
