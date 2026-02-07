@@ -24,7 +24,7 @@ public class BFRKApiApplicationconfiguration extends Applicationconfiguration {
 		System.out.println("current dir, is it good?   ===" + userdir);
 		
 		if(File.separator.equals("\\"))
-			configuration_filename = "C:\\Users\\SEI\\IdeaProjects\\BFRK_API\\bfrk_api.properties";
+			configuration_filename = "C:\\Users\\SEI\\IdeaProjects\\BFRK_API\\bfrk_api-STAGING.properties";
 		else
 			configuration_filename = "/daten/NVBWAdmin/bfrk_api_home-STAGING/bfrk_api.properties";
 
