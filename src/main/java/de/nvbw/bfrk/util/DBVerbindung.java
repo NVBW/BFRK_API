@@ -20,7 +20,7 @@ public class DBVerbindung {
 	private static String dbnameoeffentlich = "";
 	
 	public DBVerbindung() {
-			internGetDBVerbindung();
+		internGetDBVerbindung();
 	}
 
 	private static void internGetDBVerbindung() {
@@ -49,13 +49,13 @@ public class DBVerbindung {
 			}
 		} 
 		catch(ClassNotFoundException e) {
-			System.out.println("ClassNotFoundException happend within init(), details follows"
+			System.out.println("ClassNotFoundException happened within init(), details follows"
 				+ " " + e.toString());
 			return;
 		}
 		catch( SQLException e) {
-			System.out.println("SQLException happened within init(), details follows ...");
-			System.out.println(e.toString());
+			System.out.println("SQLException happened within init(), Details: " +
+					e.toString());
 			return;
 		}    
 		return;
@@ -88,8 +88,7 @@ public class DBVerbindung {
 			resultset.close();
 			statement.close();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("in internGetDBName: SQLException aufgetreten, Details: " + e.toString());
 		}
 		return;
 	}
@@ -117,8 +116,7 @@ public class DBVerbindung {
 			resultset.close();
 			selectActiveTimeStmt.close();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("in getDBActiveTime: SQLException aufgetreten, Details: " + e.toString());
 		}
 		return activeTime;
 	}
@@ -142,7 +140,7 @@ public class DBVerbindung {
 				resultset.close();
 				selectmaxIDStmt.close();
 			} catch (SQLException e) {
-				System.out.println("SQL-Fehler: " + e.toString());
+				System.out.println("in gethoechsteTabellenID: SQLException aufgetreten, Details: " + e.toString());
 			}
 		}
 		return id;
