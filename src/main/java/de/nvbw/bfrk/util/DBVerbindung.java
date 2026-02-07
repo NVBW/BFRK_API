@@ -51,14 +51,14 @@ public class DBVerbindung {
 		catch(ClassNotFoundException e) {
 			System.out.println("ClassNotFoundException happend within init(), details follows"
 				+ " " + e.toString());
-			return null;
+			return;
 		}
 		catch( SQLException e) {
 			System.out.println("SQLException happened within init(), details follows ...");
 			System.out.println(e.toString());
-			return null;
+			return;
 		}    
-		return bfrkConn;
+		return;
 	}	
 
 	public static Connection getDBVerbindung() {
