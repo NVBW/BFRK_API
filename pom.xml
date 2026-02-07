@@ -1,8 +1,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>BFRK_API</groupId>
+  <groupId>de.nvbw.dm.ddoev</groupId>
   <artifactId>bfrk_api</artifactId>
-  <version>20260206-prod-snapshot</version>
+  <version>20260207-prod-snapshot</version>
   <packaging>war</packaging>
   <properties>
     <maven.compiler.source>17</maven.compiler.source>

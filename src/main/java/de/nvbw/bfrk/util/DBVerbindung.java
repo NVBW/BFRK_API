@@ -8,8 +8,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Date;
 
-import javax.servlet.ServletConfig;
-
 import de.nvbw.base.Applicationconfiguration;
 
 public class DBVerbindung {
@@ -46,7 +44,7 @@ public class DBVerbindung {
 				ReaderBase.setDBConnection(bfrkConn);
 				Bild.setDBConnection(bfrkConn);
 				dbVerbindungsaufbauzeitpunkt = new Date();
-				interngetDBName();
+				internGetDBName();
 			}
 		} 
 		catch(ClassNotFoundException e) {
@@ -70,7 +68,7 @@ public class DBVerbindung {
 		return dbVerbindungsaufbauzeitpunkt;
 	}
 	
-	private static void interngetDBName() {
+	private static void internGetDBName() {
 		String schluessel = "";
 		String wert = "";
 		String selectNameSql = "SELECT schluessel, wert FROM metadaten WHERE "
@@ -99,7 +97,7 @@ public class DBVerbindung {
 		return dbname;
 	}
 	
-	public static String tDBNameOeffentlich() {
+	public static String getDbnameoeffentlich() {
 		return dbnameoeffentlich;
 	}
 
