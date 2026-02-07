@@ -20,6 +20,7 @@ public class DBVerbindung {
 	private static String dbnameoeffentlich = "";
 	
 	public DBVerbindung() {
+		System.out.println("bin im DBVerbindung/constructor zu Beginn ...");
 		internGetDBVerbindung();
 	}
 
@@ -62,6 +63,10 @@ public class DBVerbindung {
 	}	
 
 	public static Connection getDBVerbindung() {
+		System.out.println("in Methode getDBVerbindung ...");
+		if(bfrkConn == null)
+			internGetDBVerbindung();
+		System.out.println(" ist die Variable bfrkConn: " + bfrkConn.toString());
 		return bfrkConn;
 	}
 
@@ -76,13 +81,14 @@ public class DBVerbindung {
 			+ "schluessel in ('dbnameöffentlich', 'dbname');";
 		try {
 			Statement statement = bfrkConn.createStatement();
+			System.out.println("innternGetDBName: " + statement.toString());
 			ResultSet resultset = statement.executeQuery(selectNameSql);
-			if(resultset.next()) {
+			while(resultset.next()) {
 				schluessel = resultset.getString("schluessel");
 				wert = resultset.getString("wert");
 				if(schluessel.equals("dbname"))
 					dbname = wert;
-				else if(schluessel.equals("dbnameoeffentlich"))
+				if(schluessel.equals("dbnameöffentlich"))
 					dbnameoeffentlich = wert;
 			}
 			resultset.close();
@@ -108,12 +114,12 @@ public class DBVerbindung {
 			PreparedStatement selectActiveTimeStmt = bfrkConn.prepareStatement(selectActiveTimeSql);
 			int stmtindex = 1;
 			selectActiveTimeStmt.setString(stmtindex++, dbname);
-			
-			ResultSet resultset = selectActiveTimeStmt.executeQuery(selectActiveTimeSql);
-			if(resultset.next()) {
-				activeTime = resultset.getDouble("active_time");
+
+			ResultSet selectActiveTimeRs = selectActiveTimeStmt.executeQuery();
+			if(selectActiveTimeRs.next()) {
+				activeTime = selectActiveTimeRs.getDouble("active_time");
 			}
-			resultset.close();
+			selectActiveTimeRs.close();
 			selectActiveTimeStmt.close();
 		} catch (SQLException e) {
 			System.out.println("in getDBActiveTime: SQLException aufgetreten, Details: " + e.toString());
