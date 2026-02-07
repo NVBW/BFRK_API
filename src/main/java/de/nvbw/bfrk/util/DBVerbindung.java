@@ -8,8 +8,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Date;
 
-import javax.servlet.ServletConfig;
-
 import de.nvbw.base.Applicationconfiguration;
 
 public class DBVerbindung {
@@ -17,8 +15,14 @@ public class DBVerbindung {
 	private static Applicationconfiguration configuration = null;
 
 	private static Date dbVerbindungsaufbauzeitpunkt = null;
-	
-	public static Connection getDBVerbindung() {
+	private static String dbname = "";
+	private static String dbnameoeffentlich = "";
+
+	public DBVerbindung() {
+		internGetDBVerbindung();
+	}
+
+	private static Connection internGetDBVerbindung() {
 		System.out.println("in DBVerbindung Constructor zu Beginn: " + new Date());
 	
 		configuration = new Applicationconfiguration();
@@ -40,6 +44,7 @@ public class DBVerbindung {
 				ReaderBase.setDBConnection(bfrkConn);
 				Bild.setDBConnection(bfrkConn);
 				dbVerbindungsaufbauzeitpunkt = new Date();
+				internGetDBName();
 			}
 		} 
 		catch(ClassNotFoundException e) {
@@ -55,21 +60,61 @@ public class DBVerbindung {
 		return bfrkConn;
 	}	
 
+	public static Connection getDBVerbindung() {
+		return bfrkConn;
+	}
+
 	public static Date getDBVerbindungsaufbauzeitpunkt() {
 		return dbVerbindungsaufbauzeitpunkt;
 	}
 	
-	public static double getDBActiveTime() {
-		double activeTime = 0;
-		String selectActiveTimeSql = "SELECT active_time from pg_stat_database WHERE datname = 'bfrk';";
+	private static void internGetDBName() {
+		String schluessel = "";
+		String wert = "";
+		String selectNameSql = "SELECT schluessel, wert FROM metadaten WHERE "
+			+ "schluessel in ('dbnameöffentlich', 'dbname');";
 		try {
 			Statement statement = bfrkConn.createStatement();
-			ResultSet resultset = statement.executeQuery(selectActiveTimeSql);
+			ResultSet resultset = statement.executeQuery(selectNameSql);
+			if(resultset.next()) {
+				schluessel = resultset.getString("schluessel");
+				wert = resultset.getString("wert");
+				if(schluessel.equals("dbname"))
+					dbname = wert;
+				else if(schluessel.equals("dbnameoeffentlich"))
+					dbnameoeffentlich = wert;
+			}
+			resultset.close();
+			statement.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return;
+	}
+
+	public static String getDBName() {
+		return dbname;
+	}
+
+	public static String getDbnameoeffentlich() {
+		return dbnameoeffentlich;
+	}
+
+	public static double getDBActiveTime() {
+		double activeTime = 0;
+		String selectActiveTimeSql = "SELECT active_time from pg_stat_database WHERE datname = ?;";
+		try {
+			PreparedStatement selectActiveTimeStmt = bfrkConn.prepareStatement(selectActiveTimeSql);
+			int stmtindex = 1;
+			selectActiveTimeStmt.setString(stmtindex++, dbname);
+
+			ResultSet resultset = selectActiveTimeStmt.executeQuery(selectActiveTimeSql);
 			if(resultset.next()) {
 				activeTime = resultset.getDouble("active_time");
 			}
 			resultset.close();
-			statement.close();
+			selectActiveTimeStmt.close();
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
