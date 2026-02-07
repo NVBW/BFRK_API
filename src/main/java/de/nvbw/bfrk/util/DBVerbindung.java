@@ -9,6 +9,7 @@ import java.sql.Statement;
 import java.util.Date;
 
 import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.NVBWLogger;
 
 public class DBVerbindung {
     private static Connection bfrkConn = null;
@@ -19,10 +20,11 @@ public class DBVerbindung {
 	private static String dbnameoeffentlich = "";
 
 	public DBVerbindung() {
+		System.out.println("bin im DBVerbindung/constructor zu Beginn ...");
 		internGetDBVerbindung();
 	}
 
-	private static Connection internGetDBVerbindung() {
+	private static void internGetDBVerbindung() {
 		System.out.println("in DBVerbindung Constructor zu Beginn: " + new Date());
 	
 		configuration = new Applicationconfiguration();
@@ -48,19 +50,23 @@ public class DBVerbindung {
 			}
 		} 
 		catch(ClassNotFoundException e) {
-			System.out.println("ClassNotFoundException happend within init(), details follows"
+			System.out.println("ClassNotFoundException happened within init(), details follows"
 				+ " " + e.toString());
-			return null;
+			return;
 		}
 		catch( SQLException e) {
-			System.out.println("SQLException happened within init(), details follows ...");
-			System.out.println(e.toString());
-			return null;
+			System.out.println("SQLException happened within init(), Details: " +
+					e.toString());
+			return;
 		}    
-		return bfrkConn;
+		return;
 	}	
 
 	public static Connection getDBVerbindung() {
+		System.out.println("in Methode getDBVerbindung ...");
+		if(bfrkConn == null)
+			internGetDBVerbindung();
+		System.out.println(" ist die Variable bfrkConn: " + bfrkConn.toString());
 		return bfrkConn;
 	}
 
@@ -75,20 +81,20 @@ public class DBVerbindung {
 			+ "schluessel in ('dbnameöffentlich', 'dbname');";
 		try {
 			Statement statement = bfrkConn.createStatement();
+			System.out.println("innternGetDBName: " + statement.toString());
 			ResultSet resultset = statement.executeQuery(selectNameSql);
-			if(resultset.next()) {
+			while(resultset.next()) {
 				schluessel = resultset.getString("schluessel");
 				wert = resultset.getString("wert");
 				if(schluessel.equals("dbname"))
 					dbname = wert;
-				else if(schluessel.equals("dbnameoeffentlich"))
+				if(schluessel.equals("dbnameöffentlich"))
 					dbnameoeffentlich = wert;
 			}
 			resultset.close();
 			statement.close();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("in internGetDBName: SQLException aufgetreten, Details: " + e.toString());
 		}
 		return;
 	}
@@ -109,15 +115,14 @@ public class DBVerbindung {
 			int stmtindex = 1;
 			selectActiveTimeStmt.setString(stmtindex++, dbname);
 
-			ResultSet resultset = selectActiveTimeStmt.executeQuery(selectActiveTimeSql);
-			if(resultset.next()) {
-				activeTime = resultset.getDouble("active_time");
+			ResultSet selectActiveTimeRs = selectActiveTimeStmt.executeQuery();
+			if(selectActiveTimeRs.next()) {
+				activeTime = selectActiveTimeRs.getDouble("active_time");
 			}
-			resultset.close();
+			selectActiveTimeRs.close();
 			selectActiveTimeStmt.close();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("in getDBActiveTime: SQLException aufgetreten, Details: " + e.toString());
 		}
 		return activeTime;
 	}
@@ -141,7 +146,7 @@ public class DBVerbindung {
 				resultset.close();
 				selectmaxIDStmt.close();
 			} catch (SQLException e) {
-				System.out.println("SQL-Fehler: " + e.toString());
+				System.out.println("in gethoechsteTabellenID: SQLException aufgetreten, Details: " + e.toString());
 			}
 		}
 		return id;
