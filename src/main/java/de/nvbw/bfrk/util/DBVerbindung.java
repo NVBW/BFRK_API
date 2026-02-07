@@ -9,6 +9,7 @@ import java.sql.Statement;
 import java.util.Date;
 
 import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.NVBWLogger;
 
 public class DBVerbindung {
     private static Connection bfrkConn = null;
@@ -19,10 +20,10 @@ public class DBVerbindung {
 	private static String dbnameoeffentlich = "";
 	
 	public DBVerbindung() {
-		internGetDBVerbindung();
+			internGetDBVerbindung();
 	}
 
-	private static Connection internGetDBVerbindung() {
+	private static void internGetDBVerbindung() {
 		System.out.println("in DBVerbindung Constructor zu Beginn: " + new Date());
 	
 		configuration = new Applicationconfiguration();
