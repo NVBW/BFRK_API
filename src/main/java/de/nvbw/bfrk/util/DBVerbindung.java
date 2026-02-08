@@ -18,7 +18,7 @@ public class DBVerbindung {
 	private static Date dbVerbindungsaufbauzeitpunkt = null;
 	private static String dbname = "";
 	private static String dbnameoeffentlich = "";
-	
+
 	public DBVerbindung() {
 		System.out.println("bin im DBVerbindung/constructor zu Beginn ...");
 		internGetDBVerbindung();
@@ -60,7 +60,7 @@ public class DBVerbindung {
 			return;
 		}    
 		return;
-	}	
+	}
 
 	public static Connection getDBVerbindung() {
 		System.out.println("in Methode getDBVerbindung ...");
@@ -98,11 +98,11 @@ public class DBVerbindung {
 		}
 		return;
 	}
-	
+
 	public static String getDBName() {
 		return dbname;
 	}
-	
+
 	public static String getDbnameoeffentlich() {
 		return dbnameoeffentlich;
 	}
