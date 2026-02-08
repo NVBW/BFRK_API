@@ -8,17 +8,23 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Date;
 
-import javax.servlet.ServletConfig;
-
 import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.NVBWLogger;
 
 public class DBVerbindung {
     private static Connection bfrkConn = null;
 	private static Applicationconfiguration configuration = null;
 
 	private static Date dbVerbindungsaufbauzeitpunkt = null;
-	
-	public static Connection getDBVerbindung() {
+	private static String dbname = "";
+	private static String dbnameoeffentlich = "";
+
+	public DBVerbindung() {
+		System.out.println("bin im DBVerbindung/constructor zu Beginn ...");
+		internGetDBVerbindung();
+	}
+
+	private static void internGetDBVerbindung() {
 		System.out.println("in DBVerbindung Constructor zu Beginn: " + new Date());
 	
 		configuration = new Applicationconfiguration();
@@ -40,39 +46,83 @@ public class DBVerbindung {
 				ReaderBase.setDBConnection(bfrkConn);
 				Bild.setDBConnection(bfrkConn);
 				dbVerbindungsaufbauzeitpunkt = new Date();
+				internGetDBName();
 			}
 		} 
 		catch(ClassNotFoundException e) {
-			System.out.println("ClassNotFoundException happend within init(), details follows"
+			System.out.println("ClassNotFoundException happened within init(), details follows"
 				+ " " + e.toString());
-			return null;
+			return;
 		}
 		catch( SQLException e) {
-			System.out.println("SQLException happened within init(), details follows ...");
-			System.out.println(e.toString());
-			return null;
+			System.out.println("SQLException happened within init(), Details: " +
+					e.toString());
+			return;
 		}    
+		return;
+	}
+
+	public static Connection getDBVerbindung() {
+		System.out.println("in Methode getDBVerbindung ...");
+		if(bfrkConn == null)
+			internGetDBVerbindung();
+		System.out.println(" ist die Variable bfrkConn: " + bfrkConn.toString());
 		return bfrkConn;
-	}	
+	}
 
 	public static Date getDBVerbindungsaufbauzeitpunkt() {
 		return dbVerbindungsaufbauzeitpunkt;
 	}
 	
-	public static double getDBActiveTime() {
-		double activeTime = 0;
-		String selectActiveTimeSql = "SELECT active_time from pg_stat_database WHERE datname = 'bfrk';";
+	private static void internGetDBName() {
+		String schluessel = "";
+		String wert = "";
+		String selectNameSql = "SELECT schluessel, wert FROM metadaten WHERE "
+			+ "schluessel in ('dbnameöffentlich', 'dbname');";
 		try {
 			Statement statement = bfrkConn.createStatement();
-			ResultSet resultset = statement.executeQuery(selectActiveTimeSql);
-			if(resultset.next()) {
-				activeTime = resultset.getDouble("active_time");
+			System.out.println("innternGetDBName: " + statement.toString());
+			ResultSet resultset = statement.executeQuery(selectNameSql);
+			while(resultset.next()) {
+				schluessel = resultset.getString("schluessel");
+				wert = resultset.getString("wert");
+				if(schluessel.equals("dbname"))
+					dbname = wert;
+				if(schluessel.equals("dbnameöffentlich"))
+					dbnameoeffentlich = wert;
 			}
 			resultset.close();
 			statement.close();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("in internGetDBName: SQLException aufgetreten, Details: " + e.toString());
+		}
+		return;
+	}
+
+	public static String getDBName() {
+		return dbname;
+	}
+
+	public static String getDbnameoeffentlich() {
+		return dbnameoeffentlich;
+	}
+
+	public static double getDBActiveTime() {
+		double activeTime = 0;
+		String selectActiveTimeSql = "SELECT active_time from pg_stat_database WHERE datname = ?;";
+		try {
+			PreparedStatement selectActiveTimeStmt = bfrkConn.prepareStatement(selectActiveTimeSql);
+			int stmtindex = 1;
+			selectActiveTimeStmt.setString(stmtindex++, dbname);
+
+			ResultSet selectActiveTimeRs = selectActiveTimeStmt.executeQuery();
+			if(selectActiveTimeRs.next()) {
+				activeTime = selectActiveTimeRs.getDouble("active_time");
+			}
+			selectActiveTimeRs.close();
+			selectActiveTimeStmt.close();
+		} catch (SQLException e) {
+			System.out.println("in getDBActiveTime: SQLException aufgetreten, Details: " + e.toString());
 		}
 		return activeTime;
 	}
@@ -96,7 +146,7 @@ public class DBVerbindung {
 				resultset.close();
 				selectmaxIDStmt.close();
 			} catch (SQLException e) {
-				System.out.println("SQL-Fehler: " + e.toString());
+				System.out.println("in gethoechsteTabellenID: SQLException aufgetreten, Details: " + e.toString());
 			}
 		}
 		return id;

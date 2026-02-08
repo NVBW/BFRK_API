@@ -21,13 +21,15 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import de.nvbw.graph.Grapherzeugung;
 import de.nvbw.base.BFRKApiApplicationconfiguration;
 import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.DBVerbindung;
-import de.nvbw.diva.graph.Grapherzeugung;
 
 
 
@@ -212,16 +214,9 @@ public class stopmodell extends HttpServlet {
 			File outputdateiHandle = new File(outputdatei);
 			if(outputdateiHandle.exists())
 				outputdateiHandle.delete();
-			
-			String args[] = new String[6];
-			int argsindex = 0;
-			args[argsindex++] = "-dhid";
-			args[argsindex++] = dhid;
-			args[argsindex++] = "-kanten";
-			args[argsindex++] = "leer";
-			args[argsindex++] = "-ausgabedatei";
-			args[argsindex++] = outputdatei;
-			JSONObject graphresultJson = Grapherzeugung.execute(args);
+
+			JSONObject graphresultJson = Grapherzeugung.execute(dhid, false,
+					outputdatei);
 
 			try {
 				if(graphresultJson != null) {
