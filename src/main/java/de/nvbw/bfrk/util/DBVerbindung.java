@@ -60,7 +60,7 @@ public class DBVerbindung {
 			return;
 		}    
 		return;
-	}	
+	}
 
 	public static Connection getDBVerbindung() {
 		System.out.println("in Methode getDBVerbindung ...");
