@@ -15,16 +15,16 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.imaging.ImageReadException;
 import org.apache.commons.imaging.Imaging;
+import org.apache.commons.imaging.ImagingException;
 import org.apache.commons.imaging.common.ImageMetadata;
 import org.apache.commons.imaging.common.ImageMetadata.ImageMetadataItem;
 import org.apache.commons.imaging.formats.jpeg.JpegImageMetadata;
-import org.apache.commons.imaging.formats.tiff.TiffImageMetadata;
 
 import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.base.BFRKFeld;
 import de.nvbw.base.Applicationconfiguration;
+import org.apache.commons.imaging.formats.tiff.TiffImageMetadata;
 
 public class ReaderBase {
 	public static enum Datentyp {Boolean, Numeric, String};
@@ -291,13 +291,12 @@ public class ReaderBase {
 
 	/**
 	 * am 05.02.2025 von BFRK-Repo Klasse EYEvisBilderMetadaten2BFRKDB Klasse geholt
-	 * @param file
+	 * @param
 	 * @return lon und lat in einem Array[2], 7stellig Nachkomma-gekürzt. Wenn ein Fehler aufgetreten ist, wird null zurückgegeben
-	 * @throws ImageReadException
+	 * @throws ImagingException
 	 * @throws IOException
 	 */
-	public static List<Double> getBildEXIFGPSKoordinaten(String dateiname) throws ImageReadException,
-    IOException {
+	public static List<Double> getBildEXIFGPSKoordinaten(String dateiname) throws ImagingException, IOException {
 	    List<Double> returnArray = new ArrayList<>();
 	
 	    File file = new File(dateiname);
@@ -338,7 +337,7 @@ public class ReaderBase {
 	        // simple interface to GPS data
 	        final TiffImageMetadata exifMetadata = jpegMetadata.getExif();
 	        if (null != exifMetadata) {
-	            final TiffImageMetadata.GPSInfo gpsInfo = exifMetadata.getGPS();
+	            final TiffImageMetadata.GpsInfo gpsInfo = exifMetadata.getGpsInfo();
 	            if (null != gpsInfo) {
 	                double longitude = gpsInfo.getLongitudeAsDegreesEast();
 	                double latitude = gpsInfo.getLatitudeAsDegreesNorth();
@@ -358,12 +357,12 @@ public class ReaderBase {
 
 		/**
 		 * am 05.02.2025 von BFRK-Repo Klasse EYEvisBilderMetadaten2BFRKDB Klasse geholt
-		 * @param file
+		 * @param
 		 * @return
-		 * @throws ImageReadException
+		 * @throws ImagingException
 		 * @throws IOException
 		 */
-	public static String getBildEXIFItem(String dateiname, String tag) throws ImageReadException,
+	public static String getBildEXIFItem(String dateiname, String tag) throws ImagingException,
     IOException {
 		
 		File file = new File(dateiname);

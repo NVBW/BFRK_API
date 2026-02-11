@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.imaging.ImageReadException;
+import org.apache.commons.imaging.ImagingException;
 import org.apache.commons.imaging.Imaging;
 import org.apache.commons.imaging.common.ImageMetadata;
 import org.apache.commons.imaging.formats.jpeg.JpegImageMetadata;
@@ -533,7 +533,7 @@ public class OpenDataCSVExportwriter{
 	}
 
 
-	public static List<Double> getEXIFGPSKoordinaten(final File file) throws ImageReadException,
+	public static List<Double> getEXIFGPSKoordinaten(final File file) throws ImagingException,
     IOException {
 	    List<Double> returnArray = new ArrayList<>();
 	
@@ -555,7 +555,7 @@ public class OpenDataCSVExportwriter{
 	        // simple interface to GPS data
 	        final TiffImageMetadata exifMetadata = jpegMetadata.getExif();
 	        if (null != exifMetadata) {
-	            final TiffImageMetadata.GPSInfo gpsInfo = exifMetadata.getGPS();
+	            final TiffImageMetadata.GpsInfo gpsInfo = exifMetadata.getGpsInfo();
 	            if (null != gpsInfo) {
 	                double longitude = gpsInfo.getLongitudeAsDegreesEast();
 	                double latitude = gpsInfo.getLatitudeAsDegreesNorth();
@@ -2062,7 +2062,7 @@ public class OpenDataCSVExportwriter{
 
 	/**
 	 * Stand: an Merkmale vom 7.9. angepasst; Felder definiert; Open-Data Dokumentation aktuell
-	 * @param steigDaten
+	 * @param
 	 * @return
 	 */
 	public String printBikeRide(Map<Name, BFRKFeld> hstmerkmale, Map<Name, BFRKFeld> objektmerkmale) {
@@ -2287,7 +2287,7 @@ public class OpenDataCSVExportwriter{
 	
 	/**
 	 * Stand: 
-	 * @param steigDaten
+	 * @param
 	 * @return
 	 */
 	public String printDefibrillator(Map<Name, BFRKFeld> hstmerkmale) {
@@ -2429,7 +2429,7 @@ public class OpenDataCSVExportwriter{
 	
 	/**
 	 * Stand: 
-	 * @param steigDaten
+	 * @param
 	 * @return
 	 */
 	public String printEngstelle(Map<Name, BFRKFeld> hstmerkmale, Map<Name, BFRKFeld> objektmerkmale) {
@@ -2757,7 +2757,7 @@ public class OpenDataCSVExportwriter{
 	
 	/**
 	 * Stand: 
-	 * @param steigDaten
+	 * @param
 	 * @return
 	 */
 	public String printGleisquerung(Map<Name, BFRKFeld> hstmerkmale, Map<Name, BFRKFeld> objektmerkmale) {
@@ -2916,7 +2916,7 @@ public class OpenDataCSVExportwriter{
 	
 	/**
 	 * Stand: 
-	 * @param steigDaten
+	 * @param
 	 * @return
 	 */
 	public String printInfostelle(Map<Name, BFRKFeld> hstmerkmale, Map<Name, BFRKFeld> objektmerkmale) {
@@ -3090,7 +3090,7 @@ public class OpenDataCSVExportwriter{
 	
 	/**
 	 * Stand: 
-	 * @param steigDaten
+	 * @param
 	 * @return
 	 */
 	public String printLeihradanlage(Map<Name, BFRKFeld> hstmerkmale, Map<Name, BFRKFeld> objektmerkmale) {
