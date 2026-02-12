@@ -26,7 +26,6 @@ public class Applicationconfiguration {
 	}
 
 	public Applicationconfiguration (String path) {
-		boolean debugoutput = true;
 
 		String configuration_filename = "";
 
@@ -40,8 +39,7 @@ public class Applicationconfiguration {
 		else
 			configuration_filename = "/daten/NVBWAdmin/bfrk_api_home-STAGING/bfrk_api.properties";
 
-		if(debugoutput)
-			System.out.println("configuration_filename ===" + configuration_filename+ "===");
+		System.out.println("configuration_filename ===" + configuration_filename+ "===");
 
 		try {
 			Reader reader = new FileReader( configuration_filename );
@@ -49,7 +47,7 @@ public class Applicationconfiguration {
 			prop.load( reader );
 				// iterate over all properties and remove in-line comments in property values
 			for (Entry<Object, Object> entry : prop.entrySet()) {
-				if(entry.getValue().toString().indexOf("#") != -1) {
+				if(entry.getValue().toString().contains("#")) {
 					String tempentry = entry.getValue().toString().substring(0, entry.getValue().toString().indexOf("#"));
 					tempentry = tempentry.trim();
 					prop.setProperty(entry.getKey().toString(),  tempentry);
@@ -100,7 +98,7 @@ public class Applicationconfiguration {
 
 			System.out.println("Info: current dir, is it good?   ===" + userdir);
 
-			e.printStackTrace();
+			System.out.println(e.toString());
 			return;
 		}
 	}
