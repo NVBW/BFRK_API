@@ -17,12 +17,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import de.nvbw.base.Applicationconfiguration;
 import org.json.JSONObject;
 
 import de.nvbw.base.NVBWLogger;
-
-
-
 
 /**
  * Servlet implementation class haltestelle
@@ -32,9 +30,10 @@ import de.nvbw.base.NVBWLogger;
 		)
 public class osmdatenauszug extends HttpServlet {
 
-
 	private static final long serialVersionUID = 1L;
 
+	private static Applicationconfiguration configuration = new Applicationconfiguration();
+	private static String bfrkapihomeVerzeichnis = "/home/NVBWAdmin/tomcat-deployment/bfrk_api_home";
 
     /**
      * @see HttpServlet#HttpServlet()
@@ -44,12 +43,17 @@ public class osmdatenauszug extends HttpServlet {
         // TODO Auto-generated constructor stub
     }
 
+
     /**
      * initialization on servlett startup
      * - connect to bfrk DB
      */
     @Override
     public void init() {
+		if(configuration != null) {
+			bfrkapihomeVerzeichnis = configuration.application_homedir;
+			NVBWLogger.info("in /osmdatenauszug/init: über Konfigurationsdatei App-Home gesetzt: " + bfrkapihomeVerzeichnis);
+		}
     }
 
 
@@ -77,12 +81,12 @@ public class osmdatenauszug extends HttpServlet {
 			if(request.getHeader("accept").contains("application/x-protobuf")) {
 				osmextension = "pbf";
 				contenttype = "application/x-protobuf";
-				characterencoding = "";
+				characterencoding = null;
 			}
 		}
 		NVBWLogger.info("gesetzte OSM-Extension: " + osmextension);
 		response.setContentType(contenttype);
-		if(!characterencoding.isEmpty())
+		if(characterencoding != null)
 			response.setCharacterEncoding(characterencoding);
 
 		try {
@@ -135,17 +139,17 @@ public class osmdatenauszug extends HttpServlet {
 
 		Date jetzt = new Date();
 		String filename = datetime_dateistempel_formatter.format(jetzt) + "." + osmextension;
-		String workingdir = "/home/NVBWAdmin/tomcat-deployment/bfrk_api_home/openstreetmap";
-		File workingdirHandle = new File(workingdir);
+		String osmworkingdir = bfrkapihomeVerzeichnis + File.separator + "openstreetmap";
+		File workingdirHandle = new File(osmworkingdir);
 		String programm = "osmiumextract.sh";
 		String parameter = "" + links + " " + unten + " " + rechts + " " + oben + " " + filename;
 		try {
 			NVBWLogger.info("Prozessaufruf: " + programm + " " + parameter + "...");
-			ProcessBuilder processbuilded = new ProcessBuilder(workingdir + File.separator + programm, 
+			ProcessBuilder processbuilded = new ProcessBuilder(osmworkingdir + File.separator + programm,
 				"" + links, "" + unten, "" + rechts, "" + oben, filename);
 			processbuilded.directory(workingdirHandle);
-			processbuilded.redirectOutput(new File(workingdir + File.separator + "process_output.log"));
-			processbuilded.redirectError(new File(workingdir + File.separator + "process_error.log"));
+			processbuilded.redirectOutput(new File(osmworkingdir + File.separator + "process_output.log"));
+			processbuilded.redirectError(new File(osmworkingdir + File.separator + "process_error.log"));
 			NVBWLogger.info("Prozess wird gestartet ...");
 			Process processrunning = processbuilded.start();
 			int returncode = processrunning.waitFor();
@@ -153,13 +157,14 @@ public class osmdatenauszug extends HttpServlet {
 			NVBWLogger.info("Aufruf osmium ergab returncode: " + returncode);
 		} catch (IOException e) {
 			NVBWLogger.severe("OsmFileReader/createPlanetAuszug: IOException aufgetreten, Details: " + e.toString());
-			e.printStackTrace();
+			NVBWLogger.severe(e.toString());
 		} catch(Exception e) {
 			NVBWLogger.severe("osmdatenauszug, Exception aufgetreten. Details: " + e.toString());
 			return;
 		}
 
-		File outputdateiHandle = new File("/home/NVBWAdmin/tomcat-deployment/bfrk_api_home/openstreetmap/" + filename);
+		File outputdateiHandle = new File(bfrkapihomeVerzeichnis + File.separator
+				+ "openstreetmap" + File.separator + filename);
 		
 
 			// wenn von Osmium KEINE extract-Datei herauskam, Fehlermeldung und Ende
