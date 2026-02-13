@@ -98,10 +98,7 @@ public class NVBWLogger {
 		try {
 			Applicationconfiguration configuration = new Applicationconfiguration();
 			String dateiname = "dummy.log";
-			if(configuration.logging_filename.contains(File.separator))
-				dateiname = configuration.logging_filename;
-			else
-				dateiname = configuration.logging_path + File.separator + configuration.logging_filename;
+			dateiname = configuration.logging_filename;
 			new NVBWLogger(dateiname, consoleLevel, fileLevel);
 		} catch (IOException e) {
 			e.printStackTrace();

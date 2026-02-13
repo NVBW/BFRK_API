@@ -17,7 +17,6 @@ public class Applicationconfiguration {
 	public String db_application_username = "";
 	public String db_application_password = "";
 	public String logging_filename = "";
-	public String logging_path = "";
 	public Level logging_console_level = Level.FINEST;
 	public Level logging_file_level = Level.FINEST;
 	
@@ -72,8 +71,6 @@ public class Applicationconfiguration {
 			//	this.db_application_password = prop.getProperty("db_application_password");
 			if( prop.getProperty("logging_filename") != null)
 				this.logging_filename = prop.getProperty("logging_filename");
-			if( prop.getProperty("logging_path") != null)
-				this.logging_path = prop.getProperty("logging_path");
 			if( prop.getProperty("logging_console_level") != null)
 				this.logging_console_level = Level.parse(prop.getProperty("logging_console_level"));
 			if( prop.getProperty("logging_file_level") != null)
@@ -88,7 +85,6 @@ public class Applicationconfiguration {
 			System.out.println("Info:  .db_application_username                 ==="+this.db_application_username+"===");
 			System.out.println("Info:  .db_application_password                 ==="+this.db_application_password+"===");
 			System.out.println("Info:  .logging_filename                        ==="+this.logging_filename +"===");
-			System.out.println("Info:  .logging_path                            ==="+this.logging_path +"===");
 			System.out.println("Info:  .logging_console_level                   ==="+this.logging_console_level.toString() +"===");
 			System.out.println("Info:  .logging_file_level                      ==="+this.logging_file_level.toString() +"===");
 
