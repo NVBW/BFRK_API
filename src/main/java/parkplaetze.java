@@ -15,6 +15,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import de.nvbw.base.Applicationconfiguration;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -36,8 +37,8 @@ public class parkplaetze extends HttpServlet {
 
 	private static final long serialVersionUID = 1L;
 
-	private static BFRKApiApplicationconfiguration bfrkapiconfiguration = null;
     private static Connection bfrkConn = null;
+	private static Applicationconfiguration configuration = new Applicationconfiguration();
 
 
     /**
@@ -45,7 +46,6 @@ public class parkplaetze extends HttpServlet {
      */
     public parkplaetze() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     /**
@@ -54,7 +54,8 @@ public class parkplaetze extends HttpServlet {
      */
     @Override
     public void init() {
-		bfrkapiconfiguration = new BFRKApiApplicationconfiguration();
+		NVBWLogger.init(configuration.logging_console_level,
+				configuration.logging_file_level);
     	bfrkConn = DBVerbindung.getDBVerbindung();
     }
 
@@ -74,16 +75,21 @@ public class parkplaetze extends HttpServlet {
 				NVBWLogger.warning("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-					response.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
-					response.setCharacterEncoding("UTF-8");
-					response.getWriter().append("Datenbankverbindung verloren, bitte nochmal versuchen");
+					JSONObject ergebnisJsonObject = new JSONObject();
+					ergebnisJsonObject.put("status", "fehler");
+					ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren");
+					response.getWriter().append(ergebnisJsonObject.toString());
+					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					return;
 				}
 			}
 		} catch (Exception e1) {
-			response.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
-			response.setCharacterEncoding("UTF-8");
-			response.getWriter().append("Datenbankverbindung verloren, bitte nochmal versuchen");
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unerwarteter Fehler aufgetreten, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
 		
@@ -177,8 +183,7 @@ public class parkplaetze extends HttpServlet {
 						merkmaleJsonObject.put("koordinatenqualitaet", "validierte-Position");
 						List<String> osmlinksArray = OpenStreetMap.getHyperlinksAsArray(osmids);
 						JSONArray osmlinksJA = new JSONArray();
-						for(int osmlinkindex = 0; osmlinkindex < osmlinksArray.size(); osmlinkindex++)
-							osmlinksJA.put(osmlinksArray.get(osmlinkindex));
+                        for (String s : osmlinksArray) osmlinksJA.put(s);
 						merkmaleJsonObject.put("osmlinks", osmlinksJA);
 					}
 					merkmaleJsonObject.put("maxparkdauer_min", maxparkdauer);
@@ -237,129 +242,126 @@ public class parkplaetze extends HttpServlet {
 					continue;
 				}
 
-				if(name.equals("OBJ_Parkplatz_Art_D1051")) {
+                switch (name) {
+                    case "OBJ_Parkplatz_Art_D1051" -> {
 
-					if(wert.equals("behindertenplaetze")) {
-						wert = "Behindertenplätze";
-					} else if(wert.equals("kurzzeitplaetze")) {
-						wert = "Kurzzeit";
-					} else if(wert.equals("park_ride")) {
-						wert = "Park+Ride";
-					} else if(wert.equals("Parkhaus"))
-						wert = "Parkhaus";
-					else if(wert.equals("parkplatz_ohne_parkride"))
-						wert = "Parkplatz_ohne_Park+Ride";
-					merkmaleJsonObject.put("art", wert);
-				} else if(name.equals("OBJ_Parkplatz_oeffentlichVorhanden_D1050"))
-					merkmaleJsonObject.put("oeffentlichvorhanden", wert.equals("true"));
-				else if(name.equals("OBJ_Parkplatz_Kapazitaet"))
-					merkmaleJsonObject.put("stellplaetzegesamt", (int) Double.parseDouble(wert));
-				else if(name.equals("OBJ_Parkplatz_BehindertenplaetzeKapazitaet"))
-					merkmaleJsonObject.put("behindertenstellplaetze", (int) Double.parseDouble(wert));
-				else if(name.equals("OBJ_Parkplatz_Bedingungen_D1052"))
-					merkmaleJsonObject.put("bedingungen", wert);
-				else if(name.equals("OBJ_Parkplatz_Eigentuemer"))
-					merkmaleJsonObject.put("eigentuemer", wert);
-				else if(name.equals("OBJ_Parkplatz_Foto_Kommentar"))
-					merkmaleJsonObject.put("fotokommentar", wert);
-				else if(name.equals("OBJ_Parkplatz_Lon")) {
-					if(lon == 0.0)
-						lon = Double.parseDouble(wert);
-				} else if(name.equals("OBJ_Parkplatz_Lat")) {
-					if(lat == 0.0)
-						lat = Double.parseDouble(wert);
-				} else if(name.equals("OBJ_Parkplatz_Behindertenplaetze_Lon"))
-					merkmaleJsonObject.put("behindertenplaetze_lon", Double.parseDouble(wert));
-				else if(name.equals("OBJ_Parkplatz_Behindertenplaetze_Lat"))
-					merkmaleJsonObject.put("behindertenplaetze_lat", Double.parseDouble(wert));
-
-				else if(name.equals("OBJ_Parkplatz_Bauart"))
-					merkmaleJsonObject.put("bauart", wert);
-				else if(name.equals("OBJ_Parkplatz_Orientierung"))
-					merkmaleJsonObject.put("orientierung", wert);
-				else if(name.equals("OBJ_Parkplatz_MaxParkdauer_min")) {
-					// Parkdauer hier erstmal in Variable speichern, beim Wechsel des Objekts rausschreiben
-					try {
-						maxparkdauer = (int) Double.parseDouble(wert);
-						NVBWLogger.info("Merkmal: " + name + ", Max-Parkdauer: " + maxparkdauer);
-					} catch(NumberFormatException e) {
-						NVBWLogger.warning("Merkmal OBJ_Parkplatz_MaxParkdauer_min, DB-ID: " 
-							+ merkmal_id + ", Wert nicht parsebar '" + wert + "'");
-						maxparkdauer = -1;
-						NVBWLogger.info("Merkmal: " + name + ", Max-Parkdauer: " + maxparkdauer + " in NumberFormatException!");
-					}
-				} else if(name.equals("OBJ_Parkplatz_KapazitaetFrauenplaetze")) {
-					// Frauenstellplätze hier erstmal in Variable speichern, beim Wechsel des Objekts rausschreiben
-					try {
-						frauenstellplaetze = (int) Double.parseDouble(wert);
-					} catch(NumberFormatException e) {
-						NVBWLogger.warning("Merkmal OBJ_Parkplatz_KapazitaetFrauenplaetze, DB-ID: "
-							+ merkmal_id + ", Wert nicht parsebar '" + wert + "'");
-						frauenstellplaetze = 0;
-					}
-				} else if(name.equals("OBJ_Parkplatz_KapazitaetFamilienplaetze")) {
-					// Familienstellplätze hier erstmal in Variable speichern, beim Wechsel des Objekts rausschreiben
-					try {
-						familienstellplaetze = (int) Double.parseDouble(wert);
-					} catch(NumberFormatException e) {
-						NVBWLogger.warning("Merkmal OBJ_Parkplatz_KapazitaetFamilienplaetze, DB-ID: "
-							+ merkmal_id + ", Wert nicht parsebar '" + wert + "'");
-						familienstellplaetze = 0;
-					}
-				} else if(name.equals("OBJ_Parkplatz_Gebuehrenpflichtig_jn")) {
-					// Gebührenpflichtig hier erstmal in Variable speichern, beim Wechsel des Objekts rausschreiben
-					if(wert.equals("true"))
-						gebuehrenpflichtig = "ja";
-					else
-						gebuehrenpflichtig = "nein";
-				} else if(name.equals("OBJ_Parkplatz_Tarife")) {
-					String wertString = wert;
-					if((wertString != null) && !wertString.isEmpty())
-						wertString = wertString.replace("€", "EUR");
-					merkmaleJsonObject.put("gebuehrenbeispiele", wertString);
-				} else if(name.equals("OBJ_Parkplatz_OeffnungszeitenOSM")) {
-					merkmaleJsonObject.put("oeffnungszeiten", wert);
-				} else if(name.equals("OBJ_Parkplatz_Behindertenplaetze_Laenge_cm")) {
-					try {
-						merkmaleJsonObject.put("behindertenstellplaetze_laenge_cm", (int) Double.parseDouble(wert));
-					} catch(NumberFormatException e) {
-						NVBWLogger.warning("Merkmal OBJ_Parkplatz_Behindertenplaetze_Laenge_cm, DB-ID: " 
-							+ merkmal_id + ", Wert nicht parsebar '" + wert + "'");
-					}
-				} else if(name.equals("OBJ_Parkplatz_Behindertenplaetze_Breite_cm")) {
-					try {
-						merkmaleJsonObject.put("behindertenstellplaetze_breite_cm", (int) Double.parseDouble(wert));
-					} catch(NumberFormatException e) {
-						NVBWLogger.warning("Merkmal OBJ_Parkplatz_Behindertenplaetze_Breite_cm, DB-ID: " 
-							+ merkmal_id + ", Wert nicht parsebar '" + wert + "'");
-					}
-				} else if(name.equals("OBJ_Parkplatz_Behindertenplaetze_Laenge_cm_Kommentar")) {
-					merkmaleJsonObject.put("behindertenstellplaetze_laenge_kommentar", wert);
-				} else if(name.equals("OBJ_Parkplatz_Behindertenplaetze_Breite_cm_Kommentar")) {
-					merkmaleJsonObject.put("behindertenstellplaetze_breite_kommentar", wert);
-				} else if(name.equals("OBJ_Parkplatz_offen247_jn")) {
-					merkmaleJsonObject.put("offen_24_7", wert.equals("true"));
-
-				} else if(name.equals("OBJ_Parkplatz_Foto"))
-					merkmaleJsonObject.put("objekt_Foto", Bild.getBildUrl(wert, hstdhid));
-				else if(name.equals("OBJ_Parkplatz_Behindertenplaetze_Foto"))
-					merkmaleJsonObject.put("behindertenplaetze_Foto", Bild.getBildUrl(wert, hstdhid));
-				else if(name.equals("OBJ_Parkplatz_Nutzungsbedingungen_Foto"))
-					merkmaleJsonObject.put("nutzungsbedingungen_Foto", Bild.getBildUrl(wert, hstdhid));
-				else if(name.equals("OBJ_Parkplatz_Oeffnungszeiten_Foto"))
-					merkmaleJsonObject.put("oeffnungszeiten_Foto", Bild.getBildUrl(wert, hstdhid));
-				else if(name.equals("OBJ_Parkplatz_WegzuHaltestelle_Foto"))
-					merkmaleJsonObject.put("wegzuhaltestelle_Foto", Bild.getBildUrl(wert, hstdhid));
-				else if(name.equals("OBJ_Parkplatz_Frauenplaetze_Foto"))
-					merkmaleJsonObject.put("frauenstellplaetze_Foto", Bild.getBildUrl(wert, hstdhid));
-				else if(name.equals("OBJ_Parkplatz_Familienplaetze_Foto"))
-					merkmaleJsonObject.put("familienstellplaetze_Foto", Bild.getBildUrl(wert, hstdhid));
-				
-				else {
-					NVBWLogger.warning("in Servlet " + this.getServletName() 
-						+ " nicht verarbeitetes Merkmal Name '" + name + "'" 
-						+ ", Wert '" + wert + "'");
-				}
+                        wert = switch (wert) {
+                            case "behindertenplaetze" -> "Behindertenplätze";
+                            case "kurzzeitplaetze" -> "Kurzzeit";
+                            case "park_ride" -> "Park+Ride";
+                            case "Parkhaus" -> "Parkhaus";
+                            case "parkplatz_ohne_parkride" -> "Parkplatz_ohne_Park+Ride";
+                            default -> wert;
+                        };
+                        merkmaleJsonObject.put("art", wert);
+                    }
+                    case "OBJ_Parkplatz_oeffentlichVorhanden_D1050" ->
+                            merkmaleJsonObject.put("oeffentlichvorhanden", wert.equals("true"));
+                    case "OBJ_Parkplatz_Kapazitaet" ->
+                            merkmaleJsonObject.put("stellplaetzegesamt", (int) Double.parseDouble(wert));
+                    case "OBJ_Parkplatz_BehindertenplaetzeKapazitaet" ->
+                            merkmaleJsonObject.put("behindertenstellplaetze", (int) Double.parseDouble(wert));
+                    case "OBJ_Parkplatz_Bedingungen_D1052" -> merkmaleJsonObject.put("bedingungen", wert);
+                    case "OBJ_Parkplatz_Eigentuemer" -> merkmaleJsonObject.put("eigentuemer", wert);
+                    case "OBJ_Parkplatz_Foto_Kommentar" -> merkmaleJsonObject.put("fotokommentar", wert);
+                    case "OBJ_Parkplatz_Lon" -> {
+                        if (lon == 0.0)
+                            lon = Double.parseDouble(wert);
+                    }
+                    case "OBJ_Parkplatz_Lat" -> {
+                        if (lat == 0.0)
+                            lat = Double.parseDouble(wert);
+                    }
+                    case "OBJ_Parkplatz_Behindertenplaetze_Lon" ->
+                            merkmaleJsonObject.put("behindertenplaetze_lon", Double.parseDouble(wert));
+                    case "OBJ_Parkplatz_Behindertenplaetze_Lat" ->
+                            merkmaleJsonObject.put("behindertenplaetze_lat", Double.parseDouble(wert));
+                    case "OBJ_Parkplatz_Bauart" -> merkmaleJsonObject.put("bauart", wert);
+                    case "OBJ_Parkplatz_Orientierung" -> merkmaleJsonObject.put("orientierung", wert);
+                    case "OBJ_Parkplatz_MaxParkdauer_min" -> {
+                        // Parkdauer hier erstmal in Variable speichern, beim Wechsel des Objekts rausschreiben
+                        try {
+                            maxparkdauer = (int) Double.parseDouble(wert);
+                            NVBWLogger.info("Merkmal: " + name + ", Max-Parkdauer: " + maxparkdauer);
+                        } catch (NumberFormatException e) {
+                            NVBWLogger.warning("Merkmal OBJ_Parkplatz_MaxParkdauer_min, DB-ID: "
+                                    + merkmal_id + ", Wert nicht parsebar '" + wert + "'");
+                            maxparkdauer = -1;
+                            NVBWLogger.info("Merkmal: " + name + ", Max-Parkdauer: " + maxparkdauer + " in NumberFormatException!");
+                        }
+                    }
+                    case "OBJ_Parkplatz_KapazitaetFrauenplaetze" -> {
+                        // Frauenstellplätze hier erstmal in Variable speichern, beim Wechsel des Objekts rausschreiben
+                        try {
+                            frauenstellplaetze = (int) Double.parseDouble(wert);
+                        } catch (NumberFormatException e) {
+                            NVBWLogger.warning("Merkmal OBJ_Parkplatz_KapazitaetFrauenplaetze, DB-ID: "
+                                    + merkmal_id + ", Wert nicht parsebar '" + wert + "'");
+                            frauenstellplaetze = 0;
+                        }
+                    }
+                    case "OBJ_Parkplatz_KapazitaetFamilienplaetze" -> {
+                        // Familienstellplätze hier erstmal in Variable speichern, beim Wechsel des Objekts rausschreiben
+                        try {
+                            familienstellplaetze = (int) Double.parseDouble(wert);
+                        } catch (NumberFormatException e) {
+                            NVBWLogger.warning("Merkmal OBJ_Parkplatz_KapazitaetFamilienplaetze, DB-ID: "
+                                    + merkmal_id + ", Wert nicht parsebar '" + wert + "'");
+                            familienstellplaetze = 0;
+                        }
+                    }
+                    case "OBJ_Parkplatz_Gebuehrenpflichtig_jn" -> {
+                        // Gebührenpflichtig hier erstmal in Variable speichern, beim Wechsel des Objekts rausschreiben
+                        if (wert.equals("true"))
+                            gebuehrenpflichtig = "ja";
+                        else
+                            gebuehrenpflichtig = "nein";
+                    }
+                    case "OBJ_Parkplatz_Tarife" -> {
+                        String wertString = wert;
+                        if ((wertString != null) && !wertString.isEmpty())
+                            wertString = wertString.replace("€", "EUR");
+                        merkmaleJsonObject.put("gebuehrenbeispiele", wertString);
+                    }
+                    case "OBJ_Parkplatz_OeffnungszeitenOSM" -> merkmaleJsonObject.put("oeffnungszeiten", wert);
+                    case "OBJ_Parkplatz_Behindertenplaetze_Laenge_cm" -> {
+                        try {
+                            merkmaleJsonObject.put("behindertenstellplaetze_laenge_cm", (int) Double.parseDouble(wert));
+                        } catch (NumberFormatException e) {
+                            NVBWLogger.warning("Merkmal OBJ_Parkplatz_Behindertenplaetze_Laenge_cm, DB-ID: "
+                                    + merkmal_id + ", Wert nicht parsebar '" + wert + "'");
+                        }
+                    }
+                    case "OBJ_Parkplatz_Behindertenplaetze_Breite_cm" -> {
+                        try {
+                            merkmaleJsonObject.put("behindertenstellplaetze_breite_cm", (int) Double.parseDouble(wert));
+                        } catch (NumberFormatException e) {
+                            NVBWLogger.warning("Merkmal OBJ_Parkplatz_Behindertenplaetze_Breite_cm, DB-ID: "
+                                    + merkmal_id + ", Wert nicht parsebar '" + wert + "'");
+                        }
+                    }
+                    case "OBJ_Parkplatz_Behindertenplaetze_Laenge_cm_Kommentar" ->
+                            merkmaleJsonObject.put("behindertenstellplaetze_laenge_kommentar", wert);
+                    case "OBJ_Parkplatz_Behindertenplaetze_Breite_cm_Kommentar" ->
+                            merkmaleJsonObject.put("behindertenstellplaetze_breite_kommentar", wert);
+                    case "OBJ_Parkplatz_offen247_jn" -> merkmaleJsonObject.put("offen_24_7", wert.equals("true"));
+                    case "OBJ_Parkplatz_Foto" -> merkmaleJsonObject.put("objekt_Foto", Bild.getBildUrl(wert, hstdhid));
+                    case "OBJ_Parkplatz_Behindertenplaetze_Foto" ->
+                            merkmaleJsonObject.put("behindertenplaetze_Foto", Bild.getBildUrl(wert, hstdhid));
+                    case "OBJ_Parkplatz_Nutzungsbedingungen_Foto" ->
+                            merkmaleJsonObject.put("nutzungsbedingungen_Foto", Bild.getBildUrl(wert, hstdhid));
+                    case "OBJ_Parkplatz_Oeffnungszeiten_Foto" ->
+                            merkmaleJsonObject.put("oeffnungszeiten_Foto", Bild.getBildUrl(wert, hstdhid));
+                    case "OBJ_Parkplatz_WegzuHaltestelle_Foto" ->
+                            merkmaleJsonObject.put("wegzuhaltestelle_Foto", Bild.getBildUrl(wert, hstdhid));
+                    case "OBJ_Parkplatz_Frauenplaetze_Foto" ->
+                            merkmaleJsonObject.put("frauenstellplaetze_Foto", Bild.getBildUrl(wert, hstdhid));
+                    case "OBJ_Parkplatz_Familienplaetze_Foto" ->
+                            merkmaleJsonObject.put("familienstellplaetze_Foto", Bild.getBildUrl(wert, hstdhid));
+                    default -> NVBWLogger.warning("in Servlet " + this.getServletName()
+                            + " nicht verarbeitetes Merkmal Name '" + name + "'"
+                            + ", Wert '" + wert + "'");
+                }
 
 				vorherigeobjektid = objektid;
 			} // end of Schleife über alle Datensatzmerkmale
@@ -413,6 +415,12 @@ public class parkplaetze extends HttpServlet {
 			}
 		} catch (SQLException e) {
 			NVBWLogger.severe("SQLException::: " + e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "SQL-Abfragefehler aufgetreten, bitte Administrator informieren");
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
 		}
 		response.getWriter().append(objektarray.toString());
 		NVBWLogger.info("Objektarray-Länge am Ende: " + objektarray.toString().length()
@@ -427,9 +435,11 @@ public class parkplaetze extends HttpServlet {
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		NVBWLogger.info("Request /parkplaetze, doPost ...");
 
-		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		response.setCharacterEncoding("UTF-8");
-		response.getWriter().append("POST Request ist nicht erlaubt");
-		return;
+		JSONObject ergebnisJsonObject = new JSONObject();
+		ergebnisJsonObject.put("status", "fehler");
+		ergebnisJsonObject.put("fehlertext", "POST Request /parkplaetze ist nicht vorhanden");
+		response.getWriter().append(ergebnisJsonObject.toString());
+		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 	}
 }

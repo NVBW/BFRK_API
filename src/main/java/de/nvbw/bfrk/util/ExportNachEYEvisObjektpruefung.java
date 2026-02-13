@@ -29,7 +29,6 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 
 import de.nvbw.base.NVBWLogger;
-import de.nvbw.bfrk.ExportNachEYEvis.ERHEBUNGSART;
 import de.nvbw.bfrk.base.BFRKFeld;
 import de.nvbw.bfrk.base.BFRKFeld.Name;
 import de.nvbw.bfrk.base.Excelfeld;
@@ -47,7 +46,6 @@ public class ExportNachEYEvisObjektpruefung {
 
 	public static enum Bildquellenart {lokal, downloadpublic, downloadprivateundpublic};
 
-	private static ERHEBUNGSART erhebungsart = ERHEBUNGSART.Ungesetzt;
 	private static boolean bilderkopieren = false;
 	private static Workbook workbook; 
 	private static String bilderKopierzielverzeichnis = null;
@@ -66,14 +64,12 @@ public class ExportNachEYEvisObjektpruefung {
 
 	
 	public ExportNachEYEvisObjektpruefung(
-		ERHEBUNGSART erhebungsart,
 		boolean bilderkopieren,
 		Bildquellenart bildquellenart, 
 		Workbook workbookExceldatei) throws Throwable {
 
 		ExportNachEYEvisObjektpruefung.workbook = workbookExceldatei;
 		ExportNachEYEvisObjektpruefung.bilderkopieren = bilderkopieren;
-		ExportNachEYEvisObjektpruefung.erhebungsart = erhebungsart;
 
 		byte[] rot = hexStringToByteArray("faa29e");
 		byte[] gruen = hexStringToByteArray("c3fa9e");
@@ -350,175 +346,15 @@ public class ExportNachEYEvisObjektpruefung {
 		return outputListe;
 	}
 
-
-	private List<String> getBildpfadundname(String bildname) {
-		List<String> gefbildnamenListe = new ArrayList<>();
-
-		if((bildname == null) || bildname.equals(""))
-			return gefbildnamenListe;
-
-		if(bildname.replace("|","").equals(""))
-				return gefbildnamenListe;
-		
-			// EYEvis-Bildnamen bearbeiten
-		if(ExportNachEYEvisObjektpruefung.erhebungsart == ERHEBUNGSART.EYEvisApp) {
-			String bildnamenliste[];
-			if(bildname.indexOf("|") != -1) {
-				bildnamenliste = bildname.split("\\|",-1);
-			} else {
-				bildnamenliste = new String[1];
-				bildnamenliste[0] = bildname;
-			}
-				
-			if(bildnamenliste.length > 0) {
-				for(int bildnameindex = 0; bildnameindex < bildnamenliste.length; bildnameindex++) {
-					String aktbildname = bildnamenliste[bildnameindex];
-
-					String bildunterverzeichnis = aktbildname.substring(0,2);
-					String bilddir = EYEvisBilderWurzelverzeichnis + File.separator + bildunterverzeichnis;
-					
-					File bilddirhandle = new File(bilddir);
-					if(!bilddirhandle.exists() || !bilddirhandle.isDirectory()) {
-						NVBWLogger.warning("Bild nicht gefunden, weil EYEvis-Bildverzeichnis fehlt: "
-							+ aktbildname + ", Bildverzeichnis: " + bilddir);
-						continue;
-					}
-
-					String bilddateiname = bilddir + File.separator + aktbildname;
-					File bildhandle = new File(bilddateiname);
-					if(bildhandle.exists()) {
-						gefbildnamenListe.add(bilddateiname);
-						continue;
-					}
-					
-					NVBWLogger.warning("Bild nicht gefunden: " + aktbildname);
-				}
-			}
-			return gefbildnamenListe;
-
-		} else if(ExportNachEYEvisObjektpruefung.erhebungsart == ERHEBUNGSART.MentzApp) {
-
-			String bildnamenliste[];
-			if(bildname.indexOf("|") != -1) {
-				bildnamenliste = bildname.split("\\|",-1);
-			} else {
-				bildnamenliste = new String[1];
-				bildnamenliste[0] = bildname;
-			}
-				
-			if(bildnamenliste.length > 0) {
-				for(int bildnameindex = 0; bildnameindex < bildnamenliste.length; bildnameindex++) {
-					String aktbildname = bildnamenliste[bildnameindex];
-
-					if((aktbildname.equals("") || aktbildname.indexOf(".") == -1))
-						continue;
-			
-					
-						// neue Bild-DB V2 Bildnamen verarbeiten
-					if(aktbildname.length() == 18) {
-							
-						String bilddateiname = MentzBilderWurzelverzeichnisV2;
-							
-							// aus Dateiname 6 Verzeichnisebenen erstellen
-						for(int index = 0; index < 6; index++) {
-							String aktteil = aktbildname.substring(0 + (index*2), 2 + (index*2));
-							bilddateiname += File.separator + aktteil;
-						}
-						
-						bilddateiname += File.separator + aktbildname;
-	
-						File bildhandle = new File(bilddateiname);
-						if(bildhandle.exists()) {
-							gefbildnamenListe.add(bilddateiname);
-							continue;
-						} else {
-							if((mentzbilddbcsvreader != null)) {
-								String bilddateiid = aktbildname.replace(".jpg", "");
-								if(mentzbilddbcsvreader.getBildMetadaten(bilddateiid) != null) {
-										// TODO prüfen, ob Metadatenergänzung in gefbildnamenListe unproblematisch ist (weil ja nur die Metadaten da sind)
-									gefbildnamenListe.add(bilddateiid + ".jpg");
-								}
-							} else
-								NVBWLogger.warning("Bild wurde nicht im Filesystem gefunden und konnte auch nicht "
-									+ "in Mentz-Bild-Metadatei ermittelt werden, ist '" + aktbildname + "'");
-						}
-						// alte Bild-DB V1 Bildnamen verarbeiten
-					} else if(aktbildname.length() <= 9) {
-						String bildnrString = aktbildname.substring(0,aktbildname.indexOf("."));
-						int bildnr = 0;
-						try {
-							bildnr = Integer.parseInt(bildnrString);
-						} catch (NumberFormatException nfe) {
-							NVBWLogger.warning("Bildnr aus Bildname nicht herauslesbar (NumberFormatException), Bildname ===" + aktbildname + "===");
-							continue;
-						}
-					
-						if(bildnr == 0) {
-							NVBWLogger.warning("Bildnr aus Bildname nicht herauslesbar, Bildname ===" + aktbildname + "===");
-							continue;
-						}
-
-						String hitdateiname = "";
-						double tausende = bildnr / 1000.0;
-						for(int tausenderstelle = ((int)(tausende)); tausenderstelle <= (((int)(tausende)) + 2); tausenderstelle++) {
-							//int tausenderstelle = ((int)(tausende)) + 1;
-							//System.out.println("Tausenderstelle: " + tausenderstelle);
-							String bilddir = MentzBilderWurzelverzeichnisV1 + File.separator + tausenderstelle;
-							//System.out.println("Bildverzeichnis ===" + bilddir + "===");
-					
-							File bilddirhandle = new File(bilddir);
-							if(!bilddirhandle.exists() || !bilddirhandle.isDirectory())
-								continue;
-							hitdateiname = bilddir + File.separator + bildnr + ".jpg";
-							File bildhandle = new File(hitdateiname);
-							if(bildhandle.exists()) {
-								gefbildnamenListe.add(hitdateiname);
-								break;
-							}
-						}
-					} else {
-						String bildunterverzeichnis = aktbildname.substring(0,2);
-						String bilddir = EYEvisBilderWurzelverzeichnis + File.separator + bildunterverzeichnis;
-						
-						File bilddirhandle = new File(bilddir);
-						if(!bilddirhandle.exists() || !bilddirhandle.isDirectory()) {
-							NVBWLogger.warning("Bild nicht gefunden, weil EYEvis-Bildverzeichnis fehlt: "
-								+ bildname + ", Bildverzeichnis: " + bilddir);
-							continue;
-						}
-
-						String bilddateiname = bilddir + File.separator + aktbildname;
-						File bildhandle = new File(bilddateiname);
-						if(bildhandle.exists()) {
-							gefbildnamenListe.add(bilddateiname);
-						}
-					}
-				}
-			}
-			return gefbildnamenListe;
-		} else if(ExportNachEYEvisObjektpruefung.erhebungsart == ERHEBUNGSART.CSVImport) {
-			NVBWLogger.info("In ErhebungsObjektpruefung, Methode Bildvorhanden werden Bilder bei der Erhebungsart "
-				+ erhebungsart.toString() + " noch nicht berücksichtigt.");
-			return gefbildnamenListe;
-		} else {
-			NVBWLogger.severe("In ErhebungsObjektpruefung, Methode Bildvorhanden unbekannte Erhebungsart ==="
-				+ erhebungsart.toString());
-			return gefbildnamenListe;
-		}
-	}
-
-	
-	public List<String> copyBild(String dhid, String bildname) {
+	public void copyBild(String dhid, String bildname) {
 		List<String> bildListe = new ArrayList<>();
 
 		List<String> bildpfadundnamenListe = null;
 		if(		(bildquelle == Bildquellenart.downloadprivateundpublic)
 			||	(bildquelle == Bildquellenart.downloadpublic))
 			bildpfadundnamenListe = getBild(dhid, bildname);
-		else
-			bildpfadundnamenListe = getBildpfadundname(bildname);
-		if((bildpfadundnamenListe == null) || (bildpfadundnamenListe.size() == 0)) {
-			return bildListe;
+		if((bildpfadundnamenListe == null) || (bildpfadundnamenListe.isEmpty())) {
+			return;
 		}
 
 		for(int bildnameindex = 0; bildnameindex < bildpfadundnamenListe.size(); bildnameindex++) {
@@ -544,7 +380,6 @@ public class ExportNachEYEvisObjektpruefung {
 				bildListe.add(aktname);
 			}
 		}
-		return bildListe;
 	}
 
 

@@ -913,7 +913,6 @@ wunschidprefix = objektid;
 		String paramAusgabedateiPrefix = "";
 		boolean paramBilderkopieren = false;
 		String paramBilderzielverzeichnis = "";
-		ERHEBUNGSART paramErhebungsart = ERHEBUNGSART.Ungesetzt;
 		String sheetname = "Erfassung";
 		List<String> objektIdListe = new ArrayList<>();
 		List<String> paramLinienHaltestellenListe = new ArrayList<>();
@@ -926,7 +925,6 @@ wunschidprefix = objektid;
 			System.out.println("-workflowstatus Lieferant_Final|%: Default Lieferant_Final");
 			System.out.println("-oevart S|O - wenn beides, dann nicht angeben. Default beides");
 			System.out.println("-kreisschluessel 08111. Default alle Daten");
-			System.out.println("-erhebungsart eyevis|mentz|fremd - welche App wurde bei der Erfassung verwendet");
 			System.out.println("-eyevisvorlage xy - Name der Exceldatei, die aus einem EYEvis-Projektexport stammt");
 			System.out.println("-bilderkopieren ja|nein - Sollen die Bilder in einen Zielordner kopiert werden (Default. nein)");
 			System.out.println("-bilderzielverzeichnis - Angabe eines Verzeichnisses, in das Bilder hin kopiert werden sollen, wenn auch -bilderkopieren = ja gesetzt wurde");
@@ -953,16 +951,6 @@ wunschidprefix = objektid;
 					args_ok_count += 2;
 				} else if(args[argsi].equals("-rootdir")) {
 					paramRootdir = args[argsi+1];
-					args_ok_count += 2;
-				} else if(args[argsi].equals("-erhebungsart")) {
-					if(args[argsi+1].toLowerCase().equals("mentz"))
-						paramErhebungsart = ERHEBUNGSART.MentzApp;
-					else if(args[argsi+1].toLowerCase().equals("eyevis"))
-						paramErhebungsart = ERHEBUNGSART.EYEvisApp;
-					else {
-						NVBWLogger.severe("commandline Argument -erhebungsart muß entweder mentz|eyevis sein, ABBRUCH.");
-						return -2;
-					}
 					args_ok_count += 2;
 				} else if(args[argsi].equals("-dhids")) {
 					if(args[argsi+1] != null && !args[argsi+1].equals("")) {
@@ -1073,11 +1061,6 @@ wunschidprefix = objektid;
 			return -7;
 		}
 
-		if(paramErhebungsart == ERHEBUNGSART.Ungesetzt) {
-			NVBWLogger.severe("Der Kommandozeilenparameter -erhebungsart muß gesetzt werden, PRGORAMMABBRUCH");
-			return -8;
-		}
-
 		if(paramBilderkopieren && paramBilderzielverzeichnis.isEmpty()) {
 			NVBWLogger.severe("Der Kommandozeilenparameter -bilderzielverzeichnis muß gesetzt werden, "
 				+ "weil Kommandozeilenparameter -bilderkopieren = JA gesetzt ist, PRGORAMMABBRUCH");
@@ -1153,7 +1136,7 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 				ExportNachEYEvisObjektpruefung exportNachEYEvisPruefung = null;
 				try {
 					exportNachEYEvisPruefung = new ExportNachEYEvisObjektpruefung(
-						paramErhebungsart, paramBilderkopieren, 
+						paramBilderkopieren,
 						Bildquellenart.downloadprivateundpublic, workbook);
 					exportNachEYEvisPruefung.setBildDownloadverzeichnis(paramBilderzielverzeichnis + File.separator + "temp");
 					exportNachEYEvisPruefung.setBilderZielverzeichnis(paramBilderzielverzeichnis);

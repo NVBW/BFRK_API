@@ -6,6 +6,10 @@ import java.io.Reader;
 import java.util.Properties;
 import java.util.logging.Level;
 
+@Deprecated
+/**
+ * entfällt ab 13.02.2026, weil keine zusätzlichen Konfgurationseinstellungen mehr notwendig sind
+ */
 public class BFRKApiApplicationconfiguration extends Applicationconfiguration {
 
 	public String authorisierungsid = "";

@@ -23,6 +23,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import de.nvbw.base.Applicationconfiguration;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -46,7 +47,8 @@ public class aufzug_livestatus extends HttpServlet {
 	private static final DateFormat datetime_iso8601_formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
     private static Connection bfrkConn = null;
-   
+	private static Applicationconfiguration configuration = new Applicationconfiguration();
+
 	private static HttpURLConnection conn = null;
 
     /**
@@ -57,7 +59,20 @@ public class aufzug_livestatus extends HttpServlet {
         // TODO Auto-generated constructor stub
     }
 
-    private String getFastaAufzugzustand(long fastaid) {
+
+	/**
+	 * initialization on servlett startup
+	 * - connect to bfrk DB
+	 */
+	@Override
+	public void init() {
+		NVBWLogger.init(configuration.logging_console_level,
+				configuration.logging_file_level);
+		bfrkConn = DBVerbindung.getDBVerbindung();
+	}
+
+
+	private String getFastaAufzugzustand(long fastaid) {
     	String aufzugstatus = "REQUESTERROR";
  
     	String fastaurl = "https://apis.deutschebahn.com/db-api-marketplace/apis/fasta/v2/facilities/" + fastaid;
@@ -106,9 +121,9 @@ public class aufzug_livestatus extends HttpServlet {
 				while ((inputLine = rd.readLine()) != null) {
 					response.append(inputLine + "\n");
 				}
-				System.out.println("Content  ===" + response.toString() + "===");
+				NVBWLogger.info("Content  ===" + response.toString() + "===");
 
-				if(response.length() > 0) {
+				if(!response.isEmpty()) {
 					String inhalt = response.toString();
 					String suchstring = "\"state\"";
 					int startpos = inhalt.indexOf(suchstring);
@@ -179,15 +194,6 @@ public class aufzug_livestatus extends HttpServlet {
 		}
 		return aufzugstatus;
     }
-    
-    /**
-     * initialization on servlett startup
-     * - connect to bfrk DB
-     */
-    @Override
-    public void init() {
-    	bfrkConn = DBVerbindung.getDBVerbindung();
-    }
 
 
 	/**
@@ -197,7 +203,7 @@ public class aufzug_livestatus extends HttpServlet {
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				System.out.println("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				NVBWLogger.severe("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
 					response.getWriter().append("FEHLER: keine DB-Verbindung offen");
@@ -205,27 +211,37 @@ public class aufzug_livestatus extends HttpServlet {
 				}
 			}
 		} catch (SQLException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei SQLException " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		} catch (IOException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei IOException " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unbekannter Fehler aufgetreten, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
 
 		long paramObjektid = 0;
 		if(request.getParameter("dhid") != null) {
-			System.out.println("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
+			NVBWLogger.info("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
 			paramObjektid = Long.parseLong(request.getParameter("dhid"));
 		} else {
-			System.out.println("url-Parameter dhid fehlt ...");
+			NVBWLogger.info("url-Parameter dhid fehlt ...");
 			String requesturi = request.getRequestURI();
-			System.out.println("requesturi ===" + requesturi + "===");
-			if(requesturi.indexOf("/aufzug") != -1) {
+			NVBWLogger.info("requesturi ===" + requesturi + "===");
+			if(requesturi.contains("/aufzug")) {
 				int startpos = requesturi.indexOf("/aufzug");
-				System.out.println("startpos #1: " + startpos);
+				NVBWLogger.info("startpos #1: " + startpos);
 				if(requesturi.indexOf("/",startpos + 1) != -1) {
 					paramObjektid = Long.parseLong(requesturi.substring(requesturi.indexOf("/",startpos + 1) + 1));
-					System.out.println("Versuch, Objektid zu extrahieren ===" + paramObjektid + "===");
+					NVBWLogger.info("Versuch, Objektid zu extrahieren ===" + paramObjektid + "===");
 				}
 			}
 		}
@@ -278,7 +294,7 @@ public class aufzug_livestatus extends HttpServlet {
 			selectHaltestelleStmt = bfrkConn.prepareStatement(selectHaltestelleSql);
 			selectHaltestelleStmt.setLong(1, paramObjektid);
 			selectHaltestelleStmt.setLong(2, paramObjektid);
-			System.out.println("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
+			NVBWLogger.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
 
 			ResultSet selectMerkmaleRS = selectHaltestelleStmt.executeQuery();
 
@@ -380,9 +396,14 @@ public class aufzug_livestatus extends HttpServlet {
 				return;
 			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.out.println("SQLException::: " + e.toString());
+			NVBWLogger.severe("SQLException::: " + e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "SQLException aufgetreten beim Aufruf /aufzug_livestatus, bitte Administrator informieren: "
+					+ e.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
 		}
 		response.getWriter().append(merkmaleJsonObject.toString());
 	}
@@ -392,9 +413,12 @@ public class aufzug_livestatus extends HttpServlet {
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
-		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		response.setCharacterEncoding("UTF-8");
-		response.getWriter().append("POST Request ist nicht erlaubt");
+		JSONObject ergebnisJsonObject = new JSONObject();
+		ergebnisJsonObject.put("status", "fehler");
+		ergebnisJsonObject.put("fehlertext", "POST Request /aufzug_livestatus ist nicht vorhanden");
+		response.getWriter().append(ergebnisJsonObject.toString());
+		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		return;
 	}
 

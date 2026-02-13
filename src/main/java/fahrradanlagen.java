@@ -17,6 +17,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import de.nvbw.base.Applicationconfiguration;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -38,8 +39,8 @@ public class fahrradanlagen extends HttpServlet {
 
 	private static final long serialVersionUID = 1L;
 
-	private static BFRKApiApplicationconfiguration bfrkapiconfiguration = null;
     private static Connection bfrkConn = null;
+	private static Applicationconfiguration configuration = new Applicationconfiguration();
 
 
     /**
@@ -47,16 +48,16 @@ public class fahrradanlagen extends HttpServlet {
      */
     public fahrradanlagen() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     /**
-     * initialization on servlett startup
+     * initialization on servlet startup
      * - connect to bfrk DB
      */
     @Override
     public void init() {
-		bfrkapiconfiguration = new BFRKApiApplicationconfiguration();
+		NVBWLogger.init(configuration.logging_console_level,
+				configuration.logging_file_level);
     	bfrkConn = DBVerbindung.getDBVerbindung();
     }
 
@@ -69,23 +70,28 @@ public class fahrradanlagen extends HttpServlet {
 		Date requestStart = new Date();
 		Date requestEnde = null;
 
-		NVBWLogger.info("fahrradanlagen2208 Request-Beginn: " + datetime_de_formatter.format(requestStart));
+		NVBWLogger.info("fahrradanlagen Request-Beginn: " + datetime_de_formatter.format(requestStart));
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
 				NVBWLogger.warning("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-					response.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
-					response.setCharacterEncoding("UTF-8");
-					response.getWriter().append("Datenbankverbindung verloren, bitte nochmal versuchen");
+					JSONObject ergebnisJsonObject = new JSONObject();
+					ergebnisJsonObject.put("status", "fehler");
+					ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren");
+					response.getWriter().append(ergebnisJsonObject.toString());
+					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					return;
 				}
 			}
 		} catch (Exception e1) {
-			response.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
-			response.setCharacterEncoding("UTF-8");
-			response.getWriter().append("Datenbankverbindung verloren, bitte nochmal versuchen");
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unerwarteter Fehler aufgetreten, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
 		
@@ -221,7 +227,7 @@ public class fahrradanlagen extends HttpServlet {
 					merkmaleJsonObject.put("gemeinde", gemeinde);
 					merkmaleJsonObject.put("ortsteil", ortsteil);
 					merkmaleJsonObject.put("infraid", infraid);
-//					System.out.println("Neues Objekt #" + anzahlobjekte + " gefunden, gefunden HST-DHID: " + hstdhid 
+//					NVBWLogger.info("Neues Objekt #" + anzahlobjekte + " gefunden, gefunden HST-DHID: " + hstdhid
 //						+ ", Objekt-DHID: " + dhid + ", Objektart: " + objektart
 //						+ ", Objekt-ID: " + objektid + ", OSM-Importiert? " + osmimportiert);
 				}
@@ -239,54 +245,55 @@ public class fahrradanlagen extends HttpServlet {
 					continue;
 				}
 
-				if(name.equals("OBJ_BuR_Anlagentyp")) {
-					merkmaleJsonObject.put("anlagentyp", wert);
-				} else if(name.equals("OBJ_BuR_Stellplatzanzahl")) {
-					merkmaleJsonObject.put("stellplatzanzahl", (int) Double.parseDouble(wert));
-				} else if(name.equals("OBJ_BuR_Beleuchtet")) {
-					merkmaleJsonObject.put("beleuchtet", wert.equals("true"));
-				} else if(name.equals("OBJ_BuR_Ueberdacht")) {
-					merkmaleJsonObject.put("ueberdacht", wert.equals("true"));
-				} else if(name.equals("OBJ_BuR_Hinderniszufahrt_Beschreibung"))
-					merkmaleJsonObject.put("hinderniszufahrt", wert);
-				else if(name.equals("OBJ_BuR_Kostenpflichtig")) {
-					merkmaleJsonObject.put("kostenpflichtig", wert.equals("true"));
-				} else if(name.equals("OBJ_BuR_KostenpflichtigNotiz"))
-					merkmaleJsonObject.put("kostenpflichtignotiz", wert);
-				else if(name.equals("OBJ_BuR_WegZurAnlageAnfahrbar"))
-					merkmaleJsonObject.put("wegzuranlageanfahrbar", wert.equals("true"));
-				else if(name.equals("OBJ_BuR_Lon")) {
-					if(lon == 0.0)
-						lon = Double.parseDouble(wert);
-				} else if(name.equals("OBJ_BuR_Lat")) {
-					if(lat == 0.0)
-						lat = Double.parseDouble(wert);
-				} else if(name.equals("OBJ_BuR_Buegelabstand_cm"))
-					merkmaleJsonObject.put("buegelabstand", (int) Double.parseDouble(wert));
-				else if(name.equals("OBJ_BuR_Notiz"))
-					merkmaleJsonObject.put("notiz", wert);
-				else if(name.equals("OBJ_BuR_Foto")) {
-					String urls = Bild.getBildUrl(wert, hstdhid);
-					if((urls != null) && !urls.isEmpty())
-						merkmaleJsonObject.put("objekt_Foto", urls);
-				} else if(name.equals("OBJ_BuR_Weg_Foto")) {
-					String urls = Bild.getBildUrl(wert, hstdhid);
-					if((urls != null) && !urls.isEmpty())
-						merkmaleJsonObject.put("weg_Foto", urls);
-				} else if(name.equals("OBJ_BuR_Besonderheiten_Foto")) {
-					String urls = Bild.getBildUrl(wert, hstdhid);
-					if((urls != null) && !urls.isEmpty())
-						merkmaleJsonObject.put("besonderheiten_Foto", urls);
-				} else if(name.equals("OBJ_BuR_Hinderniszufahrt_Foto")) {
-					String urls = Bild.getBildUrl(wert, hstdhid);
-					if((urls != null) && !urls.isEmpty())
-						merkmaleJsonObject.put("hinderniszufahrt_Foto", urls);
-				} else if(name.equals("OBJ_BuR_Vorhanden")) {
-					// nichts zu tun
-				} else
-					NVBWLogger.warning("in Servlet " + this.getServletName() 
-						+ " nicht verarbeitetes Merkmal Name '" + name + "'" 
-						+ ", Wert '" + wert + "'");
+                switch (name) {
+                    case "OBJ_BuR_Anlagentyp" -> merkmaleJsonObject.put("anlagentyp", wert);
+                    case "OBJ_BuR_Stellplatzanzahl" ->
+                            merkmaleJsonObject.put("stellplatzanzahl", (int) Double.parseDouble(wert));
+                    case "OBJ_BuR_Beleuchtet" -> merkmaleJsonObject.put("beleuchtet", wert.equals("true"));
+                    case "OBJ_BuR_Ueberdacht" -> merkmaleJsonObject.put("ueberdacht", wert.equals("true"));
+                    case "OBJ_BuR_Hinderniszufahrt_Beschreibung" -> merkmaleJsonObject.put("hinderniszufahrt", wert);
+                    case "OBJ_BuR_Kostenpflichtig" -> merkmaleJsonObject.put("kostenpflichtig", wert.equals("true"));
+                    case "OBJ_BuR_KostenpflichtigNotiz" -> merkmaleJsonObject.put("kostenpflichtignotiz", wert);
+                    case "OBJ_BuR_WegZurAnlageAnfahrbar" ->
+                            merkmaleJsonObject.put("wegzuranlageanfahrbar", wert.equals("true"));
+                    case "OBJ_BuR_Lon" -> {
+                        if (lon == 0.0)
+                            lon = Double.parseDouble(wert);
+                    }
+                    case "OBJ_BuR_Lat" -> {
+                        if (lat == 0.0)
+                            lat = Double.parseDouble(wert);
+                    }
+                    case "OBJ_BuR_Buegelabstand_cm" ->
+                            merkmaleJsonObject.put("buegelabstand", (int) Double.parseDouble(wert));
+                    case "OBJ_BuR_Notiz" -> merkmaleJsonObject.put("notiz", wert);
+                    case "OBJ_BuR_Foto" -> {
+                        String urls = Bild.getBildUrl(wert, hstdhid);
+                        if ((urls != null) && !urls.isEmpty())
+                            merkmaleJsonObject.put("objekt_Foto", urls);
+                    }
+                    case "OBJ_BuR_Weg_Foto" -> {
+                        String urls = Bild.getBildUrl(wert, hstdhid);
+                        if ((urls != null) && !urls.isEmpty())
+                            merkmaleJsonObject.put("weg_Foto", urls);
+                    }
+                    case "OBJ_BuR_Besonderheiten_Foto" -> {
+                        String urls = Bild.getBildUrl(wert, hstdhid);
+                        if ((urls != null) && !urls.isEmpty())
+                            merkmaleJsonObject.put("besonderheiten_Foto", urls);
+                    }
+                    case "OBJ_BuR_Hinderniszufahrt_Foto" -> {
+                        String urls = Bild.getBildUrl(wert, hstdhid);
+                        if ((urls != null) && !urls.isEmpty())
+                            merkmaleJsonObject.put("hinderniszufahrt_Foto", urls);
+                    }
+                    case "OBJ_BuR_Vorhanden" -> {
+                        // nichts zu tun
+                    }
+                    default -> NVBWLogger.warning("in Servlet " + this.getServletName()
+                            + " nicht verarbeitetes Merkmal Name '" + name + "'"
+                            + ", Wert '" + wert + "'");
+                }
 
 				vorherigeobjektid = objektid;
 			} // end of Schleife über alle Datensatzmerkmale
@@ -337,6 +344,12 @@ public class fahrradanlagen extends HttpServlet {
 			NVBWLogger.info("Anzahl Datensätze: " + anzahldatensaetze);
 		} catch (SQLException e) {
 			NVBWLogger.severe("SQLException::: " + e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "SQL-Abfragefehler aufgetreten, bitte Administrator informieren");
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
 		}
 		response.getWriter().append(objektarray.toString());
 		NVBWLogger.info("objektarray am Ende: " + objektarray.toString().length()
@@ -350,9 +363,11 @@ public class fahrradanlagen extends HttpServlet {
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		NVBWLogger.info("Request /fahrradanlagen, doPost ...");
 
-		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		response.setCharacterEncoding("UTF-8");
-		response.getWriter().append("POST Request ist nicht erlaubt");
-		return;
+		JSONObject ergebnisJsonObject = new JSONObject();
+		ergebnisJsonObject.put("status", "fehler");
+		ergebnisJsonObject.put("fehlertext", "POST Request /fahrradanlagen ist nicht vorhanden");
+		response.getWriter().append(ergebnisJsonObject.toString());
+		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 	}
 }

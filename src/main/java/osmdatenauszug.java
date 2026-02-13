@@ -51,6 +51,8 @@ public class osmdatenauszug extends HttpServlet {
     @Override
     public void init() {
 		if(configuration != null) {
+            NVBWLogger.init("bfrk_api-DEVELOP", configuration.logging_console_level,
+                    configuration.logging_file_level);
 			bfrkapihomeVerzeichnis = configuration.application_homedir;
 			NVBWLogger.info("in /osmdatenauszug/init: über Konfigurationsdatei App-Home gesetzt: " + bfrkapihomeVerzeichnis);
 		}
@@ -77,7 +79,7 @@ public class osmdatenauszug extends HttpServlet {
 		String contenttype = "text/xml";
 		String characterencoding = "UTF-8";
 		if(request.getHeader("accept") != null) {
-			System.out.println("Request Header accept vorhanden ===" + request.getHeader("accept") + "===");
+			NVBWLogger.info("Request Header accept vorhanden ===" + request.getHeader("accept") + "===");
 			if(request.getHeader("accept").contains("application/x-protobuf")) {
 				osmextension = "pbf";
 				contenttype = "application/x-protobuf";
@@ -112,19 +114,19 @@ public class osmdatenauszug extends HttpServlet {
 			}
 */
 			if(request.getParameter("links") != null) {
-				System.out.println("url-Parameter links vorhanden ===" + request.getParameter("links"));
+				NVBWLogger.info("url-Parameter links vorhanden ===" + request.getParameter("links"));
 				links = Double.parseDouble(request.getParameter("links"));
 			}
 			if(request.getParameter("rechts") != null) {
-				System.out.println("url-Parameter rechts vorhanden ===" + request.getParameter("rechts"));
+				NVBWLogger.info("url-Parameter rechts vorhanden ===" + request.getParameter("rechts"));
 				rechts = Double.parseDouble(request.getParameter("rechts"));
 			}
 			if(request.getParameter("oben") != null) {
-				System.out.println("url-Parameter oben vorhanden ===" + request.getParameter("oben"));
+				NVBWLogger.info("url-Parameter oben vorhanden ===" + request.getParameter("oben"));
 				oben = Double.parseDouble(request.getParameter("oben"));
 			}
 			if(request.getParameter("unten") != null) {
-				System.out.println("url-Parameter unten vorhanden ===" + request.getParameter("unten"));
+				NVBWLogger.info("url-Parameter unten vorhanden ===" + request.getParameter("unten"));
 				unten = Double.parseDouble(request.getParameter("unten"));
 			}
 		} catch(NumberFormatException e) {

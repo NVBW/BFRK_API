@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import de.nvbw.base.Applicationconfiguration;
 import org.json.JSONObject;
 
 import de.nvbw.base.NVBWLogger;
@@ -27,6 +28,7 @@ public class bahnsteig extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
     private static Connection bfrkConn = null;
+	private static Applicationconfiguration configuration = new Applicationconfiguration();
 
 
     
@@ -44,6 +46,8 @@ public class bahnsteig extends HttpServlet {
      */
     @Override
     public void init() {
+		NVBWLogger.init(configuration.logging_console_level,
+				configuration.logging_file_level);
     	bfrkConn = DBVerbindung.getDBVerbindung();
     }
 
@@ -55,36 +59,48 @@ public class bahnsteig extends HttpServlet {
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				System.out.println("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				NVBWLogger.severe("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
 					response.getWriter().append("FEHLER: keine DB-Verbindung offen");
 					return;
 				}
 			}
-		} catch (SQLException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei SQLException " + e1.toString());
+		} catch (SQLException e) {
+			NVBWLogger.severe("FEHLER: keine DB-Verbindung offen, bei SQLException " + e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung möglich beim Aufruf /bahnsteig, bitte Administrator informieren: "
+					+ e.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
-		} catch (IOException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei IOException " + e1.toString());
+		} catch (IOException e) {
+			NVBWLogger.severe("FEHLER: keine DB-Verbindung offen, bei IOException " + e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unerwarteter Fehler aufgetreten beim Aufruf /bahnsteig, bitte Administrator informieren: "
+					+ e.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
 
 		long paramObjektid = 0;
 		String paramDhid = "";
 		if(request.getParameter("dhid") != null) {
-			System.out.println("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
+			NVBWLogger.info("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
 			paramDhid = request.getParameter("dhid");
 		} else {
-			System.out.println("url-Parameter dhid fehlt ...");
+			NVBWLogger.info("url-Parameter dhid fehlt ...");
 			String requesturi = request.getRequestURI();
-			System.out.println("requesturi ===" + requesturi + "===");
-			if(requesturi.indexOf("/bahnsteig") != -1) {
+			NVBWLogger.info("requesturi ===" + requesturi + "===");
+			if(requesturi.contains("/bahnsteig")) {
 				int startpos = requesturi.indexOf("/bahnsteig");
-				System.out.println("startpos #1: " + startpos);
+				NVBWLogger.info("startpos #1: " + startpos);
 				if(requesturi.indexOf("/",startpos + 1) != -1) {
 					paramObjektid = Long.parseLong(requesturi.substring(requesturi.indexOf("/",startpos + 1) + 1));
-					System.out.println("Versuch, Objektid zu extrahieren ===" + paramObjektid + "===");
+					NVBWLogger.info("Versuch, Objektid zu extrahieren ===" + paramObjektid + "===");
 				}
 			}
 		}
@@ -125,7 +141,7 @@ public class bahnsteig extends HttpServlet {
 				selectHaltestelleStmt.setLong(1, paramObjektid);
 			else
 				selectHaltestelleStmt.setString(1, paramDhid);
-			System.out.println("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
+			NVBWLogger.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
 
 			ResultSet selectMerkmaleRS = selectHaltestelleStmt.executeQuery();
 
@@ -337,9 +353,14 @@ public class bahnsteig extends HttpServlet {
 				return;
 			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.out.println("SQLException::: " + e.toString());
+			NVBWLogger.severe("SQLException::: " + e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten, bitte Administrator informieren: "
+					+ e.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
 		}
 		response.getWriter().append(merkmaleJsonObject.toString());
 	}

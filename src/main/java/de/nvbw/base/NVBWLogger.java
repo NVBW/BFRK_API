@@ -1,5 +1,6 @@
 package de.nvbw.base;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
@@ -28,8 +29,6 @@ public class NVBWLogger {
 	        @Override
 	        public synchronized String format(LogRecord lr) {
 	            return String.format(format,
-	                    //new Date(lr.getMillis()),
-	                    //lr.getLoggerName(),
 	                    lr.getLevel().getLocalizedName(),
 	                    lr.getMessage()
 	            );
@@ -55,7 +54,6 @@ public class NVBWLogger {
 	        });
 	        filehandler.setLevel(fileLevel);
 	        logger.addHandler(filehandler);
-//	        logger.setLevel(Level.ALL);
 	    } catch(IOException ioerr) {
 	    	ioerr.printStackTrace();
 	    }		
@@ -95,7 +93,21 @@ public class NVBWLogger {
             e.printStackTrace();
         }
 	}
-	
+
+	public static void init(Level consoleLevel, Level fileLevel) {
+		try {
+			Applicationconfiguration configuration = new Applicationconfiguration();
+			String dateiname = "dummy.log";
+			if(configuration.logging_filename.contains(File.separator))
+				dateiname = configuration.logging_filename;
+			else
+				dateiname = configuration.logging_path + File.separator + configuration.logging_filename;
+			new NVBWLogger(dateiname, consoleLevel, fileLevel);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
 	public static void log(Level level, String msg){
 	    getLogger().log(level, msg);
 	}
