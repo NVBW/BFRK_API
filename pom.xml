@@ -330,7 +330,7 @@
       <dependency>
         <groupId>de.nvbw.dm.ddoev</groupId>
         <artifactId>divagraph</artifactId>
-        <version>20260213</version>
+        <version>20260214</version>
       </dependency>
   </dependencies>
     <organization>
