@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -26,10 +27,10 @@ import de.nvbw.bfrk.util.DBVerbindung;
 		)
 public class haltestelle extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-       
+
+	private static final Logger LOG = NVBWLogger.getLogger(stopmodell.class);
     private static Connection bfrkConn = null;
 
-    public static int SC_NOTFOUND = 404;
 
     /**
      * @see HttpServlet#HttpServlet()
@@ -56,7 +57,7 @@ public class haltestelle extends HttpServlet {
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				System.out.println("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.severe("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
 					response.getWriter().append("FEHLER: keine DB-Verbindung offen");
@@ -76,12 +77,12 @@ public class haltestelle extends HttpServlet {
 		for(Map.Entry<String, String[]> paramentry: alleparameter.entrySet()) {
 			String paramkey = paramentry.getKey();
 			String[] paramvalues = paramentry.getValue();
-			System.out.println("param  [" + paramkey + "] ===" + paramvalues.toString() + "===");
+			LOG.info("param  [" + paramkey + "] ===" + paramvalues.toString() + "===");
 		}
 		*/
-		//System.out.println("Request-Uri ===" + request.getRequestURI());
-		//System.out.println("Request-Url ===" + request.getRequestURL().toString());
-		//System.out.println("Query-String ===" + request.getQueryString() + "===");
+		//LOG.info("Request-Uri ===" + request.getRequestURI());
+		//LOG.info("Request-Url ===" + request.getRequestURL().toString());
+		//LOG.info("Query-String ===" + request.getQueryString() + "===");
 		
 		String paramKreisid= "%";
 		String paramObjektart1 = "Bahnhof";
@@ -89,12 +90,12 @@ public class haltestelle extends HttpServlet {
 		String paramDHID = "%";
 
 		if(request.getParameter("kreisid") != null) {
-			System.out.println("url-Parameter kreisid vorhanden ===" + request.getParameter("kreisid"));
+			LOG.info("url-Parameter kreisid vorhanden ===" + request.getParameter("kreisid"));
 			paramKreisid = URLDecoder.decode(request.getParameter("kreisid"),"UTF-8");
 		}
 
 		if(request.getParameter("oevart") != null) {
-			System.out.println("url-Parameter oevart vorhanden ===" + request.getParameter("oevart") + "===");
+			LOG.info("url-Parameter oevart vorhanden ===" + request.getParameter("oevart") + "===");
 			String tempOevart = request.getParameter("oevart");
 			if(tempOevart.equals("S")) {
 				paramObjektart1 = "Bahnhof";
@@ -109,17 +110,17 @@ public class haltestelle extends HttpServlet {
 		}
 
 		if(request.getParameter("dhid") != null) {
-			System.out.println("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
+			LOG.info("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
 			paramDHID = URLDecoder.decode(request.getParameter("dhid"),"UTF-8");
 		} else {
-			System.out.println("url-Parameter dhid fehlt ...");
+			LOG.info("url-Parameter dhid fehlt ...");
 			String requesturi = request.getRequestURI();
-			System.out.println("requesturi ===" + requesturi + "===");
+			LOG.info("requesturi ===" + requesturi + "===");
 			if(requesturi.indexOf("/haltestelle") != -1) {
 				int startpos = requesturi.indexOf("/haltestelle");
 				if(requesturi.indexOf("/",startpos + 1) != -1) {
 					paramDHID = requesturi.substring(requesturi.indexOf("/",startpos + 1) + 1);
-					System.out.println("Versuch, dhid zu extrahieren ===" + paramDHID + "===");
+					LOG.info("Versuch, dhid zu extrahieren ===" + paramDHID + "===");
 				}
 			}
 		}
@@ -144,7 +145,7 @@ public class haltestelle extends HttpServlet {
 			selectHaltestelleStmt.setString(stmtindex++, paramObjektart1);
 			selectHaltestelleStmt.setString(stmtindex++, paramObjektart2);
 			selectHaltestelleStmt.setString(stmtindex++, paramKreisid);
-			System.out.println("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
+			LOG.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
 
 			ResultSet selectHaltestelleRS = selectHaltestelleStmt.executeQuery();
 
@@ -179,7 +180,7 @@ public class haltestelle extends HttpServlet {
 				
 				haltestellenJsonArray.put(haltestelleJsonObject);
 			}
-			NVBWLogger.info("Anzahl Haltestellen: " + anzahldatensaetze);
+			LOG.info("Anzahl Haltestellen: " + anzahldatensaetze);
 			selectHaltestelleRS.close();
 			selectHaltestelleStmt.close();
 
@@ -190,7 +191,7 @@ public class haltestelle extends HttpServlet {
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			System.out.println("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
 		}
 		response.getWriter().append(haltestellenJsonArray.toString());
 

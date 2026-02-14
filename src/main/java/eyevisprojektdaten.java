@@ -1,4 +1,5 @@
 
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -9,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -16,10 +18,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import de.nvbw.base.NVBWLogger;
 import org.json.JSONObject;
 
 import de.nvbw.base.Applicationconfiguration;
-import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.ExportNachEYEvis;
 
 /**
@@ -33,27 +35,22 @@ public class eyevisprojektdaten extends HttpServlet {
 
 	static DateFormat datetime_filesystem_formatter = new SimpleDateFormat("yyyyMMdd_HHmmss");
 
-	static Applicationconfiguration configuration = null;
+	private static final Logger LOG = NVBWLogger.getLogger(eyevisprojektdaten.class);
+	private static Applicationconfiguration configuration = new Applicationconfiguration();
 
     /**
      * @see HttpServlet#HttpServlet()
      */
     public eyevisprojektdaten() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     /**
-     * initialization on servlett startup
+     * initialization on servlet startup
      * - connect to bfrk DB
      */
     @Override
     public void init() {
-		configuration = new Applicationconfiguration();
-		if(configuration != null)
-			NVBWLogger.info("Applikationconfiguration wurde geladen, Server ist: " + configuration.servername);
-		else
-			NVBWLogger.warning("Applikationconfiguration war nicht erfolgreich");
     }
 
 
@@ -63,6 +60,7 @@ public class eyevisprojektdaten extends HttpServlet {
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
 		String umgebung = configuration.servername;
+		//TODO die folgende Url sollte ggfs. Staging-relevant gesetzt werden
 		String webserverStatischeAusgabebasisurl = "https://bfrk-kat-api.efa-bw.de/eyevisprojektdaten";
 
 
@@ -80,7 +78,7 @@ public class eyevisprojektdaten extends HttpServlet {
 		String paramVorlage = "";
 
 		if(request.getParameter("oevart") != null) {
-			NVBWLogger.info("url-Parameter oevart vorhanden ===" + request.getParameter("oevart") + "===");
+			LOG.info("url-Parameter oevart vorhanden ===" + request.getParameter("oevart") + "===");
 			paramOevart = URLDecoder.decode(request.getParameter("oevart").toUpperCase(),"UTF-8");
 			if(		!paramOevart.equals("S")
 				&&	!paramOevart.equals("O")) {
@@ -94,7 +92,7 @@ public class eyevisprojektdaten extends HttpServlet {
 				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 				return;
 			}
-			NVBWLogger.info("in variable paramOevart ===" + paramOevart + "===");
+			LOG.info("in variable paramOevart ===" + paramOevart + "===");
 		} else {
 			JSONObject errorObjektJson = new JSONObject();
 			errorObjektJson.put("subject", "Request Pflicht-Parameter oevart fehlt");
@@ -107,9 +105,9 @@ public class eyevisprojektdaten extends HttpServlet {
 		}
 
 		if(request.getParameter("dhids") != null) {
-			NVBWLogger.info("url-Parameter dhids vorhanden ===" + request.getParameter("dhids") + "===");
-			paramDhidListe = URLDecoder.decode(request.getParameter("dhids"),"UTF-8");
-			NVBWLogger.info("in variable paramDHIDListe ===" + paramDhidListe + "===");
+			LOG.info("url-Parameter dhids vorhanden ===" + request.getParameter("dhids") + "===");
+			paramDhidListe = URLDecoder.decode(request.getParameter("dhids"), StandardCharsets.UTF_8);
+			LOG.info("in variable paramDHIDListe ===" + paramDhidListe + "===");
 		} else {
 			JSONObject errorObjektJson = new JSONObject();
 			errorObjektJson.put("subject", "Request Pflicht-Parameter dhid fehlt");
@@ -122,9 +120,9 @@ public class eyevisprojektdaten extends HttpServlet {
 		}
 
 		if(request.getParameter("datenlieferant") != null) {
-			NVBWLogger.info("url-Parameter datenlieferant vorhanden ===" + request.getParameter("datenlieferant") + "===");
+			LOG.info("url-Parameter datenlieferant vorhanden ===" + request.getParameter("datenlieferant") + "===");
 			paramDatenlieferant = URLDecoder.decode(request.getParameter("datenlieferant"),"UTF-8");
-			NVBWLogger.info("in variable paramDatenlieferant ===" + paramDatenlieferant + "===");
+			LOG.info("in variable paramDatenlieferant ===" + paramDatenlieferant + "===");
 
 			if(	paramDatenlieferant.equals("bodo")
 				|| paramDatenlieferant.equals("CalwLK")
@@ -147,7 +145,7 @@ public class eyevisprojektdaten extends HttpServlet {
 			} else {
 				JSONObject errorObjektJson = new JSONObject();
 				errorObjektJson.put("subject", "Request Pflicht-Parameter datenlieferant hat ungültigen Wert");
-				errorObjektJson.put("message", "Paramater datenlieferant fehlerhaft");
+				errorObjektJson.put("message", "Parameter datenlieferant fehlerhaft");
 				errorObjektJson.put("messageId", 9994731);
 				resultObjectJson.put("error", errorObjektJson);
 				response.getWriter().append(resultObjectJson.toString());
@@ -166,42 +164,19 @@ public class eyevisprojektdaten extends HttpServlet {
 		}
 
 		if(request.getParameter("objektart") != null) {
-			NVBWLogger.info("url-Parameter objektart vorhanden ===" + request.getParameter("objektart") + "===");
-			paramObjektarten = URLDecoder.decode(request.getParameter("objektart"),"UTF-8");
-			NVBWLogger.info("in variable paramOjektarten ===" + paramObjektarten + "===");
+			LOG.info("url-Parameter objektart vorhanden ===" + request.getParameter("objektart") + "===");
+			paramObjektarten = URLDecoder.decode(request.getParameter("objektart"), StandardCharsets.UTF_8);
+			LOG.info("in variable paramOjektarten ===" + paramObjektarten + "===");
 		}
 
 		if(request.getParameter("eyevisvorlage") != null) {
-			NVBWLogger.info("url-Parameter eyevivorlage vorhanden ===" + request.getParameter("eyevisvorlage") + "===");
-			paramVorlage = URLDecoder.decode(request.getParameter("eyevisvorlage"),"UTF-8");
-			NVBWLogger.info("in variable paramVorlage ===" + paramVorlage+ "===");
-		}
-
-
-		String datenApp = "eyevis";
-		if(		paramDatenlieferant.equals("bodo")
-			||	paramDatenlieferant.equals("ding")
-			|| paramDatenlieferant.equals("Hohenlohekreis")
-			|| paramDatenlieferant.equals("KonstanzLK"))
-			datenApp = "mentz";
-		else if(paramDatenlieferant.equals("CalwLK")
-			||	paramDatenlieferant.equals("Enzkreis")
-			||	paramDatenlieferant.equals("FreudenstadtLK")
-			||	paramDatenlieferant.equals("HeidenheimLK")
-			||	paramDatenlieferant.equals("HeilbronnLK")
-			||	paramDatenlieferant.equals("Ortenaukreis")
-			||	paramDatenlieferant.equals("Ostalbkreis")
-			||	paramDatenlieferant.equals("PforzheimSK")
-			||	paramDatenlieferant.equals("ReutlingenLK")
-			||	paramDatenlieferant.equals("RottweilLK")
-			||	paramDatenlieferant.equals("TübingenLK")
-			|| paramDatenlieferant.equals("ZRF")
-			|| paramDatenlieferant.equals("SPNV"))
-			datenApp = "eyevis";
-		else {
+			LOG.info("url-Parameter eyevivorlage vorhanden ===" + request.getParameter("eyevisvorlage") + "===");
+			paramVorlage = URLDecoder.decode(request.getParameter("eyevisvorlage"), StandardCharsets.UTF_8);
+			LOG.info("in variable paramVorlage ===" + paramVorlage+ "===");
+		} else {
 			JSONObject errorObjektJson = new JSONObject();
-			errorObjektJson.put("subject", "Request Pflicht-Parameter datenlieferant hat ungültigen Wert");
-			errorObjektJson.put("message", "Paramater datenlieferant fehlerhaft");
+			errorObjektJson.put("subject", "Request Pflicht-Parameter eyevisvorlage fehlt");
+			errorObjektJson.put("message", "Parameter eyevisvorlage fehlt");
 			errorObjektJson.put("messageId", 9994732);
 			resultObjectJson.put("error", errorObjektJson);
 			response.getWriter().append(resultObjectJson.toString());
@@ -209,15 +184,6 @@ public class eyevisprojektdaten extends HttpServlet {
 			return;
 		}
 
-		if(paramVorlage.isEmpty()) {
-			if(paramDatenlieferant.equals("SPNV"))
-				paramVorlage = "SPNV-2024";
-			else if(paramDatenlieferant.equals("ding"))
-				paramVorlage = "ÖPNV-2025-DING";
-			else
-				paramVorlage = "ÖPNV-2025";
-		}
-		
 		String paramAuftragsverzeichnis  = "";
 		String paramAusgabepfad = "";
 		String paramEingangspfad  = "";
@@ -226,7 +192,7 @@ public class eyevisprojektdaten extends HttpServlet {
 			paramEingangspfad = paramAuftragsverzeichnis + File.separator + "Eingang";
 			paramAusgabepfad = paramAuftragsverzeichnis + File.separator + "Ausgang";
 		} else {
-			paramAuftragsverzeichnis = "/home/NVBWAdmin/tomcat-deployment/bfrk_api_home/eyevisprojektdaten";
+			paramAuftragsverzeichnis = configuration.application_homedir + File.separator + "eyevisprojektdaten";
 			paramEingangspfad = paramAuftragsverzeichnis + File.separator + "Eingang";
 			paramAusgabepfad = paramAuftragsverzeichnis + File.separator + "Ausgang";
 		}
@@ -249,8 +215,6 @@ public class eyevisprojektdaten extends HttpServlet {
 		args[argsindex++] = paramObjektarten;
 		args[argsindex++] = "-ausgabedateiprefix";
 		args[argsindex++] = ausgabedateiprefix;
-		args[argsindex++] = "-erhebungsart";
-		args[argsindex++] = datenApp;
 		args[argsindex++] = "-bilderkopieren";
 		args[argsindex++] = "ja";
 		args[argsindex++] = "-bilderzielverzeichnis";
@@ -259,26 +223,26 @@ public class eyevisprojektdaten extends HttpServlet {
 		args[argsindex++] = paramAuftragsverzeichnis;
 		args[argsindex++] = "-eyevisvorlage";
 		args[argsindex++] = paramVorlage;
-		NVBWLogger.info("Die Programmaufrufparameter sind ...");
+		LOG.info("Die Programmaufrufparameter sind ...");
 		for(int argindex = 0; argindex < args.length; argindex++) {
-			NVBWLogger.info("args[" + argindex + "] ===" + args[argindex] + "===");
+			LOG.info("args[" + argindex + "] ===" + args[argindex] + "===");
 		}
-		NVBWLogger.info("vor Aufruf ExportNachEYEvis.main ...");
+		LOG.info("vor Aufruf ExportNachEYEvis.main ...");
+//TODO normalen Aufruf mit x Methodenparametern umsetzen
 		int returncode = ExportNachEYEvis.execute(args);
-		NVBWLogger.info("nach Aufruf ExportNachEYEvis.main, returncode: " + returncode);
+		LOG.info("nach Aufruf ExportNachEYEvis.main, returncode: " + returncode);
 
 		if(returncode != 0) {
-			NVBWLogger.warning("Der Returncode von ExportNachEyevis.main war nicht 0, also fehlerhaft, deshalb jetzt Abbruch");
-			String fehlertext = "Die EYEvis-Projekterstellung hat kein Ergebnis gebracht.";
+			LOG.warning("Der Returncode von ExportNachEyevis.main war nicht 0, also fehlerhaft, deshalb jetzt Abbruch");
 			JSONObject ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
-			ergebnisJsonObject.put("fehlertext", fehlertext);
+			ergebnisJsonObject.put("fehlertext", "Die EYEvis-Projekterstellung hat kein Ergebnis gebracht.");
 			response.getWriter().append(ergebnisJsonObject.toString());
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
 
-		NVBWLogger.info("jetzt suchen im Ausgabeverzeichnis " + paramAusgabepfad + " ...");
+		LOG.info("jetzt suchen im Ausgabeverzeichnis " + paramAusgabepfad + " ...");
 
 		String gefdatei = paramAusgabepfad + File.separator + ausgabedateiprefix + "_auftragsausgabe.txt";
 		
@@ -299,7 +263,7 @@ public class eyevisprojektdaten extends HttpServlet {
 				String line = "";
 				int abpos = 0;
 				while ((line = dateireader.readLine()) != null) {
-					if(line.indexOf("=") != -1)
+					if(line.contains("="))
 						abpos = line.indexOf("=") + 1;
 					if(line.startsWith("csvdatei="))
 						csvdateiname = line.substring(abpos);
@@ -311,10 +275,10 @@ public class eyevisprojektdaten extends HttpServlet {
 						zipdateigroesse = Integer.parseInt(line.substring(abpos));
 				}
 				dateireader.close();
-				NVBWLogger.info("csvdateiname    ===" + csvdateiname + "===");
-				NVBWLogger.info("csvdateigroesse ===" + csvdateigroesse + "===");
-				NVBWLogger.info("zipdateiname    ===" + zipdateiname + "===");
-				NVBWLogger.info("zipdateigroesse ===" + zipdateigroesse + "===");
+				LOG.info("csvdateiname    ===" + csvdateiname + "===");
+				LOG.info("csvdateigroesse ===" + csvdateigroesse + "===");
+				LOG.info("zipdateiname    ===" + zipdateiname + "===");
+				LOG.info("zipdateigroesse ===" + zipdateigroesse + "===");
 
 				resultObjectJson.put("zipdateilink", webserverStatischeAusgabebasisurl + "/" + zipdateiname);
 				resultObjectJson.put("zipdateigroesse", zipdateigroesse);
@@ -325,8 +289,8 @@ public class eyevisprojektdaten extends HttpServlet {
 				return;
 
 			} catch (IOException ioe) {
-				NVBWLogger.warning("Fehler bei Datei lesen " + gefdatei);
-				NVBWLogger.warning(ioe.toString());
+				LOG.warning("Fehler bei Datei lesen " + gefdatei);
+				LOG.warning(ioe.toString());
 				String fehlertext = "Die EYEvis-Projekterstellsdatei ist nicht lesbar";
 				JSONObject ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
@@ -337,7 +301,7 @@ public class eyevisprojektdaten extends HttpServlet {
 			}
 			
 		} else {
-			NVBWLogger.warning("Es wurde keine Ausgabedatei "
+			LOG.warning("Es wurde keine Ausgabedatei "
 				+ "von EYEvis-Projektdateierzeugung erstellt, daher ABBRUCH");
 			String fehlertext = "Die Grapherzeugung ist fehlgeschlagen, Grund unbekannt";
 			JSONObject ergebnisJsonObject = new JSONObject();
@@ -354,9 +318,12 @@ public class eyevisprojektdaten extends HttpServlet {
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
-		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		response.setCharacterEncoding("UTF-8");
-		response.getWriter().append("POST Request ist nicht erlaubt");
+		JSONObject ergebnisJsonObject = new JSONObject();
+		ergebnisJsonObject.put("status", "fehler");
+		ergebnisJsonObject.put("fehlertext", "POST Request /eyevisprojektdaten ist nicht vorhanden");
+		response.getWriter().append(ergebnisJsonObject.toString());
+		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 	}
 
 }

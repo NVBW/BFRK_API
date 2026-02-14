@@ -1,15 +1,13 @@
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.io.OutputStream;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -17,11 +15,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import de.nvbw.base.NVBWLogger;
 import org.json.JSONObject;
 
-import de.nvbw.base.NVBWLogger;
-
-
+import de.nvbw.base.Applicationconfiguration;
 
 
 /**
@@ -32,9 +29,11 @@ import de.nvbw.base.NVBWLogger;
 		)
 public class osmdatenauszug extends HttpServlet {
 
-
 	private static final long serialVersionUID = 1L;
 
+	private static final Logger LOG = NVBWLogger.getLogger(osmdatenauszug.class);
+	private static Applicationconfiguration configuration = new Applicationconfiguration();
+	private static String bfrkapihomeVerzeichnis = "";
 
     /**
      * @see HttpServlet#HttpServlet()
@@ -44,12 +43,17 @@ public class osmdatenauszug extends HttpServlet {
         // TODO Auto-generated constructor stub
     }
 
+
     /**
      * initialization on servlett startup
      * - connect to bfrk DB
      */
     @Override
     public void init() {
+		if(configuration != null) {
+			bfrkapihomeVerzeichnis = configuration.application_homedir;
+			LOG.info("in /osmdatenauszug/init: über Konfigurationsdatei App-Home gesetzt: " + bfrkapihomeVerzeichnis);
+		}
     }
 
 
@@ -73,16 +77,16 @@ public class osmdatenauszug extends HttpServlet {
 		String contenttype = "text/xml";
 		String characterencoding = "UTF-8";
 		if(request.getHeader("accept") != null) {
-			System.out.println("Request Header accept vorhanden ===" + request.getHeader("accept") + "===");
+			LOG.info("Request Header accept vorhanden ===" + request.getHeader("accept") + "===");
 			if(request.getHeader("accept").contains("application/x-protobuf")) {
 				osmextension = "pbf";
 				contenttype = "application/x-protobuf";
-				characterencoding = "";
+				characterencoding = null;
 			}
 		}
-		NVBWLogger.info("gesetzte OSM-Extension: " + osmextension);
+		LOG.info("gesetzte OSM-Extension: " + osmextension);
 		response.setContentType(contenttype);
-		if(!characterencoding.isEmpty())
+		if(characterencoding != null)
 			response.setCharacterEncoding(characterencoding);
 
 		try {
@@ -108,23 +112,23 @@ public class osmdatenauszug extends HttpServlet {
 			}
 */
 			if(request.getParameter("links") != null) {
-				System.out.println("url-Parameter links vorhanden ===" + request.getParameter("links"));
+				LOG.info("url-Parameter links vorhanden ===" + request.getParameter("links"));
 				links = Double.parseDouble(request.getParameter("links"));
 			}
 			if(request.getParameter("rechts") != null) {
-				System.out.println("url-Parameter rechts vorhanden ===" + request.getParameter("rechts"));
+				LOG.info("url-Parameter rechts vorhanden ===" + request.getParameter("rechts"));
 				rechts = Double.parseDouble(request.getParameter("rechts"));
 			}
 			if(request.getParameter("oben") != null) {
-				System.out.println("url-Parameter oben vorhanden ===" + request.getParameter("oben"));
+				LOG.info("url-Parameter oben vorhanden ===" + request.getParameter("oben"));
 				oben = Double.parseDouble(request.getParameter("oben"));
 			}
 			if(request.getParameter("unten") != null) {
-				System.out.println("url-Parameter unten vorhanden ===" + request.getParameter("unten"));
+				LOG.info("url-Parameter unten vorhanden ===" + request.getParameter("unten"));
 				unten = Double.parseDouble(request.getParameter("unten"));
 			}
 		} catch(NumberFormatException e) {
-			NVBWLogger.severe("Fehler beim Versuch, die bbox-Grenzen numerisch zu parsen, ABBRUCH");
+			LOG.severe("Fehler beim Versuch, die bbox-Grenzen numerisch zu parsen, ABBRUCH");
 			JSONObject ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", "bbox-Angaben nicht numerisch");
@@ -135,36 +139,37 @@ public class osmdatenauszug extends HttpServlet {
 
 		Date jetzt = new Date();
 		String filename = datetime_dateistempel_formatter.format(jetzt) + "." + osmextension;
-		String workingdir = "/home/NVBWAdmin/tomcat-deployment/bfrk_api_home/openstreetmap";
-		File workingdirHandle = new File(workingdir);
+		String osmworkingdir = bfrkapihomeVerzeichnis + File.separator + "openstreetmap";
+		File workingdirHandle = new File(osmworkingdir);
 		String programm = "osmiumextract.sh";
 		String parameter = "" + links + " " + unten + " " + rechts + " " + oben + " " + filename;
 		try {
-			NVBWLogger.info("Prozessaufruf: " + programm + " " + parameter + "...");
-			ProcessBuilder processbuilded = new ProcessBuilder(workingdir + File.separator + programm, 
+			LOG.info("Prozessaufruf: " + programm + " " + parameter + "...");
+			ProcessBuilder processbuilded = new ProcessBuilder(osmworkingdir + File.separator + programm,
 				"" + links, "" + unten, "" + rechts, "" + oben, filename);
 			processbuilded.directory(workingdirHandle);
-			processbuilded.redirectOutput(new File(workingdir + File.separator + "process_output.log"));
-			processbuilded.redirectError(new File(workingdir + File.separator + "process_error.log"));
-			NVBWLogger.info("Prozess wird gestartet ...");
+			processbuilded.redirectOutput(new File(osmworkingdir + File.separator + "process_output.log"));
+			processbuilded.redirectError(new File(osmworkingdir + File.separator + "process_error.log"));
+			LOG.info("Prozess wird gestartet ...");
 			Process processrunning = processbuilded.start();
 			int returncode = processrunning.waitFor();
-			NVBWLogger.info("Prozess hat geendet");
-			NVBWLogger.info("Aufruf osmium ergab returncode: " + returncode);
+			LOG.info("Prozess hat geendet");
+			LOG.info("Aufruf osmium ergab returncode: " + returncode);
 		} catch (IOException e) {
-			NVBWLogger.severe("OsmFileReader/createPlanetAuszug: IOException aufgetreten, Details: " + e.toString());
-			e.printStackTrace();
+			LOG.severe("OsmFileReader/createPlanetAuszug: IOException aufgetreten, Details: " + e.toString());
+			LOG.severe(e.toString());
 		} catch(Exception e) {
-			NVBWLogger.severe("osmdatenauszug, Exception aufgetreten. Details: " + e.toString());
+			LOG.severe("osmdatenauszug, Exception aufgetreten. Details: " + e.toString());
 			return;
 		}
 
-		File outputdateiHandle = new File("/home/NVBWAdmin/tomcat-deployment/bfrk_api_home/openstreetmap/" + filename);
+		File outputdateiHandle = new File(bfrkapihomeVerzeichnis + File.separator
+				+ "openstreetmap" + File.separator + filename);
 		
 
 			// wenn von Osmium KEINE extract-Datei herauskam, Fehlermeldung und Ende
 		if(!outputdateiHandle.exists()) {
-			NVBWLogger.warning("Es wurde keine OSM-Dateiauszug "
+			LOG.warning("Es wurde keine OSM-Dateiauszug "
 				+ "erstellt, daher ABBRUCH");
 			String fehlertext = "Der OSM-Dateiauszug ist fehlgeschlagen, Grund unbekannt";
 			JSONObject ergebnisJsonObject = new JSONObject();

@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>de.nvbw.dm.ddoev</groupId>
   <artifactId>bfrk_api</artifactId>
-  <version>20260207</version>
+  <version>20260213</version>
   <packaging>war</packaging>
   <properties>
     <maven.compiler.source>17</maven.compiler.source>

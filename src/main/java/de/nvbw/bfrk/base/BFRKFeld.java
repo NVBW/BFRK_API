@@ -4,11 +4,14 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.logging.Logger;
 
 import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.OpenDataCSVExportwriter;
 
 public class BFRKFeld {
+	private static final Logger LOG = NVBWLogger.getLogger(BFRKFeld.class);
+
 	static private DateFormat date_de_formatter = new SimpleDateFormat("dd.MM.yyyy");
 
 	public enum Datentyp {Boolean, Numeric, String, Date, unset};
@@ -781,7 +784,7 @@ public class Main {
 			else
 				return false;
 		} else {
-			NVBWLogger.severe("Programmierfehler in getBooleanWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getBooleanWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return false;
 	}
@@ -793,7 +796,7 @@ public class Main {
 			else
 				return OpenDataCSVExportwriter.EXPORT_BOOLEAN_FALSE;
 		} else {
-			NVBWLogger.severe("Programmierfehler in getBooleanWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getBooleanWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return "nein";
 	}
@@ -805,7 +808,7 @@ public class Main {
 			else
 				return "no";
 		} else {
-			NVBWLogger.severe("Programmierfehler in getBooleanWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getBooleanWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return "no";
 	}
@@ -822,12 +825,12 @@ public class Main {
 					return returnwert;
 				}
 				catch (NumberFormatException numerror) {
-					NVBWLogger.severe("Fehler bei Konvertierung nach double-Typ, Original ist " + this.feldwert);
+					LOG.severe("Fehler bei Konvertierung nach double-Typ, Original ist " + this.feldwert);
 					return returnwert;
 				}
 			}
 		} else {
-			NVBWLogger.severe("Programmierfehler in getZahlWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getZahlWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return returnwert;
 	}
@@ -842,12 +845,12 @@ public class Main {
 					return returnwert;
 				}
 				catch (NumberFormatException numerror) {
-					NVBWLogger.severe("Fehler bei Konvertierung nach double-Typ, Original ist " + this.feldwert);
+					LOG.severe("Fehler bei Konvertierung nach double-Typ, Original ist " + this.feldwert);
 					return returnwert;
 				}
 			}
 		} else {
-			NVBWLogger.severe("Programmierfehler in getZahlWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getZahlWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return returnwert;
 	}
@@ -865,12 +868,12 @@ public class Main {
 					return returnwert;
 				}
 				catch (NumberFormatException numerror) {
-					NVBWLogger.severe("Fehler bei Konvertierung nach Integer, Original ist " + this.feldwert);
+					LOG.severe("Fehler bei Konvertierung nach Integer, Original ist " + this.feldwert);
 					return returnwert;
 				}
 			}
 		} else {
-			NVBWLogger.severe("Programmierfehler in getIntWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getIntWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return returnwert;
 	}
@@ -886,12 +889,12 @@ public class Main {
 					return returnwert;
 				}
 				catch (NumberFormatException numerror) {
-					NVBWLogger.severe("Fehler bei Konvertierung nach Integer, Original ist " + this.feldwert);
+					LOG.severe("Fehler bei Konvertierung nach Integer, Original ist " + this.feldwert);
 					return returnwert;
 				}
 			}
 		} else {
-			NVBWLogger.severe("Programmierfehler in getIntWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getIntWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return returnwert;
 	}
@@ -914,7 +917,7 @@ public class Main {
 				return this.feldwert;
 			}
 		} else {
-			NVBWLogger.severe("Programmierfehler in getTextWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getTextWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return "";
 	}
@@ -928,12 +931,12 @@ public class Main {
 				datumwert = date_de_formatter.parse(this.feldwert);
 				return datumwert;
 			} catch (ParseException e) {
-				NVBWLogger.warning("in Klasse BFRKFeld, Methode getDatumWert kann das Datum "
+				LOG.warning("in Klasse BFRKFeld, Methode getDatumWert kann das Datum "
 					+ "im Textformat nicht konvertiert werden, Text aus DB ist ===" + this.feldwert + "===");
 				return null;
 			}
 		} else {
-			NVBWLogger.severe("Programmierfehler in getTextWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getTextWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return null;
 	}

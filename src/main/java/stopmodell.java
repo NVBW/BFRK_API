@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
@@ -21,17 +22,12 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-
-
-import org.json.JSONException;
+import de.nvbw.graph.Grapherzeugung;
 import org.json.JSONObject;
 
-import de.nvbw.graph.Grapherzeugung;
-import de.nvbw.base.BFRKApiApplicationconfiguration;
+import de.nvbw.base.Applicationconfiguration;
 import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.DBVerbindung;
-
-
 
 
 /**
@@ -41,20 +37,20 @@ import de.nvbw.bfrk.util.DBVerbindung;
 			urlPatterns = {"/stopmodell/*"}
 		)
 public class stopmodell extends HttpServlet {
-	private static DateFormat date_de_formatter = new SimpleDateFormat("dd.MM.yyyy");
-
-	private static BFRKApiApplicationconfiguration bfrkapiconfiguration = null;
-
 	private static final long serialVersionUID = 1L;
 
-    private static Connection bfrkConn = null;
+	private static final DateFormat date_de_formatter = new SimpleDateFormat("dd.MM.yyyy");
+
+	private static final Logger LOG = NVBWLogger.getLogger(stopmodell.class);
+	private static final Applicationconfiguration configuration = new Applicationconfiguration();
+	private static Connection bfrkConn = null;
+
 
     /**
      * @see HttpServlet#HttpServlet()
      */
     public stopmodell() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     /**
@@ -63,7 +59,6 @@ public class stopmodell extends HttpServlet {
      */
     @Override
     public void init() {
-		bfrkapiconfiguration = new BFRKApiApplicationconfiguration();
     	bfrkConn = DBVerbindung.getDBVerbindung();
     }
 
@@ -85,34 +80,52 @@ public class stopmodell extends HttpServlet {
 		int mayorversion = 0;
 		int minorversion = 0;
 		if(request.getParameter("dhid") != null) {
-			System.out.println("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
+			LOG.info("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
 			dhid = request.getParameter("dhid");
 		}
 		if(request.getParameter("release") != null) {
-			System.out.println("url-Parameter release vorhanden ===" + request.getParameter("release"));
+			LOG.info("url-Parameter release vorhanden ===" + request.getParameter("release"));
 			try {
 				release = Integer.parseInt(request.getParameter("release"));
-				System.out.println("Parameter release: " + release);
+				LOG.info("Parameter release: " + release);
 			} catch(NumberFormatException ne) {
-				System.out.println("Parameter release kann nicht numerisch geparst werden");
+				LOG.info("Parameter release kann nicht numerisch geparst werden");
+				JSONObject ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "Parameter release ist nicht numerisch, das ist unzulässig");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+				return;
 			}
 		}
 		if(request.getParameter("mayorversion") != null) {
-			System.out.println("url-Parameter mayorversion vorhanden ===" + request.getParameter("mayorversion"));
+			LOG.info("url-Parameter mayorversion vorhanden ===" + request.getParameter("mayorversion"));
 			try {
 				mayorversion = Integer.parseInt(request.getParameter("mayorversion"));
-				System.out.println("Parameter mayorversion: " + mayorversion);
+				LOG.info("Parameter mayorversion: " + mayorversion);
 			} catch(NumberFormatException ne) {
-				System.out.println("Parameter mayorversion kann nicht numerisch geparst werden");
+				LOG.info("Parameter mayorversion kann nicht numerisch geparst werden");
+				JSONObject ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "Parameter mayorversion ist nicht numerisch, das ist unzulässig");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+				return;
 			}
 		}
 		if(request.getParameter("minorversion") != null) {
-			System.out.println("url-Parameter minorversion vorhanden ===" + request.getParameter("minorversion"));
+			LOG.info("url-Parameter minorversion vorhanden ===" + request.getParameter("minorversion"));
 			try {
 				minorversion = Integer.parseInt(request.getParameter("minorversion"));
-				System.out.println("Parameter minorversion: " + minorversion);
+				LOG.info("Parameter minorversion: " + minorversion);
 			} catch(NumberFormatException ne) {
-				System.out.println("Parameter minorversion kann nicht numerisch geparst werden");
+				LOG.severe("Parameter minorversion kann nicht numerisch geparst werden");
+				JSONObject ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "Parameter minorversion ist nicht numerisch, das ist unzulässig");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+				return;
 			}
 		}
 
@@ -128,21 +141,33 @@ public class stopmodell extends HttpServlet {
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				NVBWLogger.severe("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
-				System.out.println("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.severe("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-					response.getWriter().append("FEHLER: keine DB-Verbindung offen");
+					LOG.severe("es konnte keine DB-Verbindung herstellt werden, in aufzug doGet");
+					JSONObject ergebnisJsonObject = new JSONObject();
+					ergebnisJsonObject.put("status", "fehler");
+					ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren");
+					response.getWriter().append(ergebnisJsonObject.toString());
+					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					return;
 				}
 			}
 		} catch (SQLException e1) {
-			NVBWLogger.severe("FEHLER: keine DB-Verbindung offen, bei SQLException " + e1.toString());
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei SQLException " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		} catch (IOException e1) {
-			NVBWLogger.severe("FEHLER: keine DB-Verbindung offen, bei IOException " + e1.toString());
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei IOException " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unbekannter Fehler aufgetreten, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
 
@@ -158,7 +183,7 @@ public class stopmodell extends HttpServlet {
 
 			selectneuestesModellStmt = bfrkConn.prepareStatement(selectneuestesModellSql);
 			selectneuestesModellStmt.setString(1, dhid);
-			NVBWLogger.info("Objektmodell neustes Modell query: " + selectneuestesModellStmt.toString() + "===");
+			LOG.info("Objektmodell neustes Modell query: " + selectneuestesModellStmt.toString() + "===");
 
 			ResultSet selectneuestesModellRS = selectneuestesModellStmt.executeQuery();
 
@@ -168,9 +193,9 @@ public class stopmodell extends HttpServlet {
 				dbmayorversion = selectneuestesModellRS.getInt("mayorversion");
 				dbminorversion = selectneuestesModellRS.getInt("minorversion");
 				if((release != 0) || (mayorversion != 0) || (minorversion != 0)) {
-					System.out.println("ok, es wurde ein spezielle Version abgefragt: " + release + "/" + mayorversion + "/" + minorversion);
+					LOG.info("ok, es wurde eine spezielle Version abgefragt: " + release + "/" + mayorversion + "/" + minorversion);
 					if((dbrelease == release) && (dbmayorversion == mayorversion) && (dbminorversion == minorversion)) {
-						System.out.println("ok, die speziell abgefragte Version wurde gefunden, sie hat DB-Id: " + dbid);
+						LOG.info("ok, die speziell abgefragte Version wurde gefunden, sie hat DB-Id: " + dbid);
 						break;
 					}
 				}
@@ -179,19 +204,19 @@ public class stopmodell extends HttpServlet {
 			selectneuestesModellStmt.close();
 
 		} catch (SQLException e) {
-			NVBWLogger.warning("SQLException. Select-Query neueste Version führte zu einem Fehler, "
-				+ "Query war: " + selectneuestesModellStmt.toString());
-			NVBWLogger.warning("Details: " + e.toString());
-			String fehlertext = "Die DB-Abfrage nach ggfs. vorhandener Graph-Versionen ist fehlgeschlagen";
+			LOG.warning("SQLException. Select-Query neueste Version führte zu einem Fehler.");
+			if(selectneuestesModellStmt != null)
+				LOG.warning("Query war: " + selectneuestesModellStmt.toString());
+			LOG.warning("Details: " + e.toString());
 			JSONObject ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
-			ergebnisJsonObject.put("fehlertext", fehlertext);
+			ergebnisJsonObject.put("fehlertext", "Die DB-Abfrage nach ggfs. vorhandener Graph-Versionen ist fehlgeschlagen");
 			response.getWriter().append(ergebnisJsonObject.toString());
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
 
-		System.out.println("nach Select auf objektmodell gefundende Version: " + dbrelease + "/" + dbmayorversion + "/" + dbminorversion);
+		LOG.info("nach Select auf objektmodell gefundende Version: " + dbrelease + "/" + dbmayorversion + "/" + dbminorversion);
 
 		release = dbrelease;
 		mayorversion = dbmayorversion;
@@ -209,7 +234,7 @@ public class stopmodell extends HttpServlet {
 				// ok, initiale Version auf 1.0.0 setzen
 			release = 1;
 
-			String outputdatei = bfrkapiconfiguration.application_datadir 
+			String outputdatei = configuration.application_datadir
 				+ File.separator + "tomcatoutput" + File.separator + "bahnhofsmodellierung.json";
 			File outputdateiHandle = new File(outputdatei);
 			if(outputdateiHandle.exists())
@@ -218,29 +243,25 @@ public class stopmodell extends HttpServlet {
 			JSONObject graphresultJson = Grapherzeugung.execute(dhid, false,
 					outputdatei);
 
-			try {
-				if(graphresultJson != null) {
-					String status = graphresultJson.get("status").toString();
-					NVBWLogger.info("Status ===" + status + "===");
-					if(status.equals("fehler")) {
-						String fehlertext = graphresultJson.getString("fehlertext").toString();
-						if(fehlertext != null) {
-							if(fehlertext.startsWith("In DIVA wurde die angegebene DHID nicht gefunden")) {
-								response.getWriter().append(graphresultJson.toString());
-								response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-							} else {
-								response.getWriter().append(graphresultJson.toString());
-								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-							}
+			if(graphresultJson.has("status")) {
+				String status = graphresultJson.get("status").toString();
+				LOG.info("Status ===" + status + "===");
+				if(status.equals("fehler")) {
+					if(graphresultJson.has("fehlertext")) {
+						String fehlertext = graphresultJson.getString("fehlertext");
+						if(fehlertext.startsWith("In DIVA wurde die angegebene DHID nicht gefunden")) {
+							response.getWriter().append(graphresultJson.toString());
+							response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 						} else {
 							response.getWriter().append(graphresultJson.toString());
 							response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						}
-						return;
+					} else {
+						response.getWriter().append(graphresultJson.toString());
+						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					}
+					return;
 				}
-			} catch (JSONException e) {
-				System.out.println("");
 			}
 
 				// wenn von Grapherzeugung eine Datei herauskam, in der DB speichern
@@ -257,14 +278,13 @@ public class stopmodell extends HttpServlet {
 						jsoncontent.append(line + "\r\n");
 					}
 					dateireader.close();
-					NVBWLogger.info("Json-Outputdatei Länge: " + jsoncontent.length());
+					LOG.info("Json-Outputdatei Länge: " + jsoncontent.length());
 				} catch (IOException ioe) {
-					NVBWLogger.warning("Fehler bei Datei lesen " + outputdatei);
-					NVBWLogger.warning(ioe.toString());
-					String fehlertext = "Die Grapherzeugung im Json-Format ist nicht lesbar";
+					LOG.warning("Fehler bei Datei lesen " + outputdatei);
+					LOG.warning(ioe.toString());
 					JSONObject ergebnisJsonObject = new JSONObject();
 					ergebnisJsonObject.put("status", "fehler");
-					ergebnisJsonObject.put("fehlertext", fehlertext);
+					ergebnisJsonObject.put("fehlertext", "Die Grapherzeugung im Json-Format ist nicht lesbar");
 					response.getWriter().append(ergebnisJsonObject.toString());
 					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					return;
@@ -278,8 +298,8 @@ public class stopmodell extends HttpServlet {
 			        metagraph.put("release", release);
 			        metagraph.put("mayorversion", mayorversion);
 			        metagraph.put("minorversion", minorversion);
-			        NVBWLogger.info("json Metadaten in outputdatei nach Anpassung Versionierung auf 0/0/1 ===" + metagraph.toString() + "===");
-			        NVBWLogger.info("json outputdatei insgesamt nach Anpassung Versionierung ===" + metagraph.toString() + "===");
+			        LOG.info("json Metadaten in outputdatei nach Anpassung Versionierung auf 0/0/1 ===" + metagraph.toString() + "===");
+			        LOG.info("json outputdatei insgesamt nach Anpassung Versionierung ===" + metagraph.toString() + "===");
 
 					String insertModellSql = "INSERT INTO objektmodell (dhid, release, mayorversion, minorversion, "
 						+ "benutzer, kommentar, content) VALUES(?, ?, ?, ?, ?, ?, ?::jsonb);";
@@ -296,7 +316,7 @@ public class stopmodell extends HttpServlet {
 						insertModellStmt.setString(stmtindex++, "AUTOERZEUGER");
 						insertModellStmt.setString(stmtindex++, "erzeugt am " + date_de_formatter.format(new Date()));
 						insertModellStmt.setString(stmtindex++, modellJson.toString());
-						System.out.println("Objektmodell store: " + insertModellStmt.toString() + "===");
+						LOG.info("Objektmodell store: " + insertModellStmt.toString() + "===");
 
 						insertModellStmt.execute();
 						insertModellStmt.close();
@@ -305,7 +325,7 @@ public class stopmodell extends HttpServlet {
 						response.setStatus(HttpServletResponse.SC_OK);
 						return;
 					} catch (SQLException e) {
-						System.out.println("SQLException::: " + e.toString());
+						LOG.severe("SQLException::: " + e.toString());
 						String fehlertext = "DB-Fehler aufgetreten, bitte den Administrtaor benachrichtigen";
 						JSONObject ergebnisJsonObject = new JSONObject();
 						ergebnisJsonObject.put("status", "fehler");
@@ -316,9 +336,9 @@ public class stopmodell extends HttpServlet {
 					}
 			        
 		        } catch (FileNotFoundException e) {
-					NVBWLogger.warning("FileNotFoundException. Es wurde keine Ausgabedatei "
+					LOG.warning("FileNotFoundException. Es wurde keine Ausgabedatei "
 						+ "von Grapherzeugung erstellt, daher ABBRUCH");
-					NVBWLogger.warning("Details: " + e.toString());
+					LOG.warning("Details: " + e.toString());
 					String fehlertext = "Die Grapherzeugung ist fehlgeschlagen, Grund unbekannt";
 					JSONObject ergebnisJsonObject = new JSONObject();
 					ergebnisJsonObject.put("status", "fehler");
@@ -327,9 +347,9 @@ public class stopmodell extends HttpServlet {
 					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					return;
 				} catch (IOException e) {
-					NVBWLogger.warning("IOException. Es wurde keine Ausgabedatei "
+					LOG.warning("IOException. Es wurde keine Ausgabedatei "
 						+ "von Grapherzeugung erstellt, daher ABBRUCH");
-					NVBWLogger.warning("Details: " + e.toString());
+					LOG.warning("Details: " + e.toString());
 					String fehlertext = "Die Grapherzeugung ist fehlgeschlagen, Grund unbekannt";
 					JSONObject ergebnisJsonObject = new JSONObject();
 					ergebnisJsonObject.put("status", "fehler");
@@ -338,9 +358,9 @@ public class stopmodell extends HttpServlet {
 					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					return;
 				} catch (Exception e) {
-					NVBWLogger.warning("Exception. Die Ausgabedatei von "
+					LOG.warning("Exception. Die Ausgabedatei von "
 						+ "Grapherzeugung hat einen Parserfehler, daher ABBRUCH");
-					NVBWLogger.warning("Details: " + e.toString());
+					LOG.warning("Details: " + e.toString());
 					String fehlertext = "Die Grapherzeugung erzeugte eine invalide json-Datei";
 					JSONObject ergebnisJsonObject = new JSONObject();
 					ergebnisJsonObject.put("status", "fehler");
@@ -350,12 +370,11 @@ public class stopmodell extends HttpServlet {
 					return;
 				}
 			} else {
-				NVBWLogger.warning("Es wurde keine Ausgabedatei "
+				LOG.warning("Es wurde keine Ausgabedatei "
 					+ "von Grapherzeugung erstellt, daher ABBRUCH");
-				String fehlertext = "Die Grapherzeugung ist fehlgeschlagen, Grund unbekannt";
 				JSONObject ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
-				ergebnisJsonObject.put("fehlertext", fehlertext);
+				ergebnisJsonObject.put("fehlertext", "Die Grapherzeugung ist fehlgeschlagen, Grund unbekannt");
 				response.getWriter().append(ergebnisJsonObject.toString());
 				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 				return;
@@ -369,15 +388,13 @@ public class stopmodell extends HttpServlet {
 				+ "benutzer, kommentar, content FROM objektmodell "
 				+ "WHERE dhid = ? AND release = ? AND mayorversion = ? AND minorversion = ?;";
 
-			PreparedStatement selectModellStmt;
-
-			selectModellStmt = bfrkConn.prepareStatement(selectModellSql);
+			PreparedStatement selectModellStmt = bfrkConn.prepareStatement(selectModellSql);
 			int stmtindex = 1;
 			selectModellStmt.setString(stmtindex++, dhid);
 			selectModellStmt.setInt(stmtindex++, release);
 			selectModellStmt.setInt(stmtindex++, mayorversion);
 			selectModellStmt.setInt(stmtindex++, minorversion);
-			System.out.println("Objektmodell query: " + selectModellStmt.toString() + "===");
+			LOG.info("Objektmodell query: " + selectModellStmt.toString() + "===");
 
 			ResultSet selectModellRS = selectModellStmt.executeQuery();
 
@@ -387,9 +404,16 @@ public class stopmodell extends HttpServlet {
 				String content = selectModellRS.getString("content");
 				ergebnisJsonObject = new JSONObject(content);
 			} else {
-				String fehlertext = "unerwarteter Fehler aufgetreten beim Versuch, den Graphen zu holen";
+				LOG.warning("der vorher gespeicherte Graph konnte über Select-Befehl nicht geholt werden, "
+					+ "SQL-Statement war: " + selectModellStmt.toString());
+				selectModellRS.close();
+				selectModellStmt.close();
+				ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
-				ergebnisJsonObject.put("fehlertext", fehlertext);
+				ergebnisJsonObject.put("fehlertext", "unerwarteter Fehler aufgetreten beim Versuch, den Graphen zu holen");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+				return;
 			}
 			selectModellRS.close();
 			selectModellStmt.close();
@@ -399,9 +423,9 @@ public class stopmodell extends HttpServlet {
 			return;
 
 		} catch (SQLException e) {
-			NVBWLogger.warning("SQLException. Select-Query konkrete Version "
+			LOG.warning("SQLException. Select-Query konkrete Version "
 				+ "führte zu einem Fehler");
-			NVBWLogger.warning("Details: " + e.toString());
+			LOG.warning("Details: " + e.toString());
 			String fehlertext = "Die DB-Abfrage nach konkreter Graph-Version ist fehlgeschlagen";
 			JSONObject ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
@@ -420,14 +444,31 @@ public class stopmodell extends HttpServlet {
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				response.getWriter().append("FEHLER: keine DB-Verbindung offen");
+				LOG.severe("es konnte keine DB-Verbindung herstellt werden, in stopmodell doPut");
+				ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 				return;
 			}
 		} catch (SQLException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei SQLException " + e1.toString());
+			LOG.severe("SQL-Exception aufgetreten in aufzug doGet, " + e1.toString());
+			ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		} catch (IOException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei IOException " + e1.toString());
+			LOG.severe("IOException aufgetreten in aufzug doGet, " + e1.toString());
+			ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unbekannter Fehler aufgetreten, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
 
@@ -438,6 +479,7 @@ public class stopmodell extends HttpServlet {
 		response.setHeader("Access-Control-Allow-Headers", "*");
 
 		if(request.getHeader("accesstoken") == null) {
+			ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", "Pflicht Header accesstoken fehlt");
 			response.getWriter().append(ergebnisJsonObject.toString());
@@ -447,9 +489,10 @@ public class stopmodell extends HttpServlet {
 
 		String accesstoken = "";
 
-		System.out.println("Request Header accesstoken vorhanden ===" + request.getHeader("accesstoken") + "===");
+		LOG.info("Request Header accesstoken vorhanden ===" + request.getHeader("accesstoken") + "===");
 		accesstoken = request.getHeader("accesstoken");
 		if(accesstoken.isEmpty()) {
+			ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", "Authentifizierung fehlgeschlagen, weil Header accesstoken leer ist");
 			response.getWriter().append(ergebnisJsonObject.toString());
@@ -469,25 +512,35 @@ public class stopmodell extends HttpServlet {
 	            while ((bytesRead = bufferedReader.read(charBuffer)) > 0) {
 	                stringBuilder.append(charBuffer, 0, bytesRead);
 	            }
-	        } else {
-	            stringBuilder.append("");
 	        }
 	    } catch (IOException ex) {
-	        throw ex;
+			LOG.severe("IOException aufgetreten in stopmodell doPut, " + ex.toString());
+			ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "Unerwarteter Fehler aufgetreten, bitte Administration informieren, " + ex.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
 	    } finally {
 	        if (bufferedReader != null) {
 	            try {
 	                bufferedReader.close();
 	            } catch (IOException ex) {
-	                throw ex;
+					LOG.severe("IOException in finally aufgetreten in stopmodell doPut, " + ex.toString());
+					ergebnisJsonObject = new JSONObject();
+					ergebnisJsonObject.put("status", "fehler");
+					ergebnisJsonObject.put("fehlertext", "Unerwarteter Fehler aufgetreten, bitte Administration informieren, " + ex.toString());
+					response.getWriter().append(ergebnisJsonObject.toString());
+					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 	            }
 	        }
 	    }
 
-	    System.out.println("erhaltener Content ===" + stringBuilder.toString() + "====");
+	    LOG.info("erhaltener Content ===" + stringBuilder.toString() + "====");
 
-		if(stringBuilder.length() == 0) {
+		if(stringBuilder.isEmpty()) {
 			String fehlertext = "Content ist leer, das ist unzulässig";
+			ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", fehlertext);
 			response.getWriter().append(ergebnisJsonObject.toString());
@@ -505,7 +558,7 @@ public class stopmodell extends HttpServlet {
 			authentifizierungStmt = bfrkConn.prepareStatement(authentifizierungSql);
 			int stmtindex = 1;
 			authentifizierungStmt.setString(stmtindex++, accesstoken);
-			System.out.println("Authentifizierung query: " + authentifizierungStmt.toString() + "===");
+			LOG.info("Authentifizierung query: " + authentifizierungStmt.toString() + "===");
 
 			ResultSet authentifizierungRS = authentifizierungStmt.executeQuery();
 
@@ -519,7 +572,8 @@ public class stopmodell extends HttpServlet {
 			authentifizierungRS.close();
 			authentifizierungStmt.close();
 
-			if(modellspeichern == false) {
+			if(!modellspeichern) {
+				ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", "Authentifizierung fehlgeschlagen");
 				response.getWriter().append(ergebnisJsonObject.toString());
@@ -528,10 +582,10 @@ public class stopmodell extends HttpServlet {
 			}
 			
 		} catch (SQLException e) {
-			System.out.println("SQLException::: " + e.toString());
-			String fehlertext = "DB-Fehler aufgetreten, bitte den Administrtaor benachrichtigen";
+			LOG.info("SQLException::: " + e.toString());
+			ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
-			ergebnisJsonObject.put("fehlertext", fehlertext);
+			ergebnisJsonObject.put("fehlertext", "DB-Fehler aufgetreten, bitte den Administrtaor benachrichtigen");
 			response.getWriter().append(ergebnisJsonObject.toString());
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
@@ -547,65 +601,45 @@ public class stopmodell extends HttpServlet {
 		JSONObject contentJson = null;
     	JSONObject metadatenJson = null;
     	JSONObject metagraphJson = null;
-	    try {
-	    	contentJson = new JSONObject(stringBuilder.toString());
 
-		    try {
-		    	metadatenJson = (JSONObject) contentJson.get("metadaten");
-		    	
-			    try {
-			    	dhid = metadatenJson.getString("dhid");
-			    } catch(JSONException e) {
-			    	NVBWLogger.warning("Json-Objekt nicht vorhanden, Details " + e.toString());
-			    }
-			    try {
-			    	metagraphJson = (JSONObject) metadatenJson.get("graph");
+		contentJson = new JSONObject(stringBuilder.toString());
 
-				    try {
-				    	release = metagraphJson.getInt("release");
-				    } catch(JSONException e) {
-				    	NVBWLogger.warning("Json-Objekt nicht vorhanden, Details " + e.toString());
-				    }
-				    try {
-				    	mayorversion = metagraphJson.getInt("mayorversion");
-				    } catch(JSONException e) {
-				    	NVBWLogger.warning("Json-Objekt nicht vorhanden, Details " + e.toString());
-				    }
-				    try {
-				    	minorversion = metagraphJson.getInt("minorversion");
-				    	minorversion++;
-				    	metagraphJson.put("minorversion", minorversion);
-				    } catch(JSONException e) {
-				    	NVBWLogger.warning("Json-Objekt nicht vorhanden, Details " + e.toString());
-				    }
-					try {
-						kommentar = metagraphJson.getString("kommentar");
-					} catch(JSONException e) {
-						NVBWLogger.warning("Json-Objekt nicht vorhanden, Details " + e.toString());
-					}
-						// Bearbeiter aus Token-Analyse ermittelt und in Graphen integrieren
-					metagraphJson.put("bearbeiter", bearbeiter);
-				} catch(JSONException e) {
-					NVBWLogger.warning("Json-Objekt nicht vorhanden, Details " + e.toString());
-				}
-		    } catch(JSONException e) {
-		    	NVBWLogger.warning("Json-Objekt nicht vorhanden, Details " + e.toString());
-		    }
-	    } catch(JSONException e) {
-	    	NVBWLogger.warning("Json-Content konnte nicht in JSONObject geparsed werden");
+		metadatenJson = (JSONObject) contentJson.get("metadaten");
+
+		if(metadatenJson.has("dhid"))
+			dhid = metadatenJson.getString("dhid");
+		if(metadatenJson.has("graph")) {
+			metagraphJson = (JSONObject) metadatenJson.get("graph");
+
+			if(metadatenJson.has("release"))
+				release = metagraphJson.getInt("release");
+			if(metadatenJson.has("mayorversion"))
+				mayorversion = metagraphJson.getInt("mayorversion");
+			if(metadatenJson.has("minorversion")) {
+				minorversion = metagraphJson.getInt("minorversion");
+				minorversion++;
+				metagraphJson.put("minorversion", minorversion);
+			}
+			if(metadatenJson.has("kommentar"))
+				kommentar = metagraphJson.getString("kommentar");
+				// Bearbeiter aus Token-Analyse ermittelt und in Graphen integrieren
+			metagraphJson.put("bearbeiter", bearbeiter);
+	    } else {
+	    	LOG.warning("Json-Content hatte keine metadaten-Struktur");
+			ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
-			ergebnisJsonObject.put("fehlertext", "Der Graph im JSON-Format konnte nicht geparsed werden");
+			ergebnisJsonObject.put("fehlertext", "Der erstellte Graph ist unerwartet unvollständig, bitte Administrator informeren");
 			response.getWriter().append(ergebnisJsonObject.toString());
-			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 	    }
 
-		NVBWLogger.info("dhid: " + dhid);
-		NVBWLogger.info("bearbeiter: " + bearbeiter);
-		NVBWLogger.info("kommentar: " + kommentar);
-		NVBWLogger.info("release: " + release);
-		NVBWLogger.info("mayorversion: " + mayorversion);
-		NVBWLogger.info("minorversion: " + minorversion);
+		LOG.info("dhid: " + dhid);
+		LOG.info("bearbeiter: " + bearbeiter);
+		LOG.info("kommentar: " + kommentar);
+		LOG.info("release: " + release);
+		LOG.info("mayorversion: " + mayorversion);
+		LOG.info("minorversion: " + minorversion);
 
 		String selectModellSql = "SELECT release, mayorversion, minorversion FROM objektmodell "
 			+ "WHERE dhid = ? "
@@ -618,22 +652,6 @@ public class stopmodell extends HttpServlet {
 		PreparedStatement selectModellStmt;
 		PreparedStatement insertModellStmt;
 		try {
-/*			selectModellStmt = bfrkConn.prepareStatement(selectModellSql);
-			int stmtindex = 1;
-			selectModellStmt.setString(stmtindex++, dhid);
-			System.out.println("Objektmodell query: " + selectModellStmt.toString() + "===");
-
-			ResultSet selectModellRS = selectModellStmt.executeQuery();
-
-			while(selectModellRS.next()) {
-				release = selectModellRS.getInt("release");
-				mayorversion = selectModellRS.getInt("mayorversion");
-				minorversion = selectModellRS.getInt("minorversion");
-				minorversion++;
-			}
-			selectModellRS.close();
-			selectModellStmt.close();
-*/
 			insertModellStmt = bfrkConn.prepareStatement(insertModellSql);
 			int stmtindex = 1;
 			insertModellStmt.setString(stmtindex++, dhid);
@@ -643,13 +661,12 @@ public class stopmodell extends HttpServlet {
 			insertModellStmt.setString(stmtindex++, bearbeiter);
 			insertModellStmt.setString(stmtindex++, kommentar);
 			insertModellStmt.setString(stmtindex++, contentJson.toString());
-			System.out.println("Objektmodell store: " + insertModellStmt.toString() + "===");
+			LOG.info("Objektmodell store: " + insertModellStmt.toString() + "===");
 
 			insertModellStmt.execute();
-
 			insertModellStmt.close();
 		} catch (SQLException e) {
-			System.out.println("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
 			String fehlertext = "DB-Fehler aufgetreten, bitte den Administrtaor benachrichtigen";
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", fehlertext);
