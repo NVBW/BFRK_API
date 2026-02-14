@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -27,6 +28,7 @@ import de.nvbw.bfrk.util.DBVerbindung;
 public class suche extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
+	private static final Logger LOG = NVBWLogger.getLogger(stopmodell.class);
     private static Connection bfrkConn = null;
 
     public static int METHOD_NOT_ALLOWED = 405;
@@ -37,7 +39,6 @@ public class suche extends HttpServlet {
      */
     public suche() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     /**
@@ -57,38 +58,55 @@ public class suche extends HttpServlet {
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				System.out.println("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.severe("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-					response.getWriter().append("FEHLER: keine DB-Verbindung offen");
+					LOG.severe("es konnte keine DB-Verbindung herstellt werden");
+					JSONObject ergebnisJsonObject = new JSONObject();
+					ergebnisJsonObject.put("status", "fehler");
+					ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren");
+					response.getWriter().append(ergebnisJsonObject.toString());
+					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					return;
 				}
 			}
 		} catch (SQLException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei SQLException " + e1.toString());
+			LOG.severe("SQLException aufgetreten, " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		} catch (IOException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei IOException " + e1.toString());
+			LOG.severe("IOException aufgetreten, " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unbekannter Fehler aufgetreten, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
 		
-		NVBWLogger.info("requesturi ===" + request.getRequestURI() + "===");
-		NVBWLogger.info("querystring ===" + request.getQueryString() + "===");
+		LOG.info("requesturi ===" + request.getRequestURI() + "===");
+		LOG.info("querystring ===" + request.getQueryString() + "===");
 
 		String paramSuche = "%";
 		String paramGemeinde = "%";
 		String paramObjektart1 = "Bahnhof";
 		String paramObjektart2 = "Haltestelle";
 		if(request.getParameter("suche") != null) {
-			System.out.println("url-Parameter suche vorhanden ===" + request.getParameter("suche") + "===");
+			LOG.info("url-Parameter suche vorhanden ===" + request.getParameter("suche") + "===");
 			paramSuche = "%" + request.getParameter("suche") + "%";
 		}
 		if(request.getParameter("gemeinde") != null) {
-			System.out.println("url-Parameter gemeinde vorhanden ===" + request.getParameter("gemeinde") + "===");
+			LOG.info("url-Parameter gemeinde vorhanden ===" + request.getParameter("gemeinde") + "===");
 			paramGemeinde = request.getParameter("gemeinde");
 		}
 		if(request.getParameter("oevart") != null) {
-			System.out.println("url-Parameter oevart vorhanden ===" + request.getParameter("oevart") + "===");
+			LOG.info("url-Parameter oevart vorhanden ===" + request.getParameter("oevart") + "===");
 			String tempOevart = request.getParameter("oevart");
 			if(tempOevart.equals("S")) {
 				paramObjektart1 = "Bahnhof";
@@ -126,7 +144,7 @@ public class suche extends HttpServlet {
 			selectSucheStmt.setString(stmtindex++, paramObjektart2);
 			selectSucheStmt.setString(stmtindex++, paramSuche);
 			selectSucheStmt.setString(stmtindex++, paramGemeinde);
-			System.out.println("Suche query: " + selectSucheStmt.toString() + "===");
+			LOG.info("Suche query: " + selectSucheStmt.toString() + "===");
 
 			ResultSet selectSucheRS = selectSucheStmt.executeQuery();
 
@@ -157,13 +175,18 @@ public class suche extends HttpServlet {
 				
 				haltestellenJsonArray.put(haltestelleJsonObject);
 			}
-			NVBWLogger.info("Anzahl Suchtreffer: " + anzahl);
+			LOG.info("Anzahl Suchtreffer: " + anzahl);
 			selectSucheRS.close();
 			selectSucheStmt.close();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.out.println("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten, bitte Administrator informieren: "
+					+ e.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
 		}
 		response.getWriter().append(haltestellenJsonArray.toString());
 	}
@@ -172,8 +195,14 @@ public class suche extends HttpServlet {
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		response.setStatus(METHOD_NOT_ALLOWED);
-		response.getWriter().append("post Request will not be supported.");
+		LOG.info("Request angekommen in /suche doPost ...");
+
+		response.setCharacterEncoding("UTF-8");
+		JSONObject ergebnisJsonObject = new JSONObject();
+		ergebnisJsonObject.put("status", "fehler");
+		ergebnisJsonObject.put("fehlertext", "POST Request /suche ist nicht vorhanden");
+		response.getWriter().append(ergebnisJsonObject.toString());
+		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 	}
 
 }

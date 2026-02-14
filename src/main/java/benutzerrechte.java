@@ -1,13 +1,10 @@
 
 import java.io.IOException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Date;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -15,14 +12,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import de.nvbw.base.Applicationconfiguration;
 import org.json.JSONObject;
 
-import de.nvbw.base.BFRKApiApplicationconfiguration;
+import de.nvbw.base.Applicationconfiguration;
 import de.nvbw.base.NVBWLogger;
-import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
-import de.nvbw.bfrk.util.OpenStreetMap;
 
 
 /**
@@ -34,6 +28,7 @@ import de.nvbw.bfrk.util.OpenStreetMap;
 public class benutzerrechte extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
+	private static final Logger LOG = NVBWLogger.getLogger(benutzerrechte.class);
 	private static Applicationconfiguration configuration = new Applicationconfiguration();
     private static Connection bfrkConn = null;
 
@@ -51,8 +46,6 @@ public class benutzerrechte extends HttpServlet {
      */
     @Override
     public void init() {
-		NVBWLogger.init(configuration.logging_console_level,
-				configuration.logging_file_level);
     	bfrkConn = DBVerbindung.getDBVerbindung();
     }
 
@@ -65,10 +58,10 @@ public class benutzerrechte extends HttpServlet {
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				NVBWLogger.warning("keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.warning("keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-					NVBWLogger.severe("es konnte keine DB-Verbindung herstellt werden, in benutzerrechte doGet");
+					LOG.severe("es konnte keine DB-Verbindung herstellt werden, in benutzerrechte doGet");
 					ergebnisJsonObject = new JSONObject();
 					ergebnisJsonObject.put("status", "fehler");
 					ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren");
@@ -102,7 +95,7 @@ public class benutzerrechte extends HttpServlet {
 
 		String accesstoken = "";
 
-		NVBWLogger.info("Request Header accesstoken vorhanden ===" + request.getHeader("accesstoken") + "===");
+		LOG.info("Request Header accesstoken vorhanden ===" + request.getHeader("accesstoken") + "===");
 		accesstoken = request.getHeader("accesstoken");
 		if(accesstoken.isEmpty()) {
 			ergebnisJsonObject = new JSONObject();
@@ -122,7 +115,7 @@ public class benutzerrechte extends HttpServlet {
 		try {
 			selectBenutzerrechteStmt = bfrkConn.prepareStatement(selectBenutzerrechteSql);
 			selectBenutzerrechteStmt.setString(1, accesstoken);
-			NVBWLogger.info("Haltestelle query: " + selectBenutzerrechteStmt.toString() + "===");
+			LOG.info("Haltestelle query: " + selectBenutzerrechteStmt.toString() + "===");
 
 			ResultSet selectBenutzerrechteRS = selectBenutzerrechteStmt.executeQuery();
 
@@ -144,7 +137,7 @@ public class benutzerrechte extends HttpServlet {
 				return;
 			}
 		} catch (SQLException e1) {
-			NVBWLogger.severe("SQLException::: " + e1.toString());
+			LOG.severe("SQLException::: " + e1.toString());
 			ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten, bitte Administrator informieren: "
@@ -153,7 +146,7 @@ public class benutzerrechte extends HttpServlet {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		} catch (IOException e1) {
-			NVBWLogger.severe("IOException " + e1.toString());
+			LOG.severe("IOException " + e1.toString());
 			ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", "unerwarteter Fehler aufgetreten, bitte Administrator informieren: "
@@ -171,7 +164,7 @@ public class benutzerrechte extends HttpServlet {
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		NVBWLogger.info("Request /benutzerrechte, doPost ...");
+		LOG.info("Request /benutzerrechte, doPost ...");
 
 		response.setCharacterEncoding("UTF-8");
 		JSONObject ergebnisJsonObject = new JSONObject();

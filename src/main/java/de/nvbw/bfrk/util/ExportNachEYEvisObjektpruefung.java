@@ -21,14 +21,15 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
+import de.nvbw.base.NVBWLogger;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Color;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 
-import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.base.BFRKFeld;
 import de.nvbw.bfrk.base.BFRKFeld.Name;
 import de.nvbw.bfrk.base.Excelfeld;
@@ -36,6 +37,7 @@ import de.nvbw.bfrk.base.Excelfeld.Datentyp;
 import de.nvbw.bilddb.imports.BildDBCsvReader;
 
 public class ExportNachEYEvisObjektpruefung {
+	private static final Logger LOG = NVBWLogger.getLogger(ExportNachEYEvisObjektpruefung.class);
 
 	final static String EYEvisBilderWurzelverzeichnis = "D:\\EYEvis-Bilder-NBSEI";
 	final static String MentzBilderWurzelverzeichnisV1 = "D:\\BFRK-Server\\Bild-DB-Backup\\imagemanagement";
@@ -100,7 +102,7 @@ public class ExportNachEYEvisObjektpruefung {
 			File bilddirhandle = new File(EYEvisBilderWurzelverzeichnis);
 			if(	!bilddirhandle.exists() ||
 				!bilddirhandle.isDirectory()) {
-				NVBWLogger.severe("im Konstruktor von ErhebungsObjektpruefung wurde festgestellt, "
+				LOG.severe("im Konstruktor von ErhebungsObjektpruefung wurde festgestellt, "
 					+ "das das EYEvis-Bildverzeichnis nicht verfügbar ist, ABRUCH");
 				throw(new Throwable("im Konstruktor von ErhebungsObjektpruefung wurde festgestellt, "
 					+ "das das EYEvis-Bildverzeichnis nicht verfügbar ist, ABRUCH"));
@@ -146,7 +148,7 @@ public class ExportNachEYEvisObjektpruefung {
 		output = output.replace("\r?\n", "");
 		output = output.replace("\"", "'");
 		if(!text.equals(output))
-			NVBWLogger.finest("Textausgabe korrigiert: von '" + text + "' nach '" + output + "'");
+			LOG.finest("Textausgabe korrigiert: von '" + text + "' nach '" + output + "'");
 		return output;
 	}
 
@@ -174,7 +176,7 @@ public class ExportNachEYEvisObjektpruefung {
 			csvOutput.println(dhid + ";" + bildname);
 			csvOutput.close();
 		} catch (IOException ioe) {
-			NVBWLogger.severe("Fehler bei Ausgabe in Datei " + "Bilder_nicht_downloadbar.txt");
+			LOG.severe("Fehler bei Ausgabe in Datei " + "Bilder_nicht_downloadbar.txt");
 		}
 	}
 
@@ -187,22 +189,22 @@ public class ExportNachEYEvisObjektpruefung {
 		URL url;
 		try {
 			url = new URL(bildurl);
-			NVBWLogger.info("Url-Anfrage ===" + bildurl + "=== ...");
+			LOG.info("Url-Anfrage ===" + bildurl + "=== ...");
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setRequestProperty("User-Agent", "NVBW OpenDataExport");
 			conn.setRequestMethod("GET");
 		
 			// Connection is lazily executed whenever you request any status.
 			int responseCode = ((HttpURLConnection) conn).getResponseCode();
-			NVBWLogger.info("" + responseCode); // Should be 200
+			LOG.info("" + responseCode); // Should be 200
 			// ===================================================================================================================
 
 
 			long contentlength = 0;
 			Integer headeri = 1;
-			NVBWLogger.info("Header-Fields Ausgabe ...");
+			LOG.info("Header-Fields Ausgabe ...");
 			while(((HttpURLConnection) conn).getHeaderFieldKey(headeri) != null) {
-				NVBWLogger.info("  Header # "+headeri+":  [" 
+				LOG.info("  Header # "+headeri+":  [" 
 					+ ((HttpURLConnection) conn).getHeaderFieldKey(headeri)+"] ==="
 					+ ((HttpURLConnection) conn).getHeaderField(headeri)+"===");
 				if(((HttpURLConnection) conn).getHeaderFieldKey(headeri).equals("Content-Length")) {
@@ -212,7 +214,7 @@ public class ExportNachEYEvisObjektpruefung {
 			}
 
 			if((responseCode == HttpURLConnection.HTTP_OK) && (contentlength > 10000)) {
-				NVBWLogger.info("ok, http-code 200 und Dateilänge > 10KB ...");
+				LOG.info("ok, http-code 200 und Dateilänge > 10KB ...");
 				
 				InputStream inputStream = conn.getInputStream();
 				String dateiname = bildurl;
@@ -220,7 +222,7 @@ public class ExportNachEYEvisObjektpruefung {
 					dateiname = dateiname.substring(dateiname.lastIndexOf("/") + 1);
 				
 	            gespeichertedateipfadundname = bilddownloadverzeichnis + File.separator + dateiname;
-	            NVBWLogger.info("Bild wurde heruntergeladen und wird jetzt gespeichert in: " + gespeichertedateipfadundname);
+	            LOG.info("Bild wurde heruntergeladen und wird jetzt gespeichert in: " + gespeichertedateipfadundname);
 	            // opens an output stream to save into file
 	            FileOutputStream outputStream = new FileOutputStream(gespeichertedateipfadundname);
 	 
@@ -238,10 +240,10 @@ public class ExportNachEYEvisObjektpruefung {
 			} else {
 				
 				if(responseCode == HttpURLConnection.HTTP_OK)
-					NVBWLogger.info("Bild zwar vorhanden, aber Content-Length zu gering: " + contentlength
+					LOG.info("Bild zwar vorhanden, aber Content-Length zu gering: " + contentlength
 						+ ", Bild-Url war ===" + bildurl + "===");
 				else {
-					NVBWLogger.info("HTTP-Response Code nicht 200, sondern " + responseCode
+					LOG.info("HTTP-Response Code nicht 200, sondern " + responseCode
 						+ ", für Bild-Url ===" + bildurl + "===");
 					if(bildurl.indexOf("bfrk_nvbw_intern/") != -1) {
 						String dhid = bildurl;
@@ -259,13 +261,13 @@ public class ExportNachEYEvisObjektpruefung {
 			}
 
 		} catch (MalformedURLException e) {
-			NVBWLogger.warning("Bilddatei kann nicht heruntergeladen werden (MalformedURLException)" + "\t"
+			LOG.warning("Bilddatei kann nicht heruntergeladen werden (MalformedURLException)" + "\t"
 				+ bildurl + "\t" + e.toString());
 		} catch (ProtocolException e) {
-			NVBWLogger.warning("Bilddatei kann nicht heruntergeladen werden (ProtocolException)" + "\t"
+			LOG.warning("Bilddatei kann nicht heruntergeladen werden (ProtocolException)" + "\t"
 				+ bildurl + "\t" + e.toString());
 		} catch (IOException e) {
-			NVBWLogger.warning("Bilddatei kann nicht heruntergeladen werden (IOException)" + "\t"
+			LOG.warning("Bilddatei kann nicht heruntergeladen werden (IOException)" + "\t"
 				+ "\t" + e.toString());
 		}
 		return gespeichertedateipfadundname;
@@ -277,11 +279,11 @@ public class ExportNachEYEvisObjektpruefung {
 
 		if(		(bildquelle != Bildquellenart.downloadpublic)
 			&&	(bildquelle != Bildquellenart.downloadprivateundpublic)) {
-			NVBWLogger.severe("Methode getBild wurde aufgerufen, aber bildquellenart ist nicht für Download eingestellt, daher Abbruc getBild");
+			LOG.severe("Methode getBild wurde aufgerufen, aber bildquellenart ist nicht für Download eingestellt, daher Abbruc getBild");
 			return outputListe;
 		}
 		
-		NVBWLogger.fine("Beginn Methode getBildurl, dateiname ==="
+		LOG.fine("Beginn Methode getBildurl, dateiname ==="
 			+ dateiname + "===");
 		Date startzeit = new Date();
 
@@ -312,12 +314,12 @@ public class ExportNachEYEvisObjektpruefung {
 				}
 			} else {
 				if(bildquelle != Bildquellenart.downloadprivateundpublic) {
-					NVBWLogger.warning("Es wird in getBild nicht nach intern gespeichertem Bild gesucht, weil die Einstellung für Bildquelle nur public vorsieht");
+					LOG.warning("Es wird in getBild nicht nach intern gespeichertem Bild gesucht, weil die Einstellung für Bildquelle nur public vorsieht");
 					continue;
 				}
 
 				if(bildurl.indexOf("/bfrk/haltestelle") == -1) {
-					NVBWLogger.severe("Fehler in getBild, Url hat nicht /bfrk/haltestelle, da wurde was verändert und nicht im Programmcode angepasst: "
+					LOG.severe("Fehler in getBild, Url hat nicht /bfrk/haltestelle, da wurde was verändert und nicht im Programmcode angepasst: "
 						+ bildurl);
 					continue;
 				}
@@ -340,7 +342,7 @@ public class ExportNachEYEvisObjektpruefung {
 
 		}
 		Date endzeit = new Date();
-		NVBWLogger.info("Ende Methode getBildurl, Dauer in msek: "
+		LOG.info("Ende Methode getBildurl, Dauer in msek: "
 			+ (endzeit.getTime() - startzeit.getTime()));
 
 		return outputListe;
@@ -372,7 +374,7 @@ public class ExportNachEYEvisObjektpruefung {
 					Files.copy(quellpath, zielpath, StandardCopyOption.REPLACE_EXISTING);
 					bildListe.add(aktname);
 				} catch (IOException e) {
-					NVBWLogger.warning("Datei-Copy fehlgeschlagen: Quelle: "
+					LOG.warning("Datei-Copy fehlgeschlagen: Quelle: "
 						+ quellpath.toString() + ", Ziel: " + zielpath.toString());
 					e.printStackTrace();
 				}
@@ -434,7 +436,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -628,7 +630,7 @@ public class ExportNachEYEvisObjektpruefung {
 			else if(anzahlbilder == 3)
 				outputWert = "foto3";
 			else {
-				NVBWLogger.warning("in generateBahnhof, Merkmal HST_sonstige_Bildanzahl: "
+				LOG.warning("in generateBahnhof, Merkmal HST_sonstige_Bildanzahl: "
 					+ "Wert unerwartet ===" + anzahlbilder + "===");
 			}
 			felder.put("HST_weitereBilder_Auswahl", new Excelfeld(Datentyp.Text, 
@@ -757,7 +759,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -767,7 +769,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -1539,7 +1541,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -1549,7 +1551,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -1581,7 +1583,7 @@ public class ExportNachEYEvisObjektpruefung {
 
 		if(objektDaten.containsKey(BFRKFeld.Name.STG_Steiglaenge)) {
 			double wert = objektDaten.get(BFRKFeld.Name.STG_Steiglaenge).getZahlWert();
-			NVBWLogger.info("DHID: " + steig_dhid + ", Merkmal STG_Steiglänge: " + wert);
+			LOG.info("DHID: " + steig_dhid + ", Merkmal STG_Steiglänge: " + wert);
 			felder.put("STG_ZUS_Laenge_m", new Excelfeld(Datentyp.Zahl_Nachkomma2, 
 				wert, unsicherFarbstyle));
 		}
@@ -2268,7 +2270,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -2278,7 +2280,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -2477,7 +2479,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -2487,7 +2489,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -2686,7 +2688,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -2696,7 +2698,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -2845,7 +2847,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -2855,7 +2857,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -2997,7 +2999,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -3007,7 +3009,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -3153,7 +3155,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -3163,7 +3165,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -3310,7 +3312,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -3320,7 +3322,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -3451,7 +3453,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -3461,7 +3463,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -3587,7 +3589,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.OBJ_Parkplatz_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.OBJ_Parkplatz_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.OBJ_Parkplatz_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.OBJ_Parkplatz_Lat))
@@ -3597,7 +3599,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -3623,7 +3625,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.OBJ_Parkplatz_Behindertenplaetze_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.OBJ_Parkplatz_Behindertenplaetze_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.OBJ_Parkplatz_Behindertenplaetze_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.OBJ_Parkplatz_Behindertenplaetze_Lat))
@@ -3633,7 +3635,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -3725,7 +3727,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -3735,7 +3737,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -3897,7 +3899,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -3907,7 +3909,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -3951,7 +3953,7 @@ public class ExportNachEYEvisObjektpruefung {
 					art, 
 					unsicherFarbstyle));
 			} else {
-				NVBWLogger.warning("in Objekt Rolltreppe bei Merkmal OBJ_Rolltreppe_Fahrtrichtung_D2132 unerwarteter Datenwert " + art);
+				LOG.warning("in Objekt Rolltreppe bei Merkmal OBJ_Rolltreppe_Fahrtrichtung_D2132 unerwarteter Datenwert " + art);
 			}
 		}
 	
@@ -4076,7 +4078,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -4086,7 +4088,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -4230,7 +4232,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -4240,7 +4242,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -4363,7 +4365,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -4373,7 +4375,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -4535,7 +4537,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -4545,7 +4547,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -4701,7 +4703,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -4711,7 +4713,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -4840,7 +4842,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -4850,7 +4852,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))
@@ -4997,7 +4999,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lon) &&
 				(objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = objektDaten.get(BFRKFeld.Name.STG_Soll_Lon).getZahlWert();
 	
 				if(objektDaten.containsKey(BFRKFeld.Name.STG_Soll_Lat))
@@ -5007,7 +5009,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
-				NVBWLogger.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
+				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
 				lon = haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert();
 	
 				if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lat))

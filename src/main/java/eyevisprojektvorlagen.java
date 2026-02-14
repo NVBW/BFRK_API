@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Enumeration;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -12,11 +13,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import de.nvbw.base.NVBWLogger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import de.nvbw.base.BFRKApiApplicationconfiguration;
-import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.DBVerbindung;
 
 
@@ -29,7 +29,7 @@ import de.nvbw.bfrk.util.DBVerbindung;
 public class eyevisprojektvorlagen extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
-	private static BFRKApiApplicationconfiguration bfrkapiconfiguration = null;
+	private static final Logger LOG = NVBWLogger.getLogger(eyevisprojektvorlagen.class);
     private static Connection bfrkConn = null;
 
 
@@ -47,7 +47,6 @@ public class eyevisprojektvorlagen extends HttpServlet {
      */
     @Override
     public void init() {
-		bfrkapiconfiguration = new BFRKApiApplicationconfiguration();
     	bfrkConn = DBVerbindung.getDBVerbindung();
     }
 
@@ -85,7 +84,7 @@ public class eyevisprojektvorlagen extends HttpServlet {
 		Enumeration<String> enums = request.getParameterNames();
 		while(enums.hasMoreElements()) {
 			String element = enums.nextElement();
-			NVBWLogger.info("Parametername ===" + element + "===");
+			LOG.info("Parametername ===" + element + "===");
 		}
 
 		String paramOevart = "";
@@ -136,7 +135,7 @@ public class eyevisprojektvorlagen extends HttpServlet {
 
 				if((vorlage != null) && !vorlage.isEmpty())
 					vorlagenArray.put(vorlage);
-				NVBWLogger.info("gefundene Vorlage ===" + vorlage + "===");
+				LOG.info("gefundene Vorlage ===" + vorlage + "===");
 			}
 			ergebnisJsonObject.put("vorlagen", vorlagenArray);
 

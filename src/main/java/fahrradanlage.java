@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -16,12 +17,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.NVBWLogger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import de.nvbw.base.BFRKApiApplicationconfiguration;
-import de.nvbw.base.NVBWLogger;
+import de.nvbw.base.Applicationconfiguration;
 import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
 import de.nvbw.bfrk.util.OpenStreetMap;
@@ -36,8 +36,9 @@ import de.nvbw.bfrk.util.OpenStreetMap;
 public class fahrradanlage extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
-    private static Connection bfrkConn = null;
+	private static final Logger LOG = NVBWLogger.getLogger(fahrradanlage.class);
 	private static Applicationconfiguration configuration = new Applicationconfiguration();
+	private static Connection bfrkConn = null;
 
 
     /**
@@ -53,8 +54,6 @@ public class fahrradanlage extends HttpServlet {
      */
     @Override
     public void init() {
-		NVBWLogger.init(configuration.logging_console_level,
-				configuration.logging_file_level);
     	bfrkConn = DBVerbindung.getDBVerbindung();
     }
 
@@ -71,11 +70,11 @@ public class fahrradanlage extends HttpServlet {
 
 		JSONObject resultObjectJson = new JSONObject();
 
-		NVBWLogger.info("===== Request /fahrradanlage GET ...");
+		LOG.info("===== Request /fahrradanlage GET ...");
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				NVBWLogger.info("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.info("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
 					JSONObject errorObjektJson = new JSONObject();
@@ -103,13 +102,13 @@ public class fahrradanlage extends HttpServlet {
 		
 		long paramObjektid = 0;
 		String requesturi = request.getRequestURI();
-		NVBWLogger.info("requesturi ===" + requesturi + "===");
+		LOG.info("requesturi ===" + requesturi + "===");
 		if(requesturi.contains("/fahrradanlage")) {
 			int startpos = requesturi.indexOf("/fahrradanlage");
-			NVBWLogger.info("startpos #1: " + startpos);
+			LOG.info("startpos #1: " + startpos);
 			if(requesturi.indexOf("/",startpos + 1) != -1) {
 				paramObjektid = Long.parseLong(requesturi.substring(requesturi.indexOf("/",startpos + 1) + 1));
-				NVBWLogger.info("Versuch, Objektid zu extrahieren ===" + paramObjektid + "===");
+				LOG.info("Versuch, Objektid zu extrahieren ===" + paramObjektid + "===");
 			}
 		}
 
@@ -169,7 +168,7 @@ public class fahrradanlage extends HttpServlet {
 			selectHaltestelleStmt = bfrkConn.prepareStatement(selectHaltestelleSql);
 			selectHaltestelleStmt.setLong(1, paramObjektid);
 			selectHaltestelleStmt.setLong(2, paramObjektid);
-			NVBWLogger.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
+			LOG.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
 
 			ResultSet selectMerkmaleRS = selectHaltestelleStmt.executeQuery();
 
@@ -211,7 +210,7 @@ public class fahrradanlage extends HttpServlet {
 				name = selectMerkmaleRS.getString("name");
 				wert = selectMerkmaleRS.getString("wert");
 				typ = selectMerkmaleRS.getString("typ");
-				NVBWLogger.info("akt name: " + name + ", wert: " + wert);
+				LOG.info("akt name: " + name + ", wert: " + wert);
 
 				if(!objektart.equals("BuR")) {
 					falscheobjektart = true;
@@ -229,7 +228,7 @@ public class fahrradanlage extends HttpServlet {
                             case "Fahrradparkhaus" -> osmwert = "building";
                             case "Fahrradsammelanlage" -> osmwert = "shed";
                             case "Vorderradhalter" -> osmwert = "wall_loops";
-                            default -> NVBWLogger.warning("OSM-Tagging kann nicht gesetzt werden "
+                            default -> LOG.warning("OSM-Tagging kann nicht gesetzt werden "
                                     + "für OSM-Key bicycle_parking mit DB-Wert '" + wert + "'");
                         }
                         if (!osmwert.isEmpty())
@@ -275,7 +274,7 @@ public class fahrradanlage extends HttpServlet {
                             merkmaleJsonObject.put("besonderheiten_Foto", Bild.getBildUrl(wert, dhid));
                     case "OBJ_BuR_Hinderniszufahrt_Foto" ->
                             merkmaleJsonObject.put("hinderniszufahrt_Foto", Bild.getBildUrl(wert, dhid));
-                    default -> NVBWLogger.warning("in Servlet " + this.getServletName()
+                    default -> LOG.warning("in Servlet " + this.getServletName()
                             + " nicht verarbeitetes Merkmal Name '" + name + "'"
                             + ", Wert '" + wert + "'");
                 }
@@ -334,7 +333,7 @@ public class fahrradanlage extends HttpServlet {
 				return;
 			}
 		} catch (SQLException e) {
-			NVBWLogger.severe("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
 			JSONObject ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", "SQL-DB Fehler aufgetreten, bitte Administrator informieren.");
@@ -350,7 +349,7 @@ public class fahrradanlage extends HttpServlet {
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		NVBWLogger.info("Request /fahrradanlage, doPost ...");
+		LOG.info("Request /fahrradanlage, doPost ...");
 
 		String paramAuthorisierungsId = "";
 		String paramOSMUser = "_BFRKWebiste_Sonstiger";
@@ -370,7 +369,7 @@ public class fahrradanlage extends HttpServlet {
 
 		String accesstoken = "";
 
-		NVBWLogger.info("Request Header accesstoken vorhanden ===" + request.getHeader("accesstoken") + "===");
+		LOG.info("Request Header accesstoken vorhanden ===" + request.getHeader("accesstoken") + "===");
 		accesstoken = request.getHeader("accesstoken");
 		if(accesstoken.isEmpty()) {
 			JSONObject ergebnisJsonObject = new JSONObject();
@@ -391,7 +390,7 @@ public class fahrradanlage extends HttpServlet {
 			authentifizierungStmt = bfrkConn.prepareStatement(authentifizierungSql);
 			int stmtindex = 1;
 			authentifizierungStmt.setString(stmtindex++, accesstoken);
-			NVBWLogger.info("Authentifizierung query: " + authentifizierungStmt.toString() + "===");
+			LOG.info("Authentifizierung query: " + authentifizierungStmt.toString() + "===");
 
 			ResultSet authentifizierungRS = authentifizierungStmt.executeQuery();
 
@@ -415,7 +414,7 @@ public class fahrradanlage extends HttpServlet {
 			}
 
 		} catch (SQLException e) {
-			NVBWLogger.info("SQLException::: " + e.toString());
+			LOG.info("SQLException::: " + e.toString());
 			JSONObject ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", "DB-Fehler aufgetreten, bitte den Administrtaor benachrichtigen");
@@ -424,27 +423,27 @@ public class fahrradanlage extends HttpServlet {
 			return;
 		}
 
-		NVBWLogger.info("requesturi ===" + requesturi + "===");
+		LOG.info("requesturi ===" + requesturi + "===");
 		if(requesturi.contains("/fahrradanlage")) {
 			int startpos = requesturi.indexOf("/fahrradanlage");
-			NVBWLogger.info("startpos #1: " + startpos);
+			LOG.info("startpos #1: " + startpos);
 			if(requesturi.indexOf("/",startpos + 1) != -1) {
 				startpos = requesturi.indexOf("/",startpos + 1) + 1;
 				int endpos = requesturi.indexOf("/",startpos + 1);
 				if(endpos == -1)
 					endpos = requesturi.length();
-				NVBWLogger.info("für Merkmal: Startpos: " + startpos + ",   endpos: " + endpos);
+				LOG.info("für Merkmal: Startpos: " + startpos + ",   endpos: " + endpos);
 				paramObjektid = Long.parseLong(URLDecoder.decode(requesturi.substring(startpos, endpos),"UTF-8"));
-				NVBWLogger.info("ObjektId===" + paramObjektid + "===");
+				LOG.info("ObjektId===" + paramObjektid + "===");
 			}
 		}
 
 		paramDHID = "";
 		if(request.getParameter("dhid") != null) {
 			paramDHID = request.getParameter("dhid");
-			NVBWLogger.info("url-Parameter dhid gesetzt ===" + paramDHID + "===");
+			LOG.info("url-Parameter dhid gesetzt ===" + paramDHID + "===");
 		} else {
-			NVBWLogger.info("url-Parameter dhid fehlt, Pech gehabt");
+			LOG.info("url-Parameter dhid fehlt, Pech gehabt");
 		}
 
 		String selectObjektSql = "SELECT id FROM objekt WHERE dhid = ? AND id = ? "
@@ -456,7 +455,7 @@ public class fahrradanlage extends HttpServlet {
 			int stmtindex = 1;
 			selectObjektStmt.setString(stmtindex++, paramDHID);
 			selectObjektStmt.setLong(stmtindex++, paramObjektid);
-			NVBWLogger.info("Objekt query: " + selectObjektStmt.toString() + "===");
+			LOG.info("Objekt query: " + selectObjektStmt.toString() + "===");
 
 			ResultSet selectMerkmaleRS = selectObjektStmt.executeQuery();
 
@@ -475,8 +474,8 @@ public class fahrradanlage extends HttpServlet {
 				return;
 			}
 		} catch (SQLException e) {
-			NVBWLogger.severe("DB Transaktion kann nicht gestartet werden");
-			NVBWLogger.severe(e.toString());
+			LOG.severe("DB Transaktion kann nicht gestartet werden");
+			LOG.severe(e.toString());
 			response.setCharacterEncoding("UTF-8");
 			JSONObject ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
@@ -489,16 +488,16 @@ public class fahrradanlage extends HttpServlet {
 
 		if(request.getParameter("osmuser") != null) {
 			paramOSMUser = request.getParameter("osmuser");
-			NVBWLogger.info("url-Parameter osmuser gesetzt ===" + paramOSMUser + "===");
+			LOG.info("url-Parameter osmuser gesetzt ===" + paramOSMUser + "===");
 		} else {
-			NVBWLogger.info("url-Parameter osmuser fehlt, Pech gehabt");
+			LOG.info("url-Parameter osmuser fehlt, Pech gehabt");
 		}
 
 		try {
 			bfrkConn.setAutoCommit(false);
 		} catch (SQLException e) {
-			NVBWLogger.severe("DB Transaktion kann nicht gestartet werden");
-			NVBWLogger.severe(e.toString());
+			LOG.severe("DB Transaktion kann nicht gestartet werden");
+			LOG.severe(e.toString());
 			JSONObject ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
@@ -520,7 +519,7 @@ public class fahrradanlage extends HttpServlet {
 				||	paramAnlagentyp.equals("Fahrradsammelanlage")
 				||	paramAnlagentyp.equals("Sonstiges")
 				||	paramAnlagentyp.equals("Vorderradhalter")) {
-				NVBWLogger.info("url-Parameter anlagentyp gesetzt ===" + paramAnlagentyp + "===");
+				LOG.info("url-Parameter anlagentyp gesetzt ===" + paramAnlagentyp + "===");
 
 				String insertKorrekturmerkmalSql = "INSERT INTO merkmalkorrektur "
 					+ "(objekt_id, name, wert, typ, zeitstempel) "
@@ -538,19 +537,19 @@ public class fahrradanlage extends HttpServlet {
 					insertKorrekturmerkmalStmt.setTimestamp(stmtindex++, new java.sql.Timestamp(zeitstempelimport.getTime()));
 					insertKorrekturmerkmalStmt.setLong(stmtindex++, paramObjektid);
 					insertKorrekturmerkmalStmt.setString(stmtindex++, paramAnlagentyp);
-					NVBWLogger.info("insertKorrekturmerkmal Statement: " + insertKorrekturmerkmalStmt.toString() + "===");
+					LOG.info("insertKorrekturmerkmal Statement: " + insertKorrekturmerkmalStmt.toString() + "===");
 
 					int anzahlinserts = insertKorrekturmerkmalStmt.executeUpdate();
 					if(anzahlinserts == 1) {
-						NVBWLogger.info("insert Korrekturmerkmal Anlagentyp war erfolgreich");
+						LOG.info("insert Korrekturmerkmal Anlagentyp war erfolgreich");
 						anzahlerfolgreich++;
 					} else
 						dbfehlermeldungen.append("* DB Insert Merkmalkorrektur Anlagentyp führte nicht zu einem DB Eintrag\r\n");
 				} catch (SQLException e1) {
-					NVBWLogger.severe("SQL-Insert Fehler, als eine Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
+					LOG.severe("SQL-Insert Fehler, als eine Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
 						+ "Statement war '" + insertKorrekturmerkmalStmt.toString() 
 						+ "' Details folgen ...");
-					NVBWLogger.severe(e1.toString());
+					LOG.severe(e1.toString());
 					JSONObject ergebnisJsonObject = new JSONObject();
 					ergebnisJsonObject.put("status", "fehler");
 					ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
@@ -564,13 +563,13 @@ public class fahrradanlage extends HttpServlet {
 				paramAnlagentyp = "";
 			}
 		} else {
-			NVBWLogger.info("url-Parameter anlagentyp fehlt, Pech gehabt");
+			LOG.info("url-Parameter anlagentyp fehlt, Pech gehabt");
 		}
 
 		paramOSMids = "";
 		if(request.getParameter("osmids") != null) {
 			paramOSMids = request.getParameter("osmids");
-			NVBWLogger.info("url-Parameter osmids gesetzt ===" + paramOSMids + "===");
+			LOG.info("url-Parameter osmids gesetzt ===" + paramOSMids + "===");
 
 			String insertOSMBezugSql = "INSERT INTO osmobjektbezug (objekt_id, osmid, bezugzeitpunkt, subobjektart) "
 				+ "SELECT o.id, ?, ?, 'Hauptobjekt' from objekt as o WHERE objektart = 'BuR' and o.id = ?;";
@@ -583,19 +582,19 @@ public class fahrradanlage extends HttpServlet {
 				insertOSMBezugStmt.setString(stmtindex++, paramOSMids);
 				insertOSMBezugStmt.setTimestamp(stmtindex++, new java.sql.Timestamp(zeitstempelimport.getTime()));
 				insertOSMBezugStmt.setLong(stmtindex++, paramObjektid);
-				NVBWLogger.info("insertOSMBezug Statement: " + insertOSMBezugStmt.toString() + "===");
+				LOG.info("insertOSMBezug Statement: " + insertOSMBezugStmt.toString() + "===");
 
 				int anzahlinserts = insertOSMBezugStmt.executeUpdate();
 				if(anzahlinserts == 1) {
-					NVBWLogger.info("insert osmobjektbezug war erfolgreich");
+					LOG.info("insert osmobjektbezug war erfolgreich");
 					anzahlerfolgreich++;
 				} else
 					dbfehlermeldungen.append("* DB Insert OSMObjektbezug führte nicht zu einem DB Eintrag\r\n");
 			} catch (SQLException e1) {
-				NVBWLogger.severe("SQL-Insert Fehler in Tabelle osmobjektbezug, " 
+				LOG.severe("SQL-Insert Fehler in Tabelle osmobjektbezug, " 
 					+ "Statement war '" + insertOSMBezugStmt.toString() 
 					+ "' Details folgen ...");
-				NVBWLogger.severe(e1.toString());
+				LOG.severe(e1.toString());
 				JSONObject ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
@@ -604,15 +603,15 @@ public class fahrradanlage extends HttpServlet {
 				return;
 			}
 		} else {
-			NVBWLogger.info("url-Parameter osmids fehlt, Pech gehabt");
+			LOG.info("url-Parameter osmids fehlt, Pech gehabt");
 		}
 
 		paramBemerkungen = "";
 		if(request.getParameter("bemerkungen") != null) {
 			paramOSMids = request.getParameter("bemerkungen");
-			NVBWLogger.info("url-Parameter bemerkungen gesetzt ===" + paramBemerkungen + "===");
+			LOG.info("url-Parameter bemerkungen gesetzt ===" + paramBemerkungen + "===");
 		} else {
-			NVBWLogger.info("url-Parameter bemerkungen fehlt, Pech gehabt");
+			LOG.info("url-Parameter bemerkungen fehlt, Pech gehabt");
 		}
 
 		paramInOSMVollstaendig = false;
@@ -622,7 +621,7 @@ public class fahrradanlage extends HttpServlet {
 			else {
 				paramInOSMVollstaendig = false;
 			}
-			NVBWLogger.info("url-Parameter inosmvollstaendigerfasst: " + (paramInOSMVollstaendig == true));
+			LOG.info("url-Parameter inosmvollstaendigerfasst: " + (paramInOSMVollstaendig == true));
 
 			String insertOSMimportiertSql = "INSERT INTO osmimport "
 				+ "(objekt_id, importiertdurch, vollstaendig, bemerkungen, zeitstempel) "
@@ -639,19 +638,19 @@ public class fahrradanlage extends HttpServlet {
 				insertOSMimportiertStmt.setString(stmtindex++, paramBemerkungen);
 				insertOSMimportiertStmt.setTimestamp(stmtindex++, new java.sql.Timestamp(zeitstempelimport.getTime()));
 				insertOSMimportiertStmt.setLong(stmtindex++, paramObjektid);
-				NVBWLogger.info("insertOSMimportiert Statement: " + insertOSMimportiertStmt.toString() + "===");
+				LOG.info("insertOSMimportiert Statement: " + insertOSMimportiertStmt.toString() + "===");
 
 				int anzahlinserts = insertOSMimportiertStmt.executeUpdate();
 				if(anzahlinserts == 1) {
-					NVBWLogger.info("insert osmimport war erfolgreich");
+					LOG.info("insert osmimport war erfolgreich");
 					anzahlerfolgreich++;
 				} else
 					dbfehlermeldungen.append("* DB Insert OSMImport führte nicht zu einem DB Eintrag\r\n");
 			} catch (SQLException e1) {
-				NVBWLogger.severe("SQL-Insert Fehler in Tabelle osmimport, " 
+				LOG.severe("SQL-Insert Fehler in Tabelle osmimport, " 
 					+ "Statement war '" + insertOSMimportiertStmt.toString() 
 					+ "' Details folgen ...");
-				NVBWLogger.severe(e1.toString());
+				LOG.severe(e1.toString());
 				JSONObject ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
@@ -660,13 +659,13 @@ public class fahrradanlage extends HttpServlet {
 				return;
 			}
 		} else {
-			NVBWLogger.info("url-Parameter inosmvollstaendigerfasst fehlt, Pech gehabt");
+			LOG.info("url-Parameter inosmvollstaendigerfasst fehlt, Pech gehabt");
 		}
 
 		paramStellplatzanzahl = 0;
 		if(request.getParameter("stellplatzanzahl") != null) {
 			paramStellplatzanzahl = Integer.parseInt(request.getParameter("stellplatzanzahl"));
-			NVBWLogger.info("url-Parameter stellplatzanzahl gesetzt ===" + paramStellplatzanzahl + "===");
+			LOG.info("url-Parameter stellplatzanzahl gesetzt ===" + paramStellplatzanzahl + "===");
 
 			String insertKorrekturmerkmalSql = "INSERT INTO merkmalkorrektur "
 				+ "(objekt_id, name, wert, typ, zeitstempel) "
@@ -684,19 +683,19 @@ public class fahrradanlage extends HttpServlet {
 				insertKorrekturmerkmalStmt.setTimestamp(stmtindex++, new java.sql.Timestamp(zeitstempelimport.getTime()));
 				insertKorrekturmerkmalStmt.setLong(stmtindex++, paramObjektid);
 				insertKorrekturmerkmalStmt.setString(stmtindex++, "" + paramStellplatzanzahl + ".0");
-				NVBWLogger.info("insertKorrekturmerkmal Statement: " + insertKorrekturmerkmalStmt.toString() + "===");
+				LOG.info("insertKorrekturmerkmal Statement: " + insertKorrekturmerkmalStmt.toString() + "===");
 
 				int anzahlinserts = insertKorrekturmerkmalStmt.executeUpdate();
 				if(anzahlinserts == 1) {
-					NVBWLogger.info("insert Korrekturmerkmal Stellplatzanzahl war erfolgreich");
+					LOG.info("insert Korrekturmerkmal Stellplatzanzahl war erfolgreich");
 					anzahlerfolgreich++;
 				} else
 					dbfehlermeldungen.append("* DB Insert Merkmalkorrektur Stellplatzanzahl führte nicht zu einem DB Eintrag\r\n");
 			} catch (SQLException e1) {
-				NVBWLogger.severe("SQL-Insert Fehler, als eine Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
+				LOG.severe("SQL-Insert Fehler, als eine Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
 					+ "Statement war '" + insertKorrekturmerkmalStmt.toString() 
 					+ "' Details folgen ...");
-				NVBWLogger.severe(e1.toString());
+				LOG.severe(e1.toString());
 				JSONObject ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
@@ -705,7 +704,7 @@ public class fahrradanlage extends HttpServlet {
 				return;
 			}
 		} else {
-			NVBWLogger.info("url-Parameter stellplatzanzahl nicht vorhanden gewesen");
+			LOG.info("url-Parameter stellplatzanzahl nicht vorhanden gewesen");
 		}
 
 		paramBeleuchtet = false;
@@ -732,19 +731,19 @@ public class fahrradanlage extends HttpServlet {
 				insertKorrekturmerkmalStmt.setTimestamp(stmtindex++, new java.sql.Timestamp(zeitstempelimport.getTime()));
 				insertKorrekturmerkmalStmt.setLong(stmtindex++, paramObjektid);
 				insertKorrekturmerkmalStmt.setString(stmtindex++, "" + paramBeleuchtet);
-				NVBWLogger.info("insertKorrekturmerkmal Statement: " + insertKorrekturmerkmalStmt.toString() + "===");
+				LOG.info("insertKorrekturmerkmal Statement: " + insertKorrekturmerkmalStmt.toString() + "===");
 
 				int anzahlinserts = insertKorrekturmerkmalStmt.executeUpdate();
 				if(anzahlinserts == 1) {
-					NVBWLogger.info("insert Korrekturmerkmal Beleuchtung war erfolgreich");
+					LOG.info("insert Korrekturmerkmal Beleuchtung war erfolgreich");
 					anzahlerfolgreich++;
 				} else
 					dbfehlermeldungen.append("* DB Insert Merkmalkorrektur Beleuchtung führte nicht zu einem DB Eintrag\r\n");
 			} catch (SQLException e1) {
-				NVBWLogger.severe("SQL-Insert Fehler, als eine Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
+				LOG.severe("SQL-Insert Fehler, als eine Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
 					+ "Statement war '" + insertKorrekturmerkmalStmt.toString() 
 					+ "' Details folgen ...");
-				NVBWLogger.severe(e1.toString());
+				LOG.severe(e1.toString());
 				JSONObject ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
@@ -753,7 +752,7 @@ public class fahrradanlage extends HttpServlet {
 				return;
 			}
 		} else {
-			NVBWLogger.info("url-Parameter beleuchtet nicht vorhanden gewesen");
+			LOG.info("url-Parameter beleuchtet nicht vorhanden gewesen");
 		}
 
 		paramUeberdacht = false;
@@ -763,7 +762,7 @@ public class fahrradanlage extends HttpServlet {
 			else {
 				paramUeberdacht = false;
 			}
-			NVBWLogger.info("url-Parameter ueberdacht: " + (paramUeberdacht == true));
+			LOG.info("url-Parameter ueberdacht: " + (paramUeberdacht == true));
 
 			String insertKorrekturmerkmalSql = "INSERT INTO merkmalkorrektur "
 				+ "(objekt_id, name, wert, typ, zeitstempel) "
@@ -781,19 +780,19 @@ public class fahrradanlage extends HttpServlet {
 				insertKorrekturmerkmalStmt.setTimestamp(stmtindex++, new java.sql.Timestamp(zeitstempelimport.getTime()));
 				insertKorrekturmerkmalStmt.setLong(stmtindex++, paramObjektid);
 				insertKorrekturmerkmalStmt.setString(stmtindex++, "" + paramUeberdacht);
-				NVBWLogger.info("insertKorrekturmerkmal Statement: " + insertKorrekturmerkmalStmt.toString() + "===");
+				LOG.info("insertKorrekturmerkmal Statement: " + insertKorrekturmerkmalStmt.toString() + "===");
 
 				int anzahlinserts = insertKorrekturmerkmalStmt.executeUpdate();
 				if(anzahlinserts == 1) {
-					NVBWLogger.info("insert Korrekturmerkmal Ueberdacht war erfolgreich");
+					LOG.info("insert Korrekturmerkmal Ueberdacht war erfolgreich");
 					anzahlerfolgreich++;
 				} else
 					dbfehlermeldungen.append("* DB Insert Merkmalkorrektur Ueberdacht führte nicht zu einem DB Eintrag\r\n");
 			} catch (SQLException e1) {
-				NVBWLogger.severe("SQL-Insert Fehler, als eine Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
+				LOG.severe("SQL-Insert Fehler, als eine Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
 					+ "Statement war '" + insertKorrekturmerkmalStmt.toString() 
 					+ "' Details folgen ...");
-				NVBWLogger.severe(e1.toString());
+				LOG.severe(e1.toString());
 				JSONObject ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
@@ -802,7 +801,7 @@ public class fahrradanlage extends HttpServlet {
 				return;
 			}
 		} else {
-			NVBWLogger.info("url-Parameter ueberdacht nicht vorhanden gewesen");
+			LOG.info("url-Parameter ueberdacht nicht vorhanden gewesen");
 		}
 
 		if(		(anzahlversuche == anzahlerfolgreich)
@@ -813,8 +812,8 @@ public class fahrradanlage extends HttpServlet {
 				response.setCharacterEncoding("UTF-8");
 				return;
 			} catch (SQLException e) {
-				NVBWLogger.severe("DB Transaktion konnte nicht committed werden");
-				NVBWLogger.severe(e.toString());
+				LOG.severe("DB Transaktion konnte nicht committed werden");
+				LOG.severe(e.toString());
 				JSONObject ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
@@ -830,8 +829,8 @@ public class fahrradanlage extends HttpServlet {
 				response.getWriter().append(dbfehlermeldungen);
 				return;
 			} catch (SQLException e) {
-				NVBWLogger.severe("DB Transaktion konnte nicht rollbacked werden");
-				NVBWLogger.severe(e.toString());
+				LOG.severe("DB Transaktion konnte nicht rollbacked werden");
+				LOG.severe(e.toString());
 				JSONObject ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");

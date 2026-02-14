@@ -38,9 +38,9 @@ public abstract class AbstractImportparameter {
 	private String filename = "";
 
 	/**
-	 * File format of import filename, 
-	 * @see https://docs.oracle.com/javase/7/docs/api/java/nio/charset/StandardCharsets.html
-	 */
+     * File format of import filename,
+     * @see <a href="https://docs.oracle.com/javase/7/docs/api/java/nio/charset/StandardCharsets.html">...</a>
+     */
 	private Charset filenameCharsetname = null;
 
 	private String fieldseparator = "";
@@ -200,7 +200,7 @@ public abstract class AbstractImportparameter {
 
 	/**
 	 * store information, what field "column" contains
-	 * @param headerfields the headerfields to set
+	 * @param field the headerfields to set
 	 */
 	public void setHeaderfield(HEADERFIELD field, String column) {
 		this.headerfields.put(field, column);

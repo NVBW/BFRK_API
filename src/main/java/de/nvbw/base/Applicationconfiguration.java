@@ -34,9 +34,9 @@ public class Applicationconfiguration {
 		
 		// get some configuration infos
 		if(File.separator.equals("\\"))
-			configuration_filename = "C:\\Users\\SEI\\IdeaProjects\\BFRK_API\\bfrk_api-STAGING.properties";
+			configuration_filename = "C:\\Users\\SEI\\IdeaProjects\\BFRK_API\\bfrk_api-DEVELOP.properties";
 		else
-			configuration_filename = "/daten/NVBWAdmin/bfrk_api_home-STAGING/bfrk_api.properties";
+			configuration_filename = "/daten/NVBWAdmin/bfrk_api_home-DEVELOP/bfrk_api.properties";
 
 		System.out.println("configuration_filename ===" + configuration_filename+ "===");
 

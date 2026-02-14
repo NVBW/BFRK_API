@@ -7,12 +7,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Date;
+import java.util.logging.Logger;
 
 import de.nvbw.base.Applicationconfiguration;
 import de.nvbw.base.NVBWLogger;
 
 public class DBVerbindung {
-    private static Connection bfrkConn = null;
+	private static final Logger LOG = NVBWLogger.getLogger(DBVerbindung.class);
+
+	private static Connection bfrkConn = null;
 	private static Applicationconfiguration configuration = null;
 
 	private static Date dbVerbindungsaufbauzeitpunkt = null;
@@ -20,29 +23,29 @@ public class DBVerbindung {
 	private static String dbnameoeffentlich = "";
 
 	public DBVerbindung() {
-		System.out.println("bin im DBVerbindung/constructor zu Beginn ...");
+		LOG.info("bin im DBVerbindung/constructor zu Beginn ...");
 		internGetDBVerbindung();
 	}
 
 	private static void internGetDBVerbindung() {
-		System.out.println("in DBVerbindung Constructor zu Beginn: " + new Date());
+		LOG.info("in DBVerbindung Constructor zu Beginn: " + new Date());
 	
 		configuration = new Applicationconfiguration();
 	
 		try {
-			System.out.println("Vor Aufruf postgresl-Treiber ...");
+			LOG.info("Vor Aufruf postgresl-Treiber ...");
 			Class.forName("org.postgresql.Driver");
-			System.out.println("Nach Aufruf postgresl-Treiber!");
+			LOG.info("Nach Aufruf postgresl-Treiber!");
 			
 			String bfrkUrl = configuration.db_application_url;
 			bfrkConn = DriverManager.getConnection(bfrkUrl, configuration.db_application_username, configuration.db_application_password);
-			System.out.println("Verbindungsaufbau mit Url ===" + bfrkUrl + "==="
+			LOG.info("Verbindungsaufbau mit Url ===" + bfrkUrl + "==="
 				+ ", Username: " + configuration.db_application_username
 				+ ", Passwort: " + configuration.db_application_password);
 			if(bfrkConn == null)
-				System.out.println("DB-Connection fehlgeschlagen");
+				LOG.severe("DB-Connection fehlgeschlagen");
 			else {
-				System.out.println("Status DB-Connection is valid? " + bfrkConn.isValid(0));
+				LOG.info("Status DB-Connection is valid? " + bfrkConn.isValid(0));
 				ReaderBase.setDBConnection(bfrkConn);
 				Bild.setDBConnection(bfrkConn);
 				dbVerbindungsaufbauzeitpunkt = new Date();
@@ -50,12 +53,12 @@ public class DBVerbindung {
 			}
 		} 
 		catch(ClassNotFoundException e) {
-			System.out.println("ClassNotFoundException happened within init(), details follows"
+			LOG.severe("ClassNotFoundException happened within init(), details follows"
 				+ " " + e.toString());
 			return;
 		}
 		catch( SQLException e) {
-			System.out.println("SQLException happened within init(), Details: " +
+			LOG.severe("SQLException happened within init(), Details: " +
 					e.toString());
 			return;
 		}    
@@ -63,10 +66,10 @@ public class DBVerbindung {
 	}
 
 	public static Connection getDBVerbindung() {
-		System.out.println("in Methode getDBVerbindung ...");
+		LOG.info("in Methode getDBVerbindung ...");
 		if(bfrkConn == null)
 			internGetDBVerbindung();
-		System.out.println(" ist die Variable bfrkConn: " + bfrkConn.toString());
+		LOG.info(" ist die Variable bfrkConn: " + bfrkConn.toString());
 		return bfrkConn;
 	}
 
@@ -81,7 +84,7 @@ public class DBVerbindung {
 			+ "schluessel in ('dbnameöffentlich', 'dbname');";
 		try {
 			Statement statement = bfrkConn.createStatement();
-			System.out.println("innternGetDBName: " + statement.toString());
+			LOG.info("innternGetDBName: " + statement.toString());
 			ResultSet resultset = statement.executeQuery(selectNameSql);
 			while(resultset.next()) {
 				schluessel = resultset.getString("schluessel");
@@ -94,7 +97,7 @@ public class DBVerbindung {
 			resultset.close();
 			statement.close();
 		} catch (SQLException e) {
-			System.out.println("in internGetDBName: SQLException aufgetreten, Details: " + e.toString());
+			LOG.severe("in internGetDBName: SQLException aufgetreten, Details: " + e.toString());
 		}
 		return;
 	}
@@ -122,7 +125,7 @@ public class DBVerbindung {
 			selectActiveTimeRs.close();
 			selectActiveTimeStmt.close();
 		} catch (SQLException e) {
-			System.out.println("in getDBActiveTime: SQLException aufgetreten, Details: " + e.toString());
+			LOG.severe("in getDBActiveTime: SQLException aufgetreten, Details: " + e.toString());
 		}
 		return activeTime;
 	}
@@ -146,7 +149,7 @@ public class DBVerbindung {
 				resultset.close();
 				selectmaxIDStmt.close();
 			} catch (SQLException e) {
-				System.out.println("in gethoechsteTabellenID: SQLException aufgetreten, Details: " + e.toString());
+				LOG.severe("in gethoechsteTabellenID: SQLException aufgetreten, Details: " + e.toString());
 			}
 		}
 		return id;

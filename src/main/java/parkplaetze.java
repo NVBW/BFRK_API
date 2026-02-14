@@ -8,6 +8,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -15,11 +16,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import de.nvbw.base.Applicationconfiguration;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import de.nvbw.base.BFRKApiApplicationconfiguration;
+import de.nvbw.base.Applicationconfiguration;
 import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
@@ -37,8 +37,9 @@ public class parkplaetze extends HttpServlet {
 
 	private static final long serialVersionUID = 1L;
 
-    private static Connection bfrkConn = null;
+	private static final Logger LOG = NVBWLogger.getLogger(parkplaetze.class);
 	private static Applicationconfiguration configuration = new Applicationconfiguration();
+	private static Connection bfrkConn = null;
 
 
     /**
@@ -54,8 +55,6 @@ public class parkplaetze extends HttpServlet {
      */
     @Override
     public void init() {
-		NVBWLogger.init(configuration.logging_console_level,
-				configuration.logging_file_level);
     	bfrkConn = DBVerbindung.getDBVerbindung();
     }
 
@@ -68,11 +67,11 @@ public class parkplaetze extends HttpServlet {
 		Date requestStart = new Date();
 		Date requestEnde = null;
 
-		NVBWLogger.info("parkplaetze Request-Beginn: " + datetime_de_formatter.format(requestStart));
+		LOG.info("parkplaetze Request-Beginn: " + datetime_de_formatter.format(requestStart));
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				NVBWLogger.warning("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.warning("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
 					JSONObject ergebnisJsonObject = new JSONObject();
@@ -143,7 +142,7 @@ public class parkplaetze extends HttpServlet {
 		PreparedStatement selectHaltestelleStmt;
 		try {
 			selectHaltestelleStmt = bfrkConn.prepareStatement(selectHaltestelleSql);
-			NVBWLogger.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
+			LOG.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
 
 			ResultSet selectMerkmaleRS = selectHaltestelleStmt.executeQuery();
 
@@ -191,10 +190,10 @@ public class parkplaetze extends HttpServlet {
 					merkmaleJsonObject.put("familienstellplaetze", familienstellplaetze);
 					merkmaleJsonObject.put("gebuehrenpflichtig", gebuehrenpflichtig);
 	
-					NVBWLogger.info("Länge merkmaleJsonObject: " + merkmaleJsonObject.toString().length());
-					NVBWLogger.info("Inhalt merkmaleJsonObject: " + merkmaleJsonObject.toString());
+					LOG.info("Länge merkmaleJsonObject: " + merkmaleJsonObject.toString().length());
+					LOG.info("Inhalt merkmaleJsonObject: " + merkmaleJsonObject.toString());
 					objektarray.put(merkmaleJsonObject);
-					NVBWLogger.info("Objektarray-Länge nach Erweiterung: " + objektarray.toString().length());
+					LOG.info("Objektarray-Länge nach Erweiterung: " + objektarray.toString().length());
 					merkmaleJsonObject = new JSONObject();
 					lon = 0.0;
 					lat = 0.0;
@@ -234,7 +233,7 @@ public class parkplaetze extends HttpServlet {
 				name = selectMerkmaleRS.getString("name");
 				wert = selectMerkmaleRS.getString("wert");
 				typ = selectMerkmaleRS.getString("typ");
-				NVBWLogger.info("objektid: " + objektid + ", Name: " + name + ", Wert: " + wert + ", Typ: " + typ);
+				LOG.info("objektid: " + objektid + ", Name: " + name + ", Wert: " + wert + ", Typ: " + typ);
 
 				if(!objektart.equals("Parkplatz")) {
 					falscheobjektart = true;
@@ -282,12 +281,12 @@ public class parkplaetze extends HttpServlet {
                         // Parkdauer hier erstmal in Variable speichern, beim Wechsel des Objekts rausschreiben
                         try {
                             maxparkdauer = (int) Double.parseDouble(wert);
-                            NVBWLogger.info("Merkmal: " + name + ", Max-Parkdauer: " + maxparkdauer);
+                            LOG.info("Merkmal: " + name + ", Max-Parkdauer: " + maxparkdauer);
                         } catch (NumberFormatException e) {
-                            NVBWLogger.warning("Merkmal OBJ_Parkplatz_MaxParkdauer_min, DB-ID: "
+                            LOG.warning("Merkmal OBJ_Parkplatz_MaxParkdauer_min, DB-ID: "
                                     + merkmal_id + ", Wert nicht parsebar '" + wert + "'");
                             maxparkdauer = -1;
-                            NVBWLogger.info("Merkmal: " + name + ", Max-Parkdauer: " + maxparkdauer + " in NumberFormatException!");
+                            LOG.info("Merkmal: " + name + ", Max-Parkdauer: " + maxparkdauer + " in NumberFormatException!");
                         }
                     }
                     case "OBJ_Parkplatz_KapazitaetFrauenplaetze" -> {
@@ -295,7 +294,7 @@ public class parkplaetze extends HttpServlet {
                         try {
                             frauenstellplaetze = (int) Double.parseDouble(wert);
                         } catch (NumberFormatException e) {
-                            NVBWLogger.warning("Merkmal OBJ_Parkplatz_KapazitaetFrauenplaetze, DB-ID: "
+                            LOG.warning("Merkmal OBJ_Parkplatz_KapazitaetFrauenplaetze, DB-ID: "
                                     + merkmal_id + ", Wert nicht parsebar '" + wert + "'");
                             frauenstellplaetze = 0;
                         }
@@ -305,7 +304,7 @@ public class parkplaetze extends HttpServlet {
                         try {
                             familienstellplaetze = (int) Double.parseDouble(wert);
                         } catch (NumberFormatException e) {
-                            NVBWLogger.warning("Merkmal OBJ_Parkplatz_KapazitaetFamilienplaetze, DB-ID: "
+                            LOG.warning("Merkmal OBJ_Parkplatz_KapazitaetFamilienplaetze, DB-ID: "
                                     + merkmal_id + ", Wert nicht parsebar '" + wert + "'");
                             familienstellplaetze = 0;
                         }
@@ -328,7 +327,7 @@ public class parkplaetze extends HttpServlet {
                         try {
                             merkmaleJsonObject.put("behindertenstellplaetze_laenge_cm", (int) Double.parseDouble(wert));
                         } catch (NumberFormatException e) {
-                            NVBWLogger.warning("Merkmal OBJ_Parkplatz_Behindertenplaetze_Laenge_cm, DB-ID: "
+                            LOG.warning("Merkmal OBJ_Parkplatz_Behindertenplaetze_Laenge_cm, DB-ID: "
                                     + merkmal_id + ", Wert nicht parsebar '" + wert + "'");
                         }
                     }
@@ -336,7 +335,7 @@ public class parkplaetze extends HttpServlet {
                         try {
                             merkmaleJsonObject.put("behindertenstellplaetze_breite_cm", (int) Double.parseDouble(wert));
                         } catch (NumberFormatException e) {
-                            NVBWLogger.warning("Merkmal OBJ_Parkplatz_Behindertenplaetze_Breite_cm, DB-ID: "
+                            LOG.warning("Merkmal OBJ_Parkplatz_Behindertenplaetze_Breite_cm, DB-ID: "
                                     + merkmal_id + ", Wert nicht parsebar '" + wert + "'");
                         }
                     }
@@ -358,7 +357,7 @@ public class parkplaetze extends HttpServlet {
                             merkmaleJsonObject.put("frauenstellplaetze_Foto", Bild.getBildUrl(wert, hstdhid));
                     case "OBJ_Parkplatz_Familienplaetze_Foto" ->
                             merkmaleJsonObject.put("familienstellplaetze_Foto", Bild.getBildUrl(wert, hstdhid));
-                    default -> NVBWLogger.warning("in Servlet " + this.getServletName()
+                    default -> LOG.warning("in Servlet " + this.getServletName()
                             + " nicht verarbeitetes Merkmal Name '" + name + "'"
                             + ", Wert '" + wert + "'");
                 }
@@ -388,9 +387,9 @@ public class parkplaetze extends HttpServlet {
 				merkmaleJsonObject.put("familienstellplaetze", familienstellplaetze);
 				merkmaleJsonObject.put("gebuehrenpflichtig", gebuehrenpflichtig);
 
-				NVBWLogger.info("Länge merkmaleJsonObject: " + merkmaleJsonObject.toString().length());
+				LOG.info("Länge merkmaleJsonObject: " + merkmaleJsonObject.toString().length());
 				objektarray.put(merkmaleJsonObject);
-				NVBWLogger.info("Objektarray-Länge nach Erweiterung: " + objektarray.toString().length());
+				LOG.info("Objektarray-Länge nach Erweiterung: " + objektarray.toString().length());
 			}
 
 
@@ -400,13 +399,13 @@ public class parkplaetze extends HttpServlet {
 			requestEnde = new Date();
 
 			if(anzahldatensaetze == 0) {
-				NVBWLogger.info("keine Datensätze gefunden, ENDE Request: " 
+				LOG.info("keine Datensätze gefunden, ENDE Request: " 
 					+ datetime_de_formatter.format(requestEnde));
 				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 				return;
 			}
 			if(falscheobjektart) {
-				NVBWLogger.warning("falsche Objektart, ENDE Request: " 
+				LOG.warning("falsche Objektart, ENDE Request: " 
 					+ datetime_de_formatter.format(requestEnde));
 				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 				response.setCharacterEncoding("UTF-8");
@@ -414,7 +413,7 @@ public class parkplaetze extends HttpServlet {
 				return;
 			}
 		} catch (SQLException e) {
-			NVBWLogger.severe("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
 			JSONObject ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", "SQL-Abfragefehler aufgetreten, bitte Administrator informieren");
@@ -423,9 +422,9 @@ public class parkplaetze extends HttpServlet {
 			return;
 		}
 		response.getWriter().append(objektarray.toString());
-		NVBWLogger.info("Objektarray-Länge am Ende: " + objektarray.toString().length()
+		LOG.info("Objektarray-Länge am Ende: " + objektarray.toString().length()
 			+ ", " + datetime_de_formatter.format(requestEnde));
-		NVBWLogger.info("Am Ende Anzahl Objekte in objektarray: " + anzahlobjekte);
+		LOG.info("Am Ende Anzahl Objekte in objektarray: " + anzahlobjekte);
 	}
 
 
@@ -433,7 +432,7 @@ public class parkplaetze extends HttpServlet {
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		NVBWLogger.info("Request /parkplaetze, doPost ...");
+		LOG.info("Request /parkplaetze, doPost ...");
 
 		response.setCharacterEncoding("UTF-8");
 		JSONObject ergebnisJsonObject = new JSONObject();

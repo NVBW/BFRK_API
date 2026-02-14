@@ -1,11 +1,11 @@
 
 import java.io.IOException;
-import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -13,16 +13,14 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.NVBWLogger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import de.nvbw.base.NVBWLogger;
-import de.nvbw.bfrk.base.BFRKFeld;
+import de.nvbw.base.Applicationconfiguration;
 import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
 import de.nvbw.bfrk.util.OpenStreetMap;
-import de.nvbw.bfrk.util.ReaderBase;
 
 
 /**
@@ -34,8 +32,9 @@ import de.nvbw.bfrk.util.ReaderBase;
 public class engstelle extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
-    private static Connection bfrkConn = null;
+	private static final Logger LOG = NVBWLogger.getLogger(engstelle.class);
 	private static Applicationconfiguration configuration = new Applicationconfiguration();
+    private static Connection bfrkConn = null;
 
 
     /**
@@ -51,8 +50,6 @@ public class engstelle extends HttpServlet {
      */
     @Override
     public void init() {
-		NVBWLogger.init(configuration.logging_console_level,
-				configuration.logging_file_level);
 		bfrkConn = DBVerbindung.getDBVerbindung();
     }
 
@@ -76,7 +73,7 @@ public class engstelle extends HttpServlet {
 				}
 			}
 		} catch (Exception e1) {
-			NVBWLogger.severe("Exception aufgetreten in engstelle doGet, " + e1.toString());
+			LOG.severe("Exception aufgetreten in engstelle doGet, " + e1.toString());
 			JSONObject ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", "unbekannter Fehler aufgetreten, bitte Administrator informieren: "
@@ -184,7 +181,7 @@ public class engstelle extends HttpServlet {
                             merkmaleJsonObject.put("richtung1_Foto", Bild.getBildUrl(wert, dhid));
                     case "OBJ_Engstelle_Weg2_Foto" ->
                             merkmaleJsonObject.put("richtung2_Foto", Bild.getBildUrl(wert, dhid));
-                    default -> NVBWLogger.warning("in Servlet " + this.getServletName()
+                    default -> LOG.warning("in Servlet " + this.getServletName()
                             + " nicht verarbeitetes Merkmal Name '" + name + "'"
                             + ", Wert '" + wert + "'");
                 }
@@ -214,7 +211,7 @@ public class engstelle extends HttpServlet {
 				return;
 			}
 		} catch (SQLException e) {
-			NVBWLogger.severe("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
 			JSONObject ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", "SQL-DB Fehler aufgetreten, bitte Administrator informieren");

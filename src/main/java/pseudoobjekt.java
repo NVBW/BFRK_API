@@ -1,11 +1,5 @@
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,6 +11,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -24,17 +19,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.json.JSONException;
+import de.nvbw.base.NVBWLogger;
 import org.json.JSONObject;
 
-import de.nvbw.base.BFRKApiApplicationconfiguration;
-import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.base.BFRKFeld;
 import de.nvbw.bfrk.util.DBVerbindung;
-import de.nvbw.bfrk.util.ReaderBase.Objektzustand_Typ;
-import de.nvbw.diva.graph.Grapherzeugung;
-
-
 
 
 /**
@@ -44,11 +33,11 @@ import de.nvbw.diva.graph.Grapherzeugung;
 			urlPatterns = {"/pseudoobjekt/*"}
 		)
 public class pseudoobjekt extends HttpServlet {
-	private static DateFormat date_de_formatter = new SimpleDateFormat("dd.MM.yyyy");
-
-	private static BFRKApiApplicationconfiguration bfrkapiconfiguration = null;
-
 	private static final long serialVersionUID = 1L;
+
+	private static final Logger LOG = NVBWLogger.getLogger(notiz.class);
+
+	private static final DateFormat date_de_formatter = new SimpleDateFormat("dd.MM.yyyy");
 
     private static Connection bfrkConn = null;
 
@@ -59,44 +48,51 @@ public class pseudoobjekt extends HttpServlet {
  
 		Map<BFRKFeld.Name, String> merkmaleMap = new HashMap<>();
 
-    	if(objektart.equals("Aufzug")) {
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Aufzug_Vorhanden_D2090, "true");
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Aufzug_Verbindungsfunktion_D2095, verbindungsinformation);
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Aufzug_Tuerbreite_cm_D2091, "98.765");
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Aufzug_Grundflaechenlaenge_cm_D2093, "198.765");
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Aufzug_Grundflaechenbreite_cm_D2094, "98.765");
-		} else if(objektart.equals("Rampe")) {
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Rampe_Vorhanden_D2120, "true");
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Rampe_Verbindungsfunktion_D2121, verbindungsinformation);
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Rampe_Laenge_cm_D2122, "198.765");
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Rampe_Breite_cm_D2123, "98.765");
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Rampe_Neigung_prozent_D2124, "5.987");
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Rampe_Querneigung_prozent, "1.987");
-		} else if(objektart.equals("Rolltreppe")) {
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Rolltreppe_Vorhanden_D2130, "true");
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Rolltreppe_Verbindungsfunktion_D2131, verbindungsinformation);
-		} else if(objektart.equals("Treppe")) {
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Treppe_Vorhanden_D2110, "true");
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Treppe_Verbindungsfunktion_D2111, verbindungsinformation);
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Treppe_Stufenanzahl_D2113, "2");
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Treppe_Stufenhoehe_cm_D2112, "15.987");
-		} else if(objektart.equals("Weg")) {
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Weg_Art, "weg");
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Weg_Verbindungsfunktion, verbindungsinformation);
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Weg_Laenge_cm_D2020, "198.765");
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Weg_Breite_cm_D2021, "98.765");
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Weg_Neigung_prozent, "1.987");
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Weg_Querneigung_prozent, "1.987");
-		} else if(objektart.equals("BuR")) {
-			merkmaleMap.put(BFRKFeld.Name.OBJ_BuR_Vorhanden, "true");
-			merkmaleMap.put(BFRKFeld.Name.OBJ_BuR_Notiz, verbindungsinformation);
-		} else if(objektart.equals("Parkplatz")) {
-			merkmaleMap.put(BFRKFeld.Name.OBJ_Parkplatz_Art_D1051, "unbekannt");
-		} else {
-			NVBWLogger.warning("ungültige Objektart für Pseudoobjekt mit Objekt-Id: " + objektid
-				+ ", falsche Objektart: " + objektart);
-			return false;
-		}
+        switch (objektart) {
+            case "Aufzug" -> {
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Aufzug_Vorhanden_D2090, "true");
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Aufzug_Verbindungsfunktion_D2095, verbindungsinformation);
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Aufzug_Tuerbreite_cm_D2091, "98.765");
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Aufzug_Grundflaechenlaenge_cm_D2093, "198.765");
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Aufzug_Grundflaechenbreite_cm_D2094, "98.765");
+            }
+            case "Rampe" -> {
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Rampe_Vorhanden_D2120, "true");
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Rampe_Verbindungsfunktion_D2121, verbindungsinformation);
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Rampe_Laenge_cm_D2122, "198.765");
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Rampe_Breite_cm_D2123, "98.765");
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Rampe_Neigung_prozent_D2124, "5.987");
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Rampe_Querneigung_prozent, "1.987");
+            }
+            case "Rolltreppe" -> {
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Rolltreppe_Vorhanden_D2130, "true");
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Rolltreppe_Verbindungsfunktion_D2131, verbindungsinformation);
+            }
+            case "Treppe" -> {
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Treppe_Vorhanden_D2110, "true");
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Treppe_Verbindungsfunktion_D2111, verbindungsinformation);
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Treppe_Stufenanzahl_D2113, "2");
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Treppe_Stufenhoehe_cm_D2112, "15.987");
+            }
+            case "Weg" -> {
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Weg_Art, "weg");
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Weg_Verbindungsfunktion, verbindungsinformation);
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Weg_Laenge_cm_D2020, "198.765");
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Weg_Breite_cm_D2021, "98.765");
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Weg_Neigung_prozent, "1.987");
+                merkmaleMap.put(BFRKFeld.Name.OBJ_Weg_Querneigung_prozent, "1.987");
+            }
+            case "BuR" -> {
+                merkmaleMap.put(BFRKFeld.Name.OBJ_BuR_Vorhanden, "true");
+                merkmaleMap.put(BFRKFeld.Name.OBJ_BuR_Notiz, verbindungsinformation);
+            }
+            case "Parkplatz" -> merkmaleMap.put(BFRKFeld.Name.OBJ_Parkplatz_Art_D1051, "unbekannt");
+            default -> {
+                LOG.warning("ungültige Objektart für Pseudoobjekt mit Objekt-Id: " + objektid
+                        + ", falsche Objektart: " + objektart);
+                return false;
+            }
+        }
 
 		String insertMerkmalSql = "INSERT INTO merkmal (objekt_id, name, wert, typ) VALUES (?, ?, ?, ?) RETURNING id;";
 
@@ -113,7 +109,7 @@ public class pseudoobjekt extends HttpServlet {
 				insertMerkmalStmt.setString(stmtindex++, merkmal.dbname());
 				insertMerkmalStmt.setString(stmtindex++, wert);
 				insertMerkmalStmt.setString(stmtindex++, merkmal.typ().name());
-				NVBWLogger.fine("SQL-insert Statement zum speichern Merkmal '"
+				LOG.fine("SQL-insert Statement zum speichern Merkmal '"
 					+  insertMerkmalStmt.toString() + "'");
 		
 				long dbid = 0;
@@ -122,19 +118,19 @@ public class pseudoobjekt extends HttpServlet {
 					dbid = insertMerkmalRs.getLong("id");
 				}
 	
-				NVBWLogger.info("Speicherung erfolgt: Merkmal-ID: " + dbid + ""
+				LOG.info("Speicherung erfolgt: Merkmal-ID: " + dbid + ""
 					+ ",  Objekt-ID: " + objektid + ",  [" + merkmal.dbname() + "] ===" + wert + "===");
 				returncode = true;
 			}
 		} catch (SQLException e1) {
 				// am 13.09.2024 Reihenfolge geändert: vorher zuerst ob updateszulaessig
 			if(e1.getSQLState().equals("23505")) {
-				NVBWLogger.warning("Datensatz existiert schon, Details: " + e1.toString());
+				LOG.warning("Datensatz existiert schon, Details: " + e1.toString());
 			} else {
-				NVBWLogger.severe("SQL-Insert Fehler, als ein Merkmal in die Tabelle eingetragen werden sollte." 
+				LOG.severe("SQL-Insert Fehler, als ein Merkmal in die Tabelle eingetragen werden sollte." 
 					+ "Statement war '" + insertMerkmalStmt.toString() 
 					+ "' Details folgen ...");
-				NVBWLogger.severe(e1.toString() + ", Code: " + e1.getSQLState());
+				LOG.severe(e1.toString() + ", Code: " + e1.getSQLState());
 			}
 			returncode = false;
 		}
@@ -146,29 +142,24 @@ public class pseudoobjekt extends HttpServlet {
      */
     public pseudoobjekt() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     /**
-     * initialization on servlett startup
+     * initialization on servlet startup
      * - connect to bfrk DB
      */
     @Override
     public void init() {
-		NVBWLogger.info("Beginn init pseudoobjekt " + new Date());
-		System.out.println("Beginn init pseudoobjekt " + new Date());
-
-    	bfrkapiconfiguration = new BFRKApiApplicationconfiguration();
-    	bfrkConn = DBVerbindung.getDBVerbindung();
+		LOG.info("Beginn init pseudoobjekt " + new Date());
+		bfrkConn = DBVerbindung.getDBVerbindung();
     }
-
 
 	/**
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
-		NVBWLogger.info("Beginn GET pseudoobjekt " + new Date());
+		LOG.info("Beginn GET pseudoobjekt " + new Date());
 		response.setContentType("application/json");
 		response.setCharacterEncoding("UTF-8");
 		response.setHeader("Access-Control-Allow-Origin", "*");
@@ -181,7 +172,7 @@ public class pseudoobjekt extends HttpServlet {
 		response.getWriter().append(ergebnisJsonObject.toString());
 		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 
-		NVBWLogger.info("Ende GET pseudoobjekt " + new Date());
+		LOG.info("Ende GET pseudoobjekt " + new Date());
 		return;
 	}
 
@@ -190,9 +181,8 @@ public class pseudoobjekt extends HttpServlet {
 	 */
 	protected void doPut(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
-		NVBWLogger.info("Beginn PUT pseudoobjekt " + new Date());
+		LOG.info("Beginn PUT pseudoobjekt " + new Date());
 
-		NVBWLogger.info("Beginn GET pseudoobjekt " + new Date());
 		response.setContentType("application/json");
 		response.setCharacterEncoding("UTF-8");
 		response.setHeader("Access-Control-Allow-Origin", "*");
@@ -205,8 +195,7 @@ public class pseudoobjekt extends HttpServlet {
 		response.getWriter().append(ergebnisJsonObject.toString());
 		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 
-		NVBWLogger.info("Ende PUT pseudoobjekt " + new Date());
-		return;
+		LOG.info("Ende PUT pseudoobjekt " + new Date());
 	}
 
 	/**
@@ -215,18 +204,35 @@ public class pseudoobjekt extends HttpServlet {
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		JSONObject ergebnisJsonObject = new JSONObject();
 
-		NVBWLogger.info("Beginn POST pseudoobjekt " + new Date());
+		LOG.info("Beginn POST pseudoobjekt " + new Date());
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				response.getWriter().append("FEHLER: keine DB-Verbindung offen");
+				LOG.severe("es konnte keine DB-Verbindung herstellt werden");
+				ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 				return;
 			}
 		} catch (SQLException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei SQLException " + e1.toString());
+			LOG.severe("SQLException aufgetreten, " + e1.toString());
+			ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		} catch (IOException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei IOException " + e1.toString());
+			LOG.severe("IOException aufgetreten, " + e1.toString());
+			ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unbekannter Fehler aufgetreten, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
 
@@ -246,7 +252,7 @@ public class pseudoobjekt extends HttpServlet {
 
 		String accesstoken = "";
 
-		System.out.println("Request Header accesstoken vorhanden ===" + request.getHeader("accesstoken") + "===");
+		LOG.info("Request Header accesstoken vorhanden ===" + request.getHeader("accesstoken") + "===");
 		accesstoken = request.getHeader("accesstoken");
 		if(accesstoken.isEmpty()) {
 			ergebnisJsonObject.put("status", "fehler");
@@ -266,7 +272,7 @@ public class pseudoobjekt extends HttpServlet {
 			authentifizierungStmt = bfrkConn.prepareStatement(authentifizierungSql);
 			int stmtindex = 1;
 			authentifizierungStmt.setString(stmtindex++, accesstoken);
-			System.out.println("Authentifizierung query: " + authentifizierungStmt.toString() + "===");
+			LOG.info("Authentifizierung query: " + authentifizierungStmt.toString() + "===");
 
 			ResultSet authentifizierungRS = authentifizierungStmt.executeQuery();
 
@@ -280,7 +286,7 @@ public class pseudoobjekt extends HttpServlet {
 			authentifizierungRS.close();
 			authentifizierungStmt.close();
 
-			if(modellspeichern == false) {
+			if(!modellspeichern) {
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", "Authentifizierung fehlgeschlagen");
 				response.getWriter().append(ergebnisJsonObject.toString());
@@ -289,7 +295,7 @@ public class pseudoobjekt extends HttpServlet {
 			}
 			
 		} catch (SQLException e) {
-			System.out.println("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
 			String fehlertext = "DB-Fehler aufgetreten, bitte den Administrtaor benachrichtigen";
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", fehlertext);
@@ -308,10 +314,11 @@ public class pseudoobjekt extends HttpServlet {
 		
 		try {
 			if(request.getParameter("dhid") != null) {
-				System.out.println("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
+				LOG.info("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
 				paramdhid = request.getParameter("dhid");
 			} else {
 				String fehlertext = "Parameter dhid ist nicht angegeben";
+				ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", fehlertext);
 				response.getWriter().append(ergebnisJsonObject.toString());
@@ -320,10 +327,11 @@ public class pseudoobjekt extends HttpServlet {
 			}
 			
 			if(request.getParameter("oevart") != null) {
-				System.out.println("url-Parameter oevart vorhanden ===" + request.getParameter("oevart") + "===");
+				LOG.info("url-Parameter oevart vorhanden ===" + request.getParameter("oevart") + "===");
 				paramoevart = request.getParameter("oevart");
 				if(!paramoevart.equals("S") && !paramoevart.equals("O")) {
 					String fehlertext = "Parameter oevart hat ungültigen Wert, nämlich '" + paramoevart + "'";
+					ergebnisJsonObject = new JSONObject();
 					ergebnisJsonObject.put("status", "fehler");
 					ergebnisJsonObject.put("fehlertext", fehlertext);
 					response.getWriter().append(ergebnisJsonObject.toString());
@@ -334,9 +342,18 @@ public class pseudoobjekt extends HttpServlet {
 					parentobjektart = "Bahnhof";
 				} else if(paramoevart.equals("O")) {
 					parentobjektart = "Haltestelle";
+				} else {
+					String fehlertext = "Parameter oevart hat ungültigen Wert, nämlich '" + paramoevart + "'";
+					ergebnisJsonObject = new JSONObject();
+					ergebnisJsonObject.put("status", "fehler");
+					ergebnisJsonObject.put("fehlertext", fehlertext);
+					response.getWriter().append(ergebnisJsonObject.toString());
+					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+					return;
 				}
 			} else {
 				String fehlertext = "Parameter oevart ist nicht angegeben";
+				ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", fehlertext);
 				response.getWriter().append(ergebnisJsonObject.toString());
@@ -345,10 +362,11 @@ public class pseudoobjekt extends HttpServlet {
 			}
 
 			if(request.getParameter("verbindungsinformation") != null) {
-				System.out.println("url-Parameter verbindungsinformation vorhanden ===" + request.getParameter("verbindungsinformation"));
+				LOG.info("url-Parameter verbindungsinformation vorhanden ===" + request.getParameter("verbindungsinformation"));
 				paramverbindungsinformation = request.getParameter("verbindungsinformation");
 			} else {
 				String fehlertext = "Parameter verbindungsinformation ist nicht angegeben";
+				ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", fehlertext);
 				response.getWriter().append(ergebnisJsonObject.toString());
@@ -356,10 +374,11 @@ public class pseudoobjekt extends HttpServlet {
 				return;
 			}
 			if(request.getParameter("lon") != null) {
-				System.out.println("url-Parameter lon vorhanden ===" + request.getParameter("lon"));
+				LOG.info("url-Parameter lon vorhanden ===" + request.getParameter("lon"));
 				paramlon = Double.parseDouble(request.getParameter("lon"));
 			} else {
 				String fehlertext = "Parameter lon ist nicht angegeben";
+				ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", fehlertext);
 				response.getWriter().append(ergebnisJsonObject.toString());
@@ -367,10 +386,11 @@ public class pseudoobjekt extends HttpServlet {
 				return;
 			}
 			if(request.getParameter("lat") != null) {
-				System.out.println("url-Parameter lat vorhanden ===" + request.getParameter("lat"));
+				LOG.info("url-Parameter lat vorhanden ===" + request.getParameter("lat"));
 				paramlat = Double.parseDouble(request.getParameter("lat"));
 			} else {
 				String fehlertext = "Parameter lat ist nicht angegeben";
+				ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", fehlertext);
 				response.getWriter().append(ergebnisJsonObject.toString());
@@ -378,10 +398,11 @@ public class pseudoobjekt extends HttpServlet {
 				return;
 			}
 			if(request.getParameter("objektart") != null) {
-				System.out.println("url-Parameter dhid vorhanden ===" + request.getParameter("objektart"));
+				LOG.info("url-Parameter dhid vorhanden ===" + request.getParameter("objektart"));
 				paramobjektart = request.getParameter("objektart");
 				if((paramobjektart == null) || paramobjektart.isEmpty()) {
 					String fehlertext = "Parameter objektart ist nicht angegeben";
+					ergebnisJsonObject = new JSONObject();
 					ergebnisJsonObject.put("status", "fehler");
 					ergebnisJsonObject.put("fehlertext", fehlertext);
 					response.getWriter().append(ergebnisJsonObject.toString());
@@ -396,6 +417,7 @@ public class pseudoobjekt extends HttpServlet {
 						&&	!paramobjektart.equals("BuR")
 						&&	!paramobjektart.equals("Parkplatz")) {
 						String fehlertext = "Parameter objektart hat keinen gültigen Wert, sondern '" + paramobjektart + "'";
+						ergebnisJsonObject = new JSONObject();
 						ergebnisJsonObject.put("status", "fehler");
 						ergebnisJsonObject.put("fehlertext", fehlertext);
 						response.getWriter().append(ergebnisJsonObject.toString());
@@ -405,6 +427,7 @@ public class pseudoobjekt extends HttpServlet {
 				}
 			} else {
 				String fehlertext = "Parameter objektart ist nicht angegeben";
+				ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", fehlertext);
 				response.getWriter().append(ergebnisJsonObject.toString());
@@ -412,9 +435,10 @@ public class pseudoobjekt extends HttpServlet {
 				return;
 			}
 		} catch(Exception e) {
-			NVBWLogger.severe("Exception aufgetreten bei Parameter auslesen, Details folgen..");
-			NVBWLogger.severe(e.toString());
+			LOG.severe("Exception aufgetreten bei Parameter auslesen, Details folgen..");
+			LOG.severe(e.toString());
 			String fehlertext = "Parameter auslesen fehlgeschlagen";
+			ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", fehlertext);
 			response.getWriter().append(ergebnisJsonObject.toString());
@@ -424,12 +448,12 @@ public class pseudoobjekt extends HttpServlet {
 
 
 		
-		NVBWLogger.info("dhid: " + paramdhid);
-		NVBWLogger.info("oevart: " + paramoevart);
-		NVBWLogger.info("objektart: " + paramobjektart);
-		NVBWLogger.info("lon: " + paramlon);
-		NVBWLogger.info("lat: " + paramlat);
-		NVBWLogger.info("verbindunginformation: " + paramverbindungsinformation);
+		LOG.info("dhid: " + paramdhid);
+		LOG.info("oevart: " + paramoevart);
+		LOG.info("objektart: " + paramobjektart);
+		LOG.info("lon: " + paramlon);
+		LOG.info("lat: " + paramlat);
+		LOG.info("verbindunginformation: " + paramverbindungsinformation);
 
 		String selectParentObjektSql = "SELECT id, kreisschluessel, gemeinde, ortsteil FROM objekt "
 			+ "WHERE oevart = ? AND dhid = ? AND objektart = ?;";
@@ -450,7 +474,7 @@ public class pseudoobjekt extends HttpServlet {
 			selectParentObjektStmt.setString(stmtindex++, paramoevart);
 			selectParentObjektStmt.setString(stmtindex++, paramdhid);
 			selectParentObjektStmt.setString(stmtindex++, parentobjektart);
-			System.out.println("select Parent-Objekt query: " + selectParentObjektStmt.toString() + "===");
+			LOG.info("select Parent-Objekt query: " + selectParentObjektStmt.toString() + "===");
 
 			ResultSet selectParentObjektRS = selectParentObjektStmt.executeQuery();
 
@@ -470,6 +494,7 @@ public class pseudoobjekt extends HttpServlet {
 
 			if(anzahlParentObjekte == 0) {
 				String fehlertext = "Es wurde kein Objekt vom Typ " + parentobjektart + " gefunden, Abbruch";
+				ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", fehlertext);
 				response.getWriter().append(ergebnisJsonObject.toString());
@@ -478,6 +503,7 @@ public class pseudoobjekt extends HttpServlet {
 			} else if(anzahlParentObjekte > 1) {
 				String fehlertext = "Es wurde mehr als 1 Objekt vom Typ " + parentobjektart + " gefunden, Liste Treffer: "
 					+ parentObjektListe.toString() + ", Abbruch";
+				ergebnisJsonObject = new JSONObject();
 				ergebnisJsonObject.put("status", "fehler");
 				ergebnisJsonObject.put("fehlertext", fehlertext);
 				response.getWriter().append(ergebnisJsonObject.toString());
@@ -496,13 +522,13 @@ public class pseudoobjekt extends HttpServlet {
 			insertPseudoObjektStmt.setString(stmtindex++, ortsteil);
 			insertPseudoObjektStmt.setDouble(stmtindex++, paramlon);
 			insertPseudoObjektStmt.setDouble(stmtindex++, paramlat);
-			NVBWLogger.info("Pseudo-Objekt store: " + insertPseudoObjektStmt.toString() + "===");
+			LOG.info("Pseudo-Objekt store: " + insertPseudoObjektStmt.toString() + "===");
 
 			long pseudoObjektID = 0;
 			ResultSet insertPseudoObjektRs = insertPseudoObjektStmt.executeQuery();
 			if (insertPseudoObjektRs.next()) {
 				pseudoObjektID = insertPseudoObjektRs.getLong("id");
-				NVBWLogger.info("Erstelltes Pseudo-Objekt hat die Objekt-Id: " + pseudoObjektID);
+				LOG.info("Erstelltes Pseudo-Objekt hat die Objekt-Id: " + pseudoObjektID);
 
 				insertPseudoObjektRs.close();
 				insertPseudoObjektStmt.close();
@@ -514,6 +540,7 @@ public class pseudoobjekt extends HttpServlet {
 					return;
 			    } else {
 			    	String fehlertext = "DB-Speicherungsfehler aufgetreten, bitte den Administrator benachrichtigen";
+					ergebnisJsonObject = new JSONObject();
 					ergebnisJsonObject.put("status", "fehler");
 					ergebnisJsonObject.put("fehlertext", fehlertext);
 					response.getWriter().append(ergebnisJsonObject.toString());
@@ -526,20 +553,21 @@ public class pseudoobjekt extends HttpServlet {
 
 			String fehlertext = "SQL-Speicherungsfehler: es wurde nach dem DB-INSERT kein Ergebnisdatensatz gefunden, "
 				+ "vermutlich also nicht gespeichert. Bitte den Programmierer informieren.";
-			NVBWLogger.severe(fehlertext);
+			LOG.severe(fehlertext);
+			ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", fehlertext);
 			response.getWriter().append(ergebnisJsonObject.toString());
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		} catch (SQLException e) {
-			NVBWLogger.severe("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
 			String fehlertext = "DB-Fehler aufgetreten, bitte den Administrator benachrichtigen";
+			ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", fehlertext);
 			response.getWriter().append(ergebnisJsonObject.toString());
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-			return;
 		}
 	}
 }

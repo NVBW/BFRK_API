@@ -1,14 +1,16 @@
 package de.nvbw.bfrk.util;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.logging.Logger;
 
 import de.nvbw.base.NVBWLogger;
 
+
 public class Bild {
+	private static final Logger LOG = NVBWLogger.getLogger(Bild.class);
 
 	private static final String INTRANET_URL = "http://10.70.190.131:80";
 
@@ -41,11 +43,11 @@ public class Bild {
     			
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				NVBWLogger.warning("FEHLER: keine DB-Verbindung offen in Klasse Bild, Methode getBildUrl");
+				LOG.warning("FEHLER: keine DB-Verbindung offen in Klasse Bild, Methode getBildUrl");
 				return outputurl;
 			}
 		} catch (SQLException e1) {
-			NVBWLogger.warning("FEHLER: keine DB-Verbindung offen in Klasse Bild, Methode getBildUrl, bei SQLException " + e1.toString());
+			LOG.warning("FEHLER: keine DB-Verbindung offen in Klasse Bild, Methode getBildUrl, bei SQLException " + e1.toString());
 			return outputurl;
 		}
 
@@ -55,7 +57,7 @@ public class Bild {
 		try {
 			selectBildStmt = bfrkConn.prepareStatement(selectBildSql);
 			selectBildStmt.setString(1, bildname);
-//			NVBWLogger.fine("Haltestelle query: " + selectBildStmt.toString() + "===");
+//			LOG.fine("Haltestelle query: " + selectBildStmt.toString() + "===");
 
 			ResultSet selectBildRS = selectBildStmt.executeQuery();
 
@@ -76,7 +78,7 @@ public class Bild {
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			System.out.println("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
 		}    	
     	return outputurl;
     }

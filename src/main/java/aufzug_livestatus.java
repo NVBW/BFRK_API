@@ -7,7 +7,6 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
-import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -16,6 +15,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -23,16 +23,14 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import de.nvbw.base.Applicationconfiguration;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import de.nvbw.base.Applicationconfiguration;
 import de.nvbw.base.NVBWLogger;
-import de.nvbw.bfrk.base.BFRKFeld;
 import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
 import de.nvbw.bfrk.util.OpenStreetMap;
-import de.nvbw.bfrk.util.ReaderBase;
 
 
 /**
@@ -46,8 +44,9 @@ public class aufzug_livestatus extends HttpServlet {
 
 	private static final DateFormat datetime_iso8601_formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
-    private static Connection bfrkConn = null;
+	private static final Logger LOG = NVBWLogger.getLogger(aufzug_livestatus.class);
 	private static Applicationconfiguration configuration = new Applicationconfiguration();
+    private static Connection bfrkConn = null;
 
 	private static HttpURLConnection conn = null;
 
@@ -66,8 +65,6 @@ public class aufzug_livestatus extends HttpServlet {
 	 */
 	@Override
 	public void init() {
-		NVBWLogger.init(configuration.logging_console_level,
-				configuration.logging_file_level);
 		bfrkConn = DBVerbindung.getDBVerbindung();
 	}
 
@@ -81,7 +78,7 @@ public class aufzug_livestatus extends HttpServlet {
 		URL url;
 		try {
 			url = new URL(fastaurl);
-			NVBWLogger.fine("Url-Anfrage ===" + fastaurl + "=== ...");
+			LOG.fine("Url-Anfrage ===" + fastaurl + "=== ...");
 
 			if(conn == null)
 				conn = (HttpURLConnection) url.openConnection();
@@ -97,15 +94,15 @@ public class aufzug_livestatus extends HttpServlet {
 		
 			// Connection is lazily executed whenever you request any status.
 			int responseCode = ((HttpURLConnection) conn).getResponseCode();
-			NVBWLogger.fine("" + responseCode); // Should be 200
+			LOG.fine("" + responseCode); // Should be 200
 			// ===================================================================================================================
 
 
 			long contentlength = 0;
 			Integer headeri = 1;
-			NVBWLogger.fine("Header-Fields Ausgabe ...");
+			LOG.fine("Header-Fields Ausgabe ...");
 			while(((HttpURLConnection) conn).getHeaderFieldKey(headeri) != null) {
-				NVBWLogger.fine("  Header # "+headeri+":  [" 
+				LOG.fine("  Header # "+headeri+":  [" 
 					+ ((HttpURLConnection) conn).getHeaderFieldKey(headeri)+"] ==="
 					+ ((HttpURLConnection) conn).getHeaderField(headeri)+"===");
 				if(((HttpURLConnection) conn).getHeaderFieldKey(headeri).equals("Content-Length")) {
@@ -121,7 +118,7 @@ public class aufzug_livestatus extends HttpServlet {
 				while ((inputLine = rd.readLine()) != null) {
 					response.append(inputLine + "\n");
 				}
-				NVBWLogger.info("Content  ===" + response.toString() + "===");
+				LOG.info("Content  ===" + response.toString() + "===");
 
 				if(!response.isEmpty()) {
 					String inhalt = response.toString();
@@ -135,15 +132,15 @@ public class aufzug_livestatus extends HttpServlet {
 							if(endpos != -1) {
 								aufzugstatus = inhalt.substring(findstartpos, endpos);
 							} else {
-								NVBWLogger.warning("String-Endepos von Property state wurde nicht gefunden, "
+								LOG.warning("String-Endepos von Property state wurde nicht gefunden, "
 									+ "ab Pos " + startpos + ", " + inhalt.substring(startpos));
 							}
 						} else {
-							NVBWLogger.warning("String-Startpos von Property state wurde nicht gefunden, "
+							LOG.warning("String-Startpos von Property state wurde nicht gefunden, "
 								+ "ab Pos " + startpos + ", " + inhalt.substring(startpos));
 						}
 					} else {
-						NVBWLogger.warning("Property state kann im Content nicht gefunden werden");
+						LOG.warning("Property state kann im Content nicht gefunden werden");
 					}
 					suchstring = "\"stateExplanation\"";
 					startpos = inhalt.indexOf(suchstring);
@@ -155,41 +152,41 @@ public class aufzug_livestatus extends HttpServlet {
 							if(endpos != -1) {
 								aufzugstatus += "|" + inhalt.substring(findstartpos, endpos);
 							} else {
-								NVBWLogger.warning("String-Endepos von Property stateExplanation wurde nicht gefunden, "
+								LOG.warning("String-Endepos von Property stateExplanation wurde nicht gefunden, "
 									+ "ab Pos " + startpos + ", " + inhalt.substring(startpos));
 							}
 						} else {
-							NVBWLogger.warning("String-Startpos von Property stateExplanation wurde nicht gefunden, "
+							LOG.warning("String-Startpos von Property stateExplanation wurde nicht gefunden, "
 								+ "ab Pos " + startpos + ", " + inhalt.substring(startpos));
 						}
 					} else {
-						NVBWLogger.warning("Property stateExplanation kann im Content nicht gefunden werden");
+						LOG.warning("Property stateExplanation kann im Content nicht gefunden werden");
 					}
 				} else {
-					NVBWLogger.warning("Response-Content ist leer.");
+					LOG.warning("Response-Content ist leer.");
 				}
 			
 			} else {
-				NVBWLogger.warning("HTTP-Response Code nicht 200, sondern " + responseCode
+				LOG.warning("HTTP-Response Code nicht 200, sondern " + responseCode
 					+ ", für Bild-Url ===" + fastaurl + "===");
 					// keine Url zurückgeben, weil nicht alles in Ordnung
 			}
 			rd.close();
-			NVBWLogger.info("getFastaAufzugzustand liefert zurück: " + aufzugstatus);
+			LOG.info("getFastaAufzugzustand liefert zurück: " + aufzugstatus);
 		} catch (FileNotFoundException e) {
-			NVBWLogger.finest("Bilddatei wurde nicht gefunden (FileNotFoundException)" + "\t"
+			LOG.finest("Bilddatei wurde nicht gefunden (FileNotFoundException)" + "\t"
 					+ fastaurl + "\t" + e.toString());
 				fastaurl = "";
 		} catch (MalformedURLException e) {
-			NVBWLogger.info("Fasta-API Zugriff war nicht erfolgreich  werden (MalformedURLException)" + "\t"
+			LOG.info("Fasta-API Zugriff war nicht erfolgreich  werden (MalformedURLException)" + "\t"
 				+ fastaurl + "\t" + e.toString());
 			fastaurl = "";
 		} catch (ProtocolException e) {
-			NVBWLogger.info("Fasta-API Zugriff war nicht erfolgreich  werden (ProtocolException)" + "\t"
+			LOG.info("Fasta-API Zugriff war nicht erfolgreich  werden (ProtocolException)" + "\t"
 				+ fastaurl + "\t" + e.toString());
 			fastaurl = "";
 		} catch (IOException e) {
-			NVBWLogger.info("Fasta-API Zugriff war nicht erfolgreich  werden (ProtocolException)" + "\t"
+			LOG.info("Fasta-API Zugriff war nicht erfolgreich  werden (ProtocolException)" + "\t"
 					+ fastaurl + "\t" + e.toString());
 		}
 		return aufzugstatus;
@@ -203,7 +200,7 @@ public class aufzug_livestatus extends HttpServlet {
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				NVBWLogger.severe("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.severe("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
 					response.getWriter().append("FEHLER: keine DB-Verbindung offen");
@@ -230,18 +227,18 @@ public class aufzug_livestatus extends HttpServlet {
 
 		long paramObjektid = 0;
 		if(request.getParameter("dhid") != null) {
-			NVBWLogger.info("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
+			LOG.info("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
 			paramObjektid = Long.parseLong(request.getParameter("dhid"));
 		} else {
-			NVBWLogger.info("url-Parameter dhid fehlt ...");
+			LOG.info("url-Parameter dhid fehlt ...");
 			String requesturi = request.getRequestURI();
-			NVBWLogger.info("requesturi ===" + requesturi + "===");
+			LOG.info("requesturi ===" + requesturi + "===");
 			if(requesturi.contains("/aufzug")) {
 				int startpos = requesturi.indexOf("/aufzug");
-				NVBWLogger.info("startpos #1: " + startpos);
+				LOG.info("startpos #1: " + startpos);
 				if(requesturi.indexOf("/",startpos + 1) != -1) {
 					paramObjektid = Long.parseLong(requesturi.substring(requesturi.indexOf("/",startpos + 1) + 1));
-					NVBWLogger.info("Versuch, Objektid zu extrahieren ===" + paramObjektid + "===");
+					LOG.info("Versuch, Objektid zu extrahieren ===" + paramObjektid + "===");
 				}
 			}
 		}
@@ -294,7 +291,7 @@ public class aufzug_livestatus extends HttpServlet {
 			selectHaltestelleStmt = bfrkConn.prepareStatement(selectHaltestelleSql);
 			selectHaltestelleStmt.setLong(1, paramObjektid);
 			selectHaltestelleStmt.setLong(2, paramObjektid);
-			NVBWLogger.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
+			LOG.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
 
 			ResultSet selectMerkmaleRS = selectHaltestelleStmt.executeQuery();
 
@@ -352,7 +349,7 @@ public class aufzug_livestatus extends HttpServlet {
 				else if(name.equals("OBJ_Aufzug_StoerungKontakt_Foto"))
 					merkmaleJsonObject.put("stoerungkontakt_Foto", Bild.getBildUrl(wert, dhid));
 				else
-					NVBWLogger.warning("in Servlet " + this.getServletName() 
+					LOG.warning("in Servlet " + this.getServletName() 
 						+ " nicht verarbeitetes Merkmal Name '" + name + "'" 
 						+ ", Wert '" + wert + "'");
 				if(osmids != null) {
@@ -396,7 +393,7 @@ public class aufzug_livestatus extends HttpServlet {
 				return;
 			}
 		} catch (SQLException e) {
-			NVBWLogger.severe("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
 			JSONObject ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", "SQLException aufgetreten beim Aufruf /aufzug_livestatus, bitte Administrator informieren: "

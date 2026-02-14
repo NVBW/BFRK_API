@@ -8,6 +8,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -15,7 +16,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import de.nvbw.base.Applicationconfiguration;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -34,8 +34,8 @@ import de.nvbw.bfrk.util.OpenStreetMap;
 public class aufzug extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
+	private static final Logger LOG = NVBWLogger.getLogger(stopmodell.class);
 	private static Connection bfrkConn = null;
-	private static Applicationconfiguration configuration = new Applicationconfiguration();
 
 	private static DateFormat date_rfc3339_formatter = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -53,8 +53,6 @@ public class aufzug extends HttpServlet {
      */
     @Override
     public void init() {
-    	NVBWLogger.init(configuration.logging_console_level,
-				configuration.logging_file_level);
 		bfrkConn = DBVerbindung.getDBVerbindung();
     }
 
@@ -66,10 +64,10 @@ public class aufzug extends HttpServlet {
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				NVBWLogger.warning("keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.warning("keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-					NVBWLogger.severe("es konnte keine DB-Verbindung herstellt werden, in aufzug doGet");
+					LOG.severe("es konnte keine DB-Verbindung herstellt werden, in aufzug doGet");
 					JSONObject ergebnisJsonObject = new JSONObject();
 					ergebnisJsonObject.put("status", "fehler");
 					ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren");
@@ -79,7 +77,7 @@ public class aufzug extends HttpServlet {
 				}
 			}
 		} catch (SQLException e1) {
-			NVBWLogger.severe("SQLException aufgetreten in aufzug doGet, " + e1.toString());
+			LOG.severe("SQLException aufgetreten in aufzug doGet, " + e1.toString());
 			JSONObject ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren: "
@@ -88,7 +86,7 @@ public class aufzug extends HttpServlet {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		} catch (IOException e1) {
-			NVBWLogger.severe("IOException aufgetreten in aufzug doGet, " + e1.toString());
+			LOG.severe("IOException aufgetreten in aufzug doGet, " + e1.toString());
 			JSONObject ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", "unbekannter Fehler aufgetreten, bitte Administrator informieren: "
@@ -100,18 +98,18 @@ public class aufzug extends HttpServlet {
 
 		long paramObjektid = 0;
 		if(request.getParameter("dhid") != null) {
-			NVBWLogger.info("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
+			LOG.info("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
 			paramObjektid = Long.parseLong(request.getParameter("dhid"));
 		} else {
-			NVBWLogger.info("url-Parameter dhid fehlt ...");
+			LOG.info("url-Parameter dhid fehlt ...");
 			String requesturi = request.getRequestURI();
-			NVBWLogger.info("requesturi ===" + requesturi + "===");
+			LOG.info("requesturi ===" + requesturi + "===");
 			if(requesturi.contains("/aufzug")) {
 				int startpos = requesturi.indexOf("/aufzug");
-				NVBWLogger.info("startpos #1: " + startpos);
+				LOG.info("startpos #1: " + startpos);
 				if(requesturi.indexOf("/",startpos + 1) != -1) {
 					paramObjektid = Long.parseLong(requesturi.substring(requesturi.indexOf("/",startpos + 1) + 1));
-					NVBWLogger.info("Versuch, Objektid zu extrahieren ===" + paramObjektid + "===");
+					LOG.info("Versuch, Objektid zu extrahieren ===" + paramObjektid + "===");
 				}
 			}
 		}
@@ -164,7 +162,7 @@ public class aufzug extends HttpServlet {
 			selectHaltestelleStmt = bfrkConn.prepareStatement(selectHaltestelleSql);
 			selectHaltestelleStmt.setLong(1, paramObjektid);
 			selectHaltestelleStmt.setLong(2, paramObjektid);
-			NVBWLogger.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
+			LOG.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
 
 			ResultSet selectMerkmaleRS = selectHaltestelleStmt.executeQuery();
 
@@ -234,7 +232,7 @@ public class aufzug extends HttpServlet {
 				else if(name.equals("OBJ_Aufzug_StoerungKontakt_Foto"))
 					merkmaleJsonObject.put("stoerungkontakt_Foto", Bild.getBildUrl(wert, dhid));
 				else
-					NVBWLogger.warning("in Servlet " + this.getServletName() 
+					LOG.warning("in Servlet " + this.getServletName() 
 						+ " nicht verarbeitetes Merkmal Name '" + name + "'" 
 						+ ", Wert '" + wert + "'");
 
@@ -262,10 +260,10 @@ public class aufzug extends HttpServlet {
 				return;
 			}
 		} catch (SQLException e) {
-			NVBWLogger.severe("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
 			JSONObject ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
-			ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten beim Aufruf /aufzug, bitte Administrator informieren: "
+			ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten, bitte Administrator informieren: "
 				+ e.toString());
 			response.getWriter().append(ergebnisJsonObject.toString());
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -278,6 +276,7 @@ public class aufzug extends HttpServlet {
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		LOG.info("Request angekommen in /aufzug doPost ...");
 
 		response.setCharacterEncoding("UTF-8");
 		JSONObject ergebnisJsonObject = new JSONObject();

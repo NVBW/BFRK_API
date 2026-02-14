@@ -10,6 +10,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -18,11 +19,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.NVBWLogger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import de.nvbw.base.BFRKApiApplicationconfiguration;
-import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
 import de.nvbw.bfrk.util.OpenStreetMap;
@@ -39,8 +39,9 @@ public class fahrradanlagen extends HttpServlet {
 
 	private static final long serialVersionUID = 1L;
 
-    private static Connection bfrkConn = null;
+	private static final Logger LOG = NVBWLogger.getLogger(fahrradanlagen.class);
 	private static Applicationconfiguration configuration = new Applicationconfiguration();
+	private static Connection bfrkConn = null;
 
 
     /**
@@ -56,8 +57,6 @@ public class fahrradanlagen extends HttpServlet {
      */
     @Override
     public void init() {
-		NVBWLogger.init(configuration.logging_console_level,
-				configuration.logging_file_level);
     	bfrkConn = DBVerbindung.getDBVerbindung();
     }
 
@@ -70,11 +69,11 @@ public class fahrradanlagen extends HttpServlet {
 		Date requestStart = new Date();
 		Date requestEnde = null;
 
-		NVBWLogger.info("fahrradanlagen Request-Beginn: " + datetime_de_formatter.format(requestStart));
+		LOG.info("fahrradanlagen Request-Beginn: " + datetime_de_formatter.format(requestStart));
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				NVBWLogger.warning("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.warning("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
 					JSONObject ergebnisJsonObject = new JSONObject();
@@ -152,7 +151,7 @@ public class fahrradanlagen extends HttpServlet {
 		PreparedStatement selectHaltestelleStmt;
 		try {
 			selectHaltestelleStmt = bfrkConn.prepareStatement(selectHaltestelleSql);
-			NVBWLogger.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
+			LOG.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
 
 			ResultSet selectMerkmaleRS = selectHaltestelleStmt.executeQuery();
 
@@ -195,10 +194,10 @@ public class fahrradanlagen extends HttpServlet {
 						merkmaleJsonObject.put("osmlinks", osmlinksJA);
 					}
 	
-					NVBWLogger.info("Länge merkmaleJsonObject: " + merkmaleJsonObject.toString().length());
+					LOG.info("Länge merkmaleJsonObject: " + merkmaleJsonObject.toString().length());
 					objektarray.put(merkmaleJsonObject);
-					NVBWLogger.info("Objektarray-Länge nach Erweiterung: " + objektarray.toString().length());
-					NVBWLogger.info("Bisherige Anzahl Objekte in objektarray: " + anzahlobjekte);
+					LOG.info("Objektarray-Länge nach Erweiterung: " + objektarray.toString().length());
+					LOG.info("Bisherige Anzahl Objekte in objektarray: " + anzahlobjekte);
 					merkmaleJsonObject = new JSONObject();
 					lon = 0.0;
 					lat = 0.0;
@@ -227,7 +226,7 @@ public class fahrradanlagen extends HttpServlet {
 					merkmaleJsonObject.put("gemeinde", gemeinde);
 					merkmaleJsonObject.put("ortsteil", ortsteil);
 					merkmaleJsonObject.put("infraid", infraid);
-//					NVBWLogger.info("Neues Objekt #" + anzahlobjekte + " gefunden, gefunden HST-DHID: " + hstdhid
+//					LOG.info("Neues Objekt #" + anzahlobjekte + " gefunden, gefunden HST-DHID: " + hstdhid
 //						+ ", Objekt-DHID: " + dhid + ", Objektart: " + objektart
 //						+ ", Objekt-ID: " + objektid + ", OSM-Importiert? " + osmimportiert);
 				}
@@ -237,7 +236,7 @@ public class fahrradanlagen extends HttpServlet {
 				name = selectMerkmaleRS.getString("name");
 				wert = selectMerkmaleRS.getString("wert");
 				typ = selectMerkmaleRS.getString("typ");
-				NVBWLogger.info("objektid: " + objektid + ", Merkmal-ID: " + merkmalid + ", Name: " + name + ", Wert: " + wert + ", Typ: " + typ);
+				LOG.info("objektid: " + objektid + ", Merkmal-ID: " + merkmalid + ", Name: " + name + ", Wert: " + wert + ", Typ: " + typ);
 
 				if(!objektart.equals("BuR")) {
 					falscheobjektart = true;
@@ -290,7 +289,7 @@ public class fahrradanlagen extends HttpServlet {
                     case "OBJ_BuR_Vorhanden" -> {
                         // nichts zu tun
                     }
-                    default -> NVBWLogger.warning("in Servlet " + this.getServletName()
+                    default -> LOG.warning("in Servlet " + this.getServletName()
                             + " nicht verarbeitetes Merkmal Name '" + name + "'"
                             + ", Wert '" + wert + "'");
                 }
@@ -316,10 +315,10 @@ public class fahrradanlagen extends HttpServlet {
 					merkmaleJsonObject.put("osmlinks", osmlinksJA);
 				}
 
-				NVBWLogger.info("Länge merkmaleJsonObject: " + merkmaleJsonObject.toString().length() + " Bytes");
+				LOG.info("Länge merkmaleJsonObject: " + merkmaleJsonObject.toString().length() + " Bytes");
 				objektarray.put(merkmaleJsonObject);
-				NVBWLogger.info("Objektarray-Länge nach Erweiterung: " + objektarray.toString().length() + " Bytes");
-				NVBWLogger.info("Am Ende Anzahl Objekte in objektarray: " + anzahlobjekte);
+				LOG.info("Objektarray-Länge nach Erweiterung: " + objektarray.toString().length() + " Bytes");
+				LOG.info("Am Ende Anzahl Objekte in objektarray: " + anzahlobjekte);
 			}
 
 			selectMerkmaleRS.close();
@@ -328,22 +327,22 @@ public class fahrradanlagen extends HttpServlet {
 			requestEnde = new Date();
 
 			if(anzahldatensaetze == 0) {
-				NVBWLogger.info("keine Datensätze gefunden, ENDE Request: " 
+				LOG.info("keine Datensätze gefunden, ENDE Request: " 
 					+ datetime_de_formatter.format(requestEnde));
 				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 				return;
 			}
 			if(falscheobjektart) {
-				NVBWLogger.severe("falsche Objektart, ENDE Request: " 
+				LOG.severe("falsche Objektart, ENDE Request: " 
 					+ datetime_de_formatter.format(requestEnde));
 				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 				response.setCharacterEncoding("UTF-8");
 				response.getWriter().append("Parameter objekt_id passt nicht zum Objekttyp Fahrradanlage");
 				return;
 			}
-			NVBWLogger.info("Anzahl Datensätze: " + anzahldatensaetze);
+			LOG.info("Anzahl Datensätze: " + anzahldatensaetze);
 		} catch (SQLException e) {
-			NVBWLogger.severe("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
 			JSONObject ergebnisJsonObject = new JSONObject();
 			ergebnisJsonObject.put("status", "fehler");
 			ergebnisJsonObject.put("fehlertext", "SQL-Abfragefehler aufgetreten, bitte Administrator informieren");
@@ -352,7 +351,7 @@ public class fahrradanlagen extends HttpServlet {
 			return;
 		}
 		response.getWriter().append(objektarray.toString());
-		NVBWLogger.info("objektarray am Ende: " + objektarray.toString().length()
+		LOG.info("objektarray am Ende: " + objektarray.toString().length()
 			+ " Bytes, " + datetime_de_formatter.format(requestEnde));
 	}
 
@@ -361,7 +360,7 @@ public class fahrradanlagen extends HttpServlet {
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		NVBWLogger.info("Request /fahrradanlagen, doPost ...");
+		LOG.info("Request /fahrradanlagen, doPost ...");
 
 		response.setCharacterEncoding("UTF-8");
 		JSONObject ergebnisJsonObject = new JSONObject();
