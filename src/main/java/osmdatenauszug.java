@@ -142,11 +142,11 @@ public class osmdatenauszug extends HttpServlet {
 		String osmworkingdir = bfrkapihomeVerzeichnis + File.separator + "openstreetmap";
 		File workingdirHandle = new File(osmworkingdir);
 		String programm = "osmiumextract.sh";
-		String parameter = "" + links + " " + unten + " " + rechts + " " + oben + " " + filename;
+		String parameter = "" + links + " " + rechts + " " + oben + " " + unten + " " + filename;
 		try {
 			LOG.info("Prozessaufruf: " + programm + " " + parameter + "...");
 			ProcessBuilder processbuilded = new ProcessBuilder(osmworkingdir + File.separator + programm,
-				"" + links, "" + unten, "" + rechts, "" + oben, filename);
+				"" + links, "" + rechts, "" + oben, "" + unten, filename);
 			processbuilded.directory(workingdirHandle);
 			processbuilded.redirectOutput(new File(osmworkingdir + File.separator + "process_output.log"));
 			processbuilded.redirectError(new File(osmworkingdir + File.separator + "process_error.log"));
