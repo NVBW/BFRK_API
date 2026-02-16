@@ -659,7 +659,6 @@ public class stopmodell extends HttpServlet {
 				kommentar = metagraphJson.getString("kommentar");
 				// Bearbeiter aus Token-Analyse ermittelt und in Graphen integrieren
 			metagraphJson.put("bearbeiter", bearbeiter);
-			LOG.info("im empfangenen Graph bearbeiter gesetzt: " + metagraphJson.getString("bearbeiter"));
 	    } else {
 	    	LOG.warning("Json-Content hatte keine metadaten-Struktur");
 			ergebnisJsonObject = new JSONObject();
@@ -677,6 +676,9 @@ public class stopmodell extends HttpServlet {
 		LOG.info("mayorversion: " + mayorversion);
 		LOG.info("minorversion: " + minorversion);
 
+		String selectModellSql = "SELECT release, mayorversion, minorversion FROM objektmodell "
+			+ "WHERE dhid = ? "
+			+ "ORDER BY release DESC, mayorversion DESC, minorversion DESC LIMIT 1;";
 
 		String insertModellSql = "INSERT INTO objektmodell (dhid, release, mayorversion, minorversion, "
 			+ "benutzer, kommentar, content) VALUES(?, ?, ?, ?, ?, ?, ?::jsonb);";
