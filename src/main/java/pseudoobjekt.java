@@ -43,7 +43,7 @@ public class pseudoobjekt extends HttpServlet {
 
     
     private static boolean ObjektmerkmaleInDBSpeichern(long objektid, String objektart,
-    	String verbindungsinformation, double lon, double lat) {
+    	String verbindungsinformation) {
     	boolean returncode = false;
  
 		Map<BFRKFeld.Name, String> merkmaleMap = new HashMap<>();
@@ -100,6 +100,11 @@ public class pseudoobjekt extends HttpServlet {
                 merkmaleMap.put(BFRKFeld.Name.OBJ_Weg_Neigung_prozent, "1.987");
                 merkmaleMap.put(BFRKFeld.Name.OBJ_Weg_Querneigung_prozent, "1.987");
             }
+            case "BuR" -> {
+                merkmaleMap.put(BFRKFeld.Name.OBJ_BuR_Vorhanden, "true");
+                merkmaleMap.put(BFRKFeld.Name.OBJ_BuR_Notiz, verbindungsinformation);
+            }
+            case "Parkplatz" -> merkmaleMap.put(BFRKFeld.Name.OBJ_Parkplatz_Art_D1051, "unbekannt");
             default -> {
                 LOG.warning("ungültige Objektart für Pseudoobjekt mit Objekt-Id: " + objektid
                         + ", falsche Objektart: " + objektart);
@@ -354,8 +359,16 @@ public class pseudoobjekt extends HttpServlet {
 				}
 				if(paramoevart.equals("S")) {
 					parentobjektart = "Bahnhof";
-				} else {
+				} else if(paramoevart.equals("O")) {
 					parentobjektart = "Haltestelle";
+				} else {
+					String fehlertext = "Parameter oevart hat ungültigen Wert, nämlich '" + paramoevart + "'";
+					ergebnisJsonObject = new JSONObject();
+					ergebnisJsonObject.put("status", "fehler");
+					ergebnisJsonObject.put("fehlertext", fehlertext);
+					response.getWriter().append(ergebnisJsonObject.toString());
+					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+					return;
 				}
 			} else {
 				String fehlertext = "Parameter oevart ist nicht angegeben";
