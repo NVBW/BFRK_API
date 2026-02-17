@@ -611,19 +611,23 @@ public class stopmodell extends HttpServlet {
 		if(metadatenJson.has("graph")) {
 			metagraphJson = (JSONObject) metadatenJson.get("graph");
 
-			if(metadatenJson.has("release"))
+			if(metagraphJson.has("release"))
 				release = metagraphJson.getInt("release");
-			if(metadatenJson.has("mayorversion"))
+			if(metagraphJson.has("mayorversion"))
 				mayorversion = metagraphJson.getInt("mayorversion");
-			if(metadatenJson.has("minorversion")) {
+			if(metagraphJson.has("minorversion")) {
 				minorversion = metagraphJson.getInt("minorversion");
+				LOG.info("im empfangenen Graph minorversion gefunden: " + minorversion);
 				minorversion++;
 				metagraphJson.put("minorversion", minorversion);
+				LOG.info("im empfangenen Graph inkrementierte minorversion gesetzt: " +
+						metagraphJson.getInt("minorversion"));
 			}
-			if(metadatenJson.has("kommentar"))
+			if(metagraphJson.has("kommentar"))
 				kommentar = metagraphJson.getString("kommentar");
 				// Bearbeiter aus Token-Analyse ermittelt und in Graphen integrieren
 			metagraphJson.put("bearbeiter", bearbeiter);
+			LOG.info("im empfangenen Graph bearbeiter gesetzt: " + metagraphJson.getString("bearbeiter"));
 	    } else {
 	    	LOG.warning("Json-Content hatte keine metadaten-Struktur");
 			ergebnisJsonObject = new JSONObject();
