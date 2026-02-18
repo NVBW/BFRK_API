@@ -205,7 +205,7 @@ public class eyevisprojektdaten extends HttpServlet {
 		String auftragstempname = auftragspfadundname + "_temp";
 
 		
-		String args[] = new String[18];
+		String args[] = new String[16];
 		int argsindex = 0;
 		args[argsindex++] = "-dhids";
 		args[argsindex++] = paramDhidListe;
