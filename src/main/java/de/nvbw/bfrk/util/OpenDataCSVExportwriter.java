@@ -295,7 +295,7 @@ public class OpenDataCSVExportwriter{
 				Integer headeri = 1;
 				LOG.fine("Header-Fields Ausgabe ...");
 				while(((HttpURLConnection) conn).getHeaderFieldKey(headeri) != null) {
-					LOG.fine("  Header # "+headeri+":  [" 
+					LOG.fine("  Header # "+headeri+":  ["
 						+ ((HttpURLConnection) conn).getHeaderFieldKey(headeri)+"] ==="
 						+ ((HttpURLConnection) conn).getHeaderField(headeri)+"===");
 					if(((HttpURLConnection) conn).getHeaderFieldKey(headeri).equals("Content-Length")) {
@@ -438,7 +438,7 @@ public class OpenDataCSVExportwriter{
 				Integer headeri = 1;
 				LOG.info("Header-Fields Ausgabe ...");
 				while(((HttpURLConnection) conn).getHeaderFieldKey(headeri) != null) {
-					LOG.info("  Header # "+headeri+":  [" 
+					LOG.info("  Header # "+headeri+":  ["
 						+ ((HttpURLConnection) conn).getHeaderFieldKey(headeri)+"] ==="
 						+ ((HttpURLConnection) conn).getHeaderField(headeri)+"===");
 					if(((HttpURLConnection) conn).getHeaderFieldKey(headeri).equals("Content-Length")) {
@@ -2594,7 +2594,7 @@ public class OpenDataCSVExportwriter{
 	
 	/**
 	 * Stand: 
-	 * @param 
+	 * @param
 	 * @return
 	 */
 	public String printFahrkartenautomat(Map<Name, BFRKFeld> hstmerkmale, Map<Name, BFRKFeld> objektmerkmale) {

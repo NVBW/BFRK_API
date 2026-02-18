@@ -277,14 +277,14 @@ public class ReaderBase {
 
 				updateobjektStmt.executeUpdate();
 			} catch (SQLException e1) {
-				LOG.severe("SQL-Update Fehler, als die infraidtemp Tabelle Objekt upgedated werden sollte. " 
+				LOG.severe("SQL-Update Fehler, als die infraidtemp Tabelle Objekt upgedated werden sollte. "
 					+ "Statement war '" + updateobjektStmt.toString() 
 					+ "' Details folgen ...");
 				LOG.severe(e1.toString());
 			}
 			
 		} catch (SQLException e1) {
-			LOG.severe("SQL-Select zum holen der höchsten infraidtemp Nummer in Tabelle objekt" + "\t" 
+			LOG.severe("SQL-Select zum holen der höchsten infraidtemp Nummer in Tabelle objekt" + "\t"
 				+ "Statement war '" + selectInfaidtempStmt.toString() 
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString());
@@ -435,7 +435,7 @@ public class ReaderBase {
 			deleteMerkmalStmt.execute();
 			LOG.info("Löschen aller Bilder zu einem Objekt mit objekt-id: " + objektid);
 		} catch (SQLException e1) {
-			LOG.severe("SQL-Delete Fehler, als alle Bilder zu einem Objekt gelöscht werden sollten. " 
+			LOG.severe("SQL-Delete Fehler, als alle Bilder zu einem Objekt gelöscht werden sollten. "
 				+ "Statement war '" + deleteMerkmalStmt.toString() 
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString() + ", Code: " + e1.getSQLState());
@@ -444,7 +444,7 @@ public class ReaderBase {
 
 
 	public static void addstore(long dbrecordid, String feldname, String feldwert, Datentyp datentyp) {
-		LOG.info("addstore" + "\t" + feldname + "\t" 
+		LOG.info("addstore" + "\t" + feldname + "\t"
 				+ feldwert + "\t" + datentyp);
 
 		String selectMerkmalSql = "select id, wert FROM merkmal WHERE "
@@ -469,7 +469,7 @@ public class ReaderBase {
 				vorhandenerWert = selectMerkmalRs.getString("wert");
 			}
 		} catch (SQLException e1) {
-			LOG.severe("SQL-Select Fehler, als ein Merkmal vorab gelesen werden sollte." 
+			LOG.severe("SQL-Select Fehler, als ein Merkmal vorab gelesen werden sollte."
 				+ "Statement war '" + selectMerkmalStmt.toString() 
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString() + ", Code: " + e1.getSQLState());
@@ -540,7 +540,7 @@ public class ReaderBase {
 			LOG.info("Erweiterung erfolgt: Merkmal-ID: " + dbid + ""
 				+ ",  Objekt-ID: " + dbrecordid + ",  [" + feldname + "] ===" + feldwert + "===");
 		} catch (SQLException e1) {
-			LOG.severe("SQL-Update Fehler, als ein Merkmal in der Tabelle aktualisiert werden sollte." 
+			LOG.severe("SQL-Update Fehler, als ein Merkmal in der Tabelle aktualisiert werden sollte."
 				+ "Statement war '" + updateMerkmalStmt.toString() 
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString() + ", Code: " + e1.getSQLState());
@@ -549,7 +549,7 @@ public class ReaderBase {
 
 
 	public static void store(long dbrecordid, String feldname, String feldwert, Datentyp datentyp) {
-		//LOG.info("store" + "\t" + feldname + "\t" 
+		//LOG.info("store" + "\t" + feldname + "\t"
 		//		+ feldwert + "\t" + datentyp);
 		
 		String insertMerkmalSql = "INSERT INTO merkmal (objekt_id, name, wert, typ) VALUES (?, ?, ?, ?) RETURNING id;";
@@ -589,7 +589,7 @@ public class ReaderBase {
 					+ ", Feldwert: " + feldwert + ", Datentyp: " + datentyp.toString());
 				update(dbrecordid, feldname, feldwert, datentyp);
 			} else {
-				LOG.severe("SQL-Insert Fehler, als ein Merkmal in die Tabelle eingetragen werden sollte." 
+				LOG.severe("SQL-Insert Fehler, als ein Merkmal in die Tabelle eingetragen werden sollte."
 					+ "Statement war '" + insertMerkmalStmt.toString() 
 					+ "' Details folgen ...");
 				LOG.severe(e1.toString() + ", Code: " + e1.getSQLState());
@@ -602,7 +602,7 @@ public class ReaderBase {
 		if(datentyp.typ() == BFRKFeld.Datentyp.Boolean) {
 			store(dbrecordid, datentyp.dbname(), "" + booleanwert, Datentyp.Boolean);
 		} else {
-			LOG.severe("Methode store für boolean Art wurde aufgerufen, aber Typ ist falsch" 
+			LOG.severe("Methode store für boolean Art wurde aufgerufen, aber Typ ist falsch"
 				+ "\t" + datentyp.typ() + "\t" + datentyp.name());
 		}
 	}
@@ -612,7 +612,7 @@ public class ReaderBase {
 		if(datentyp.typ() == BFRKFeld.Datentyp.String) {
 			store(dbrecordid, datentyp.dbname(), "" + textwert, Datentyp.String);
 		} else {
-			LOG.severe("Methode store für String Art wurde aufgerufen, aber Typ ist falsch" 
+			LOG.severe("Methode store für String Art wurde aufgerufen, aber Typ ist falsch"
 				+ "\t" + datentyp.typ() + "\t" + datentyp.name());
 		}
 	}
@@ -622,14 +622,14 @@ public class ReaderBase {
 		if(datentyp.typ() == BFRKFeld.Datentyp.Numeric) {
 			store(dbrecordid, datentyp.dbname(), "" + gleitkommawert, Datentyp.Numeric);
 		} else {
-			LOG.severe("Methode store für double Art wurde aufgerufen, aber Typ ist falsch" 
+			LOG.severe("Methode store für double Art wurde aufgerufen, aber Typ ist falsch"
 				+ "\t" + datentyp.typ() + "\t" + "Wert: ===" + gleitkommawert + "===, Datentyp: " + datentyp.name());
 		}
 	}
 
 
 	public static void storeKorrektur(long objekt_id, String feldname, String feldwert, Datentyp datentyp) {
-		LOG.info("storeKorrektur" + "\t" + feldname + "\t" 
+		LOG.info("storeKorrektur" + "\t" + feldname + "\t"
 				+ feldwert + "\t" + datentyp);
 		
 		String insertMerkmalSql = "INSERT INTO merkmalkorrektur (objekt_id, name, wert, typ) VALUES (?, ?, ?, ?);";
@@ -648,7 +648,7 @@ public class ReaderBase {
 	
 			insertMerkmalStmt.executeUpdate();
 		} catch (SQLException e1) {
-			LOG.severe("SQL-Insert Fehler, als ein Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
+			LOG.severe("SQL-Insert Fehler, als ein Merkmalkorrektur in die Tabelle eingetragen werden sollte."
 				+ "Statement war '" + insertMerkmalStmt.toString() 
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString());
@@ -660,7 +660,7 @@ public class ReaderBase {
 		if(datentyp.typ() == BFRKFeld.Datentyp.Boolean) {
 			storeKorrektur(objekt_id, datentyp.dbname(), "" + booleanwert, Datentyp.Boolean);
 		} else {
-			LOG.severe("Methode store für boolean Art wurde aufgerufen, aber Typ ist falsch" 
+			LOG.severe("Methode store für boolean Art wurde aufgerufen, aber Typ ist falsch"
 				+ "\t" + datentyp.typ() + "\t" + datentyp.name());
 		}
 	}
@@ -669,7 +669,7 @@ public class ReaderBase {
 		if(datentyp.typ() == BFRKFeld.Datentyp.String) {
 			storeKorrektur(objekt_id, datentyp.dbname(), "" + textwert, Datentyp.String);
 		} else {
-			LOG.severe("Methode store für String Art wurde aufgerufen, aber Typ ist falsch" 
+			LOG.severe("Methode store für String Art wurde aufgerufen, aber Typ ist falsch"
 				+ "\t" + datentyp.typ() + "\t" + datentyp.name());
 		}
 	}
@@ -678,7 +678,7 @@ public class ReaderBase {
 		if(datentyp.typ() == BFRKFeld.Datentyp.Numeric) {
 			storeKorrektur(objekt_id, datentyp.dbname(), "" + gleitkommawert, Datentyp.Numeric);
 		} else {
-			LOG.severe("Methode store für double Art wurde aufgerufen, aber Typ ist falsch" 
+			LOG.severe("Methode store für double Art wurde aufgerufen, aber Typ ist falsch"
 				+ "\t" + datentyp.typ() + "\t" + "Wert: ===" + gleitkommawert + "===, Datentyp: " + datentyp.name());
 		}
 	}
@@ -717,7 +717,7 @@ public class ReaderBase {
 						+  "\t" + deleteDatenStmt.toString());
 					deleteDatenStmt.execute();
 				} catch (SQLException e1) {
-					LOG.severe("SQL-Delete Statement für objekt-Datensätze in Tabelle merkmal" + "\t" 
+					LOG.severe("SQL-Delete Statement für objekt-Datensätze in Tabelle merkmal" + "\t"
 						+ "Statement war '" + deleteDatenStmt.toString() 
 						+ "' Details folgen ...\n" + e1.toString());
 				}
@@ -735,7 +735,7 @@ public class ReaderBase {
 						+  "\t" + deleteDatenStmt.toString());
 					deleteDatenStmt.execute();
 				} catch (SQLException e1) {
-					LOG.severe("SQL-Delete Statement für objekt-Datensätze in Tabelle merkmal" + "\t" 
+					LOG.severe("SQL-Delete Statement für objekt-Datensätze in Tabelle merkmal" + "\t"
 						+ "Statement war '" + deleteDatenStmt.toString() 
 						+ "' Details folgen ...\n" + e1.toString());
 				}
@@ -752,7 +752,7 @@ public class ReaderBase {
 						+  "\t" + deleteDatenStmt.toString());
 					deleteDatenStmt.execute();
 				} catch (SQLException e1) {
-					LOG.severe("SQL-Delete Statement für Datensätze in Tabelle objekt" + "\t" 
+					LOG.severe("SQL-Delete Statement für Datensätze in Tabelle objekt" + "\t"
 						+ "Statement war '" + deleteDatenStmt.toString() 
 						+ "' Details folgen ...\n" + e1.toString());
 				}	
@@ -769,7 +769,7 @@ public class ReaderBase {
 						+  "\t" + deleteDatenStmt.toString());
 					deleteDatenStmt.execute();
 				} catch (SQLException e1) {
-					LOG.severe("SQL-Delete Statement für Datensätze in Tabelle notizobjekt" + "\t" 
+					LOG.severe("SQL-Delete Statement für Datensätze in Tabelle notizobjekt" + "\t"
 						+ "Statement war '" + deleteDatenStmt.toString() 
 						+ "' Details folgen ...\n" + e1.toString());
 				}	
@@ -785,7 +785,7 @@ public class ReaderBase {
 						+  "\t" + deleteDatenStmt.toString());
 					deleteDatenStmt.execute();
 				} catch (SQLException e1) {
-					LOG.severe("SQL-Delete Statement für Datensätze in Tabelle objekt" + "\t" 
+					LOG.severe("SQL-Delete Statement für Datensätze in Tabelle objekt" + "\t"
 						+ "Statement war '" + deleteDatenStmt.toString() 
 						+ "' Details folgen ...\n" + e1.toString());
 				}	
@@ -801,13 +801,13 @@ public class ReaderBase {
 						+  "\t" + deleteDatenStmt.toString());
 					deleteDatenStmt.execute();
 				} catch (SQLException e1) {
-					LOG.severe("SQL-Delete Statement für Datensatz in Tabelle importdatei" + "\t" 
+					LOG.severe("SQL-Delete Statement für Datensatz in Tabelle importdatei" + "\t"
 						+ "Statement war '" + deleteDatenStmt.toString() 
 						+ "' Details folgen ...\n" + e1.toString());
 				}	
 			}
 		} catch (SQLException e1) {
-			LOG.severe("SQL-select Statement zum ermitteln, ob Importdatei schon früher importiert wurde" 
+			LOG.severe("SQL-select Statement zum ermitteln, ob Importdatei schon früher importiert wurde"
 				+ "\t" + "Statement war '" + selectImportdateiStmt.toString()
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString());
@@ -858,7 +858,7 @@ public class ReaderBase {
 				return objektID;
 			}
 		} catch (SQLException e1) {
-			LOG.severe("SQL-Insert zum ergänzen Objekt (Art: " + objektart + " in Tabelle objekt" + "\t" 
+			LOG.severe("SQL-Insert zum ergänzen Objekt (Art: " + objektart + " in Tabelle objekt" + "\t"
 				+ "Statement war '" + insertHauptobjektStmt.toString() 
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString());
@@ -912,7 +912,7 @@ public class ReaderBase {
 				return insertHauptobjektRs.getLong("id");
 			}
 		} catch (SQLException e1) {
-			LOG.severe("SQL-Insert zum ergänzen Objekt (Art: " + objektart + " in Tabelle objekt" + "\t" 
+			LOG.severe("SQL-Insert zum ergänzen Objekt (Art: " + objektart + " in Tabelle objekt" + "\t"
 				+ "Statement war '" + insertHauptobjektStmt.toString() 
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString());
@@ -951,7 +951,7 @@ public class ReaderBase {
 			}
 	
 		} catch (SQLException e1) {
-			LOG.severe("SQL-Insert Fehler, als ein Haltstelle in die Tabelle eingetragen werden sollte." 
+			LOG.severe("SQL-Insert Fehler, als ein Haltstelle in die Tabelle eingetragen werden sollte."
 				+ "Statement war '" + insertImportdateiStmt.toString() 
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString());
@@ -1006,7 +1006,7 @@ public class ReaderBase {
 			updateObjektStmt.execute();
 	
 		} catch (SQLException e1) {
-			LOG.severe("SQL-Update Fehler, als ein Objekt aktualisiert werden sollte." 
+			LOG.severe("SQL-Update Fehler, als ein Objekt aktualisiert werden sollte."
 				+ "Statement war '" + updateObjektStmt.toString() 
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString());
@@ -1048,7 +1048,7 @@ public class ReaderBase {
 				return insertNotizobjektRs.getLong("id");
 			}
 		} catch (SQLException e1) {
-			LOG.severe("SQL-Insert zum ergänzen Diva Notizobjekt (Art: " + objektart + " in Tabelle notizobjekt" + "\t" 
+			LOG.severe("SQL-Insert zum ergänzen Diva Notizobjekt (Art: " + objektart + " in Tabelle notizobjekt" + "\t"
 				+ "Statement war '" + insertNotizobjektStmt.toString() 
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString());
@@ -1089,7 +1089,7 @@ public class ReaderBase {
 				return insertNotizobjektRs.getLong("id");
 			}
 		} catch (SQLException e1) {
-			LOG.severe("SQL-Insert zum ergänzen EYEvis Notizobjekt (Art: " + objektart + " in Tabelle notizobjekt" + "\t" 
+			LOG.severe("SQL-Insert zum ergänzen EYEvis Notizobjekt (Art: " + objektart + " in Tabelle notizobjekt" + "\t"
 				+ "Statement war '" + insertNotizobjektStmt.toString() 
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString());
@@ -1150,7 +1150,7 @@ public class ReaderBase {
 				return -1 * gefdbid;
 			}
 		} catch (SQLException e1) {
-			LOG.severe("SQL-Select Fehler, als ein DBid aus der Tabelle Importdatei geholt werden sollte." 
+			LOG.severe("SQL-Select Fehler, als ein DBid aus der Tabelle Importdatei geholt werden sollte."
 				+ "Statement war '" + selectImportdateiStmt.toString() 
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString());
@@ -1200,7 +1200,7 @@ public class ReaderBase {
 					return -1 * gefdbid;
 				}
 			} catch (SQLException e1) {
-				LOG.severe("SQL-Select Fehler, als ein DBid aus der Tabelle Importdatei geholt werden sollte." 
+				LOG.severe("SQL-Select Fehler, als ein DBid aus der Tabelle Importdatei geholt werden sollte."
 					+ "Statement war '" + selectImportdateiStmt.toString() 
 					+ "' Details folgen ...");
 				LOG.severe(e1.toString());
@@ -1295,14 +1295,14 @@ public class ReaderBase {
 					ortsteil, lon, lat, null);
 				return gefdbid;
 			} else {
-				LOG.severe("es konnte keine eindeutige Objekt-DBid ermittelt werden. Anzahl Treffer: " 
+				LOG.severe("es konnte keine eindeutige Objekt-DBid ermittelt werden. Anzahl Treffer: "
 					+ anzahltreffer + ", DB-Query war: " + selectHauptobjektStmt.toString());
 				return -1;
 			}
 		
 		
 		} catch (SQLException e1) {
-			LOG.severe("SQL-Select zum holen der DB-id für Objekt (Art: " + objektart + " in Tabelle objekt" + "\t" 
+			LOG.severe("SQL-Select zum holen der DB-id für Objekt (Art: " + objektart + " in Tabelle objekt" + "\t"
 				+ "Statement war '" + selectHauptobjektStmt.toString() 
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString());
@@ -1312,7 +1312,7 @@ public class ReaderBase {
 
 
 	public static void update(long dbrecordid, String feldname, String feldwert, Datentyp datentyp) {
-		LOG.info("update " + "\t" + feldname + "\t" 
+		LOG.info("update " + "\t" + feldname + "\t"
 				+ feldwert + "\t" + datentyp);
 		
 		String updateMerkmalSql = "UPDATE merkmal SET wert = ?, "
@@ -1340,7 +1340,7 @@ public class ReaderBase {
 			LOG.info("Update erfolgt: Merkmal-ID: " + dbid + ""
 				+ ",  Objekt-ID: " + dbrecordid + ",  [" + feldname + "] ===" + feldwert + "===");
 		} catch (SQLException e1) {
-			LOG.severe("SQL-Update Fehler, als ein Merkmal in der Tabelle upgedated werden sollte." 
+			LOG.severe("SQL-Update Fehler, als ein Merkmal in der Tabelle upgedated werden sollte."
 				+ "Statement war '" + updateMerkmalStmt.toString() 
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString());
@@ -1352,7 +1352,7 @@ public class ReaderBase {
 		if(datentyp.typ() == BFRKFeld.Datentyp.Numeric) {
 			update(dbrecordid, datentyp.dbname(), "" + gleitkommawert, Datentyp.Numeric);
 		} else {
-			LOG.severe("Methode update für double Art wurde aufgerufen, aber Typ ist falsch" 
+			LOG.severe("Methode update für double Art wurde aufgerufen, aber Typ ist falsch"
 				+ "\t" + datentyp.typ() + "\t" + "Wert: ===" + gleitkommawert + "===, Datentyp: " + datentyp.name());
 		}
 	}
@@ -1374,7 +1374,7 @@ public class ReaderBase {
 			int anzahldatensaetze = deleteMerkmaleStmt.executeUpdate();
 			LOG.info("Löschen der Merkmale erfolgt: Objekt-ID: " + dbobjektid + ",  Anzahl: " + anzahldatensaetze);
 		} catch (SQLException e1) {
-			LOG.severe("SQL-delete Fehler, als alle Merkmale zu einem Objekt in der Tabelle gelöscht werden sollten. " 
+			LOG.severe("SQL-delete Fehler, als alle Merkmale zu einem Objekt in der Tabelle gelöscht werden sollten. "
 				+ "Statement war '" + deleteMerkmaleStmt.toString() 
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString());
@@ -1402,7 +1402,7 @@ public class ReaderBase {
 			int anzahldatensaetze = deleteObjektStmt.executeUpdate();
 			LOG.info("Löschen des Objekts erfolgt: ID: " + dbobjektid + ",  Anzahl: " + anzahldatensaetze);
 		} catch (SQLException e1) {
-			LOG.severe("SQL-Delete Fehler, als ein Objekt in der Tabelle gelöscht werden sollte. " 
+			LOG.severe("SQL-Delete Fehler, als ein Objekt in der Tabelle gelöscht werden sollte. "
 				+ "Statement war '" + deleteObjektStmt.toString() 
 				+ "' Details folgen ...");
 			LOG.severe(e1.toString());
