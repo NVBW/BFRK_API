@@ -61,8 +61,7 @@ public class eyevisprojektdaten extends HttpServlet {
 
 		String umgebung = configuration.servername;
 		//TODO die folgende Url sollte ggfs. Staging-relevant gesetzt werden
-		String webserverStatischeAusgabebasisurl = "https://bfrk-kat-api.efa-bw.de/eyevisprojektdaten";
-
+		String webserverStatischeAusgabebasisurl = configuration.eyevisdownloadurl;
 
 		response.setContentType("application/json");
 		response.setCharacterEncoding("UTF-8");
@@ -121,7 +120,7 @@ public class eyevisprojektdaten extends HttpServlet {
 
 		if(request.getParameter("datenlieferant") != null) {
 			LOG.info("url-Parameter datenlieferant vorhanden ===" + request.getParameter("datenlieferant") + "===");
-			paramDatenlieferant = URLDecoder.decode(request.getParameter("datenlieferant"),"UTF-8");
+			paramDatenlieferant = URLDecoder.decode(request.getParameter("datenlieferant"), StandardCharsets.UTF_8);
 			LOG.info("in variable paramDatenlieferant ===" + paramDatenlieferant + "===");
 
 			if(	paramDatenlieferant.equals("bodo")
@@ -187,15 +186,11 @@ public class eyevisprojektdaten extends HttpServlet {
 		String paramAuftragsverzeichnis  = "";
 		String paramAusgabepfad = "";
 		String paramEingangspfad  = "";
-		if(umgebung.equals("nvbw_nb_sei")) {
-			paramAuftragsverzeichnis = "C:\\Users\\sei\\Projekte\\PMDatenbank\\Auftrag";
-			paramEingangspfad = paramAuftragsverzeichnis + File.separator + "Eingang";
-			paramAusgabepfad = paramAuftragsverzeichnis + File.separator + "Ausgang";
-		} else {
-			paramAuftragsverzeichnis = configuration.application_homedir + File.separator + "eyevisprojektdaten";
-			paramEingangspfad = paramAuftragsverzeichnis + File.separator + "Eingang";
-			paramAusgabepfad = paramAuftragsverzeichnis + File.separator + "Ausgang";
-		}
+		paramAuftragsverzeichnis = configuration.eyevisdownloaddir
+				+ File.separator + ".." + File.separator + "..";
+		paramEingangspfad = paramAuftragsverzeichnis + File.separator + "Eingang";
+		paramAusgabepfad = paramAuftragsverzeichnis + File.separator + "Ausgang";
+
 		long zufallszahl = (long) (Math.random() * 1000);
 		Date jetzt = new Date();
 		String datetime = datetime_filesystem_formatter.format(jetzt);

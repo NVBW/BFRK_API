@@ -311,7 +311,8 @@ public class pseudoobjekt extends HttpServlet {
 		double paramlat = 0;
 		String paramverbindungsinformation = "";
 		String parentobjektart = "";
-		
+		String paramosmid = "";
+
 		try {
 			if(request.getParameter("dhid") != null) {
 				LOG.info("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
@@ -397,6 +398,10 @@ public class pseudoobjekt extends HttpServlet {
 				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 				return;
 			}
+			if(request.getParameter("osmid") != null) {
+				LOG.info("url-Parameter osmid vorhanden ===" + request.getParameter("osmid"));
+				paramosmid = request.getParameter("osmid");
+			}
 			if(request.getParameter("objektart") != null) {
 				LOG.info("url-Parameter dhid vorhanden ===" + request.getParameter("objektart"));
 				paramobjektart = request.getParameter("objektart");
@@ -468,6 +473,7 @@ public class pseudoobjekt extends HttpServlet {
 		String ortsteil = "";
 		PreparedStatement selectParentObjektStmt;
 		PreparedStatement insertPseudoObjektStmt;
+		long pseudoObjektID = 0;
 		try {
 			selectParentObjektStmt = bfrkConn.prepareStatement(selectParentObjektSql);
 			int stmtindex = 1;
@@ -524,7 +530,6 @@ public class pseudoobjekt extends HttpServlet {
 			insertPseudoObjektStmt.setDouble(stmtindex++, paramlat);
 			LOG.info("Pseudo-Objekt store: " + insertPseudoObjektStmt.toString() + "===");
 
-			long pseudoObjektID = 0;
 			ResultSet insertPseudoObjektRs = insertPseudoObjektStmt.executeQuery();
 			if (insertPseudoObjektRs.next()) {
 				pseudoObjektID = insertPseudoObjektRs.getLong("id");
@@ -569,5 +574,49 @@ public class pseudoobjekt extends HttpServlet {
 			response.getWriter().append(ergebnisJsonObject.toString());
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
+
+		if((paramosmid == null) || paramosmid.isEmpty()) {
+			return;
+		}
+
+		String insertOsmObjektbezugSql = "INSERT INTO osmobjektbezug (objekt_id, osmid, osmstatus, subobjektart) "
+				+ "VALUES(?, ?, 'offen', 'Hauptobjekt') RETURNING id;";
+
+		PreparedStatement insertOsmObjektbezugStmt = null;
+		long osmdbID = 0;
+		try {
+			insertOsmObjektbezugStmt = bfrkConn.prepareStatement(insertOsmObjektbezugSql);
+			int stmtindex = 1;
+			insertOsmObjektbezugStmt.setLong(stmtindex++, pseudoObjektID);
+			insertOsmObjektbezugStmt.setString(stmtindex++, paramosmid);
+			LOG.info("OSM-Objektbezug speichern zum Pseudo-Objekt: " + insertOsmObjektbezugStmt.toString() + "===");
+
+			ResultSet insertOSmObjektbezugRs = insertOsmObjektbezugStmt.executeQuery();
+			if (insertOSmObjektbezugRs.next()) {
+				osmdbID = insertOSmObjektbezugRs.getLong("id");
+				LOG.info("Erstelltes OsmObjektbezug-Objekt hat die Objekt-Id: " + osmdbID);
+
+				insertOSmObjektbezugRs.close();
+				insertOsmObjektbezugStmt.close();
+
+				ergebnisJsonObject.put("objektid", pseudoObjektID);
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_OK);
+				return;
+			}
+			insertOSmObjektbezugRs.close();
+			insertOsmObjektbezugStmt.close();
+
+		} catch (SQLException e) {
+			LOG.severe("SQLException bei insert OsmObjektbezug: " + e.toString());
+			LOG.severe("SQL-Statement war: " + insertOsmObjektbezugStmt.toString());
+			String fehlertext = "DB-Fehler aufgetreten, bitte den Administrator benachrichtigen";
+			ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", fehlertext);
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+		}
+
 	}
 }

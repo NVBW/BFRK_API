@@ -49,6 +49,7 @@ public class DBVerbindung {
 				ReaderBase.setDBConnection(bfrkConn);
 				Bild.setDBConnection(bfrkConn);
 				dbVerbindungsaufbauzeitpunkt = new Date();
+				internGetDBName();
 			}
 		} 
 		catch(ClassNotFoundException e) {
