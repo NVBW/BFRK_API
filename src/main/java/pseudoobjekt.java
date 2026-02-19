@@ -312,7 +312,7 @@ public class pseudoobjekt extends HttpServlet {
 		String paramverbindungsinformation = "";
 		String parentobjektart = "";
 		String paramosmid = "";
-		
+
 		try {
 			if(request.getParameter("dhid") != null) {
 				LOG.info("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
