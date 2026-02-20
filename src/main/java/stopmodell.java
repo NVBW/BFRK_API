@@ -22,6 +22,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import de.nvbw.graph.Graphaktualisierung;
 import de.nvbw.graph.Grapherzeugung;
 import org.json.JSONObject;
 
@@ -402,7 +403,11 @@ public class stopmodell extends HttpServlet {
 
 			if(selectModellRS.next()) {
 				String content = selectModellRS.getString("content");
-				ergebnisJsonObject = new JSONObject(content);
+				JSONObject dbgraph = new JSONObject(content);
+
+				Graphaktualisierung graphaktualisierung = new Graphaktualisierung();
+				JSONObject aktualisierterGraph = graphaktualisierung.aktualisiereBFRKObjekteImGraph(dbgraph);
+				ergebnisJsonObject = graphaktualisierung.bereinigeKantenImGraph(aktualisierterGraph);
 			} else {
 				LOG.warning("der vorher gespeicherte Graph konnte über Select-Befehl nicht geholt werden, "
 					+ "SQL-Statement war: " + selectModellStmt.toString());
