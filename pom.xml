@@ -7,7 +7,6 @@
   <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
-    <maven.dependency.version>3.1.1</maven.dependency.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <apache_poi_version>5.2.3</apache_poi_version>
@@ -16,27 +15,29 @@
   <build>
     <plugins>
       <plugin>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>3.0.2</version>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.4.0</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.11.0</version>
+        <version>3.15.0</version>
         <configuration>
           <release>17</release>
           <target>17</target>
         </configuration>
       </plugin>
-       <plugin>
-        <artifactId>maven-install-plugin</artifactId>
-        <version>2.5.2</version>
+      <plugin>
+         <groupId>org.apache.maven.plugins</groupId>
+         <artifactId>maven-install-plugin</artifactId>
+         <version>3.1.4</version>
       </plugin>
       <plugin>
         <!-- Build an WAR File with all dependencies -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-war-plugin</artifactId>
-        <version>3.4.0</version>
+        <version>3.5.1</version>
         <configuration>
           <warSourceDirectory>WebContent</warSourceDirectory>
           <failOnMissingWebXml>false</failOnMissingWebXml>
@@ -45,7 +46,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>${maven.dependency.version}</version>
+        <version>3.10.0</version>
         <executions>
           <execution>
             <id>copy-dependencies</id>
@@ -115,12 +116,12 @@
         <artifactId>log4j-core</artifactId>
         <version>2.25.3</version>
     </dependency>
-        <!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-slf4j-impl -->
+    <!-- Source: https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-slf4j2-impl -->
     <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-slf4j-impl</artifactId>
-        <version>2.22.1</version>
-        <scope>test</scope>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j2-impl</artifactId>
+      <version>2.25.3</version>
+      <scope>compile</scope>
     </dependency>
     <!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
     <dependency>
