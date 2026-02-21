@@ -2,12 +2,11 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>de.nvbw.dm.ddoev</groupId>
   <artifactId>bfrk_api</artifactId>
-  <version>20260219</version>
+  <version>20260220</version>
   <packaging>war</packaging>
   <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
-    <maven.dependency.version>3.1.1</maven.dependency.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <apache_poi_version>5.2.3</apache_poi_version>
@@ -16,27 +15,29 @@
   <build>
     <plugins>
       <plugin>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>3.0.2</version>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.4.0</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.11.0</version>
+        <version>3.15.0</version>
         <configuration>
           <release>17</release>
           <target>17</target>
         </configuration>
       </plugin>
-       <plugin>
-        <artifactId>maven-install-plugin</artifactId>
-        <version>2.5.2</version>
+      <plugin>
+         <groupId>org.apache.maven.plugins</groupId>
+         <artifactId>maven-install-plugin</artifactId>
+         <version>3.1.4</version>
       </plugin>
       <plugin>
         <!-- Build an WAR File with all dependencies -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-war-plugin</artifactId>
-        <version>3.4.0</version>
+        <version>3.5.1</version>
         <configuration>
           <warSourceDirectory>WebContent</warSourceDirectory>
           <failOnMissingWebXml>false</failOnMissingWebXml>
@@ -45,7 +46,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>${maven.dependency.version}</version>
+        <version>3.10.0</version>
         <executions>
           <execution>
             <id>copy-dependencies</id>
@@ -91,7 +92,7 @@
     <dependency>
        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-war-plugin</artifactId>
-        <version>3.4.0</version>
+        <version>3.5.1</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api -->
     <dependency>
@@ -113,14 +114,14 @@
     <dependency>
         <groupId>org.apache.logging.log4j</groupId>
         <artifactId>log4j-core</artifactId>
-        <version>2.22.1</version>
+        <version>2.25.3</version>
     </dependency>
-        <!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-slf4j-impl -->
+    <!-- Source: https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-slf4j2-impl -->
     <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-slf4j-impl</artifactId>
-        <version>2.22.1</version>
-        <scope>test</scope>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j2-impl</artifactId>
+      <version>2.25.3</version>
+      <scope>compile</scope>
     </dependency>
     <!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
     <dependency>
@@ -150,18 +151,6 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-compress</artifactId>
       <version>1.28.0</version>
-    </dependency>
-    <!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-jar-plugin -->
-    <dependency>
-      <groupId>org.apache.maven.plugins</groupId>
-      <artifactId>maven-jar-plugin</artifactId>
-      <version>3.1.0</version>
-    </dependency>
-    <!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-assembly-plugin -->
-    <dependency>
-      <groupId>org.apache.maven.plugins</groupId>
-      <artifactId>maven-assembly-plugin</artifactId>
-      <version>3.3.0</version>
     </dependency>
 <!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
     <dependency>
@@ -205,59 +194,12 @@
       <artifactId>jaxen</artifactId>
       <version>1.2.0</version>
       </dependency>
-      <!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-install-plugin -->
+      <!-- Source: https://mvnrepository.com/artifact/plexus/plexus-utils -->
       <dependency>
-      <groupId>org.apache.maven.plugins</groupId>
-      <artifactId>maven-install-plugin</artifactId>
-      <version>2.5.2</version>
-      </dependency>
-      <!-- https://mvnrepository.com/artifact/org.apache.maven/maven-plugin-api -->
-      <dependency>
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-plugin-api</artifactId>
-      <version>2.0.9</version>
-      </dependency>
-      <!-- https://mvnrepository.com/artifact/org.apache.maven/maven-artifact -->
-      <dependency>
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-artifact</artifactId>
-      <version>2.0.9</version>
-      </dependency>
-      <!-- https://mvnrepository.com/artifact/org.apache.maven/maven-core -->
-      <dependency>
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-core</artifactId>
-      <version>2.0.9</version>
-      </dependency>
-      <!-- https://mvnrepository.com/artifact/org.apache.maven/maven-toolchain -->
-      <dependency>
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-toolchain</artifactId>
-      <version>1.0</version>
-      </dependency>
-      <!-- https://mvnrepository.com/artifact/org.apache.maven.shared/maven-shared-utils -->
-      <dependency>
-      <groupId>org.apache.maven.shared</groupId>
-      <artifactId>maven-shared-utils</artifactId>
-      <version>0.1</version>
-      </dependency>
-      <!-- https://mvnrepository.com/artifact/org.apache.maven.shared/maven-shared-incremental -->
-      <dependency>
-      <groupId>org.apache.maven.shared</groupId>
-      <artifactId>maven-shared-incremental</artifactId>
-      <version>1.1</version>
-      </dependency>
-      <!-- https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-compiler-api -->
-      <dependency>
-      <groupId>org.codehaus.plexus</groupId>
-      <artifactId>plexus-compiler-api</artifactId>
-      <version>2.2</version>
-      </dependency>
-      <!-- https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-compiler-manager -->
-      <dependency>
-      <groupId>org.codehaus.plexus</groupId>
-      <artifactId>plexus-compiler-manager</artifactId>
-      <version>2.2</version>
+        <groupId>plexus</groupId>
+        <artifactId>plexus-utils</artifactId>
+        <version>1.0.3</version>
+        <scope>compile</scope>
       </dependency>
 
     <!-- =================== Dependencies für DivaGraph =================== -->
@@ -320,18 +262,16 @@
       <artifactId>gt-api</artifactId>
       <version>${geotools.version}</version>
     </dependency>
-
     <dependency>
       <groupId>org.locationtech.jts</groupId>
       <artifactId>jts-core</artifactId>
       <version>1.20.0</version>
     </dependency>
-
-      <dependency>
-        <groupId>de.nvbw.dm.ddoev</groupId>
-        <artifactId>divagraph</artifactId>
-        <version>20260219</version>
-      </dependency>
+    <dependency>
+      <groupId>de.nvbw.dm.ddoev</groupId>
+      <artifactId>divagraph</artifactId>
+      <version>20260220</version>
+    </dependency>
   </dependencies>
     <organization>
       <name>NVBW Nahverkehrsgesellschaft Baden-Württemberg mbH</name>
