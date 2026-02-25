@@ -6,10 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -386,7 +383,7 @@ public class stopmodell extends HttpServlet {
 			// ==================== die neueste Version holen =========================
 		try {
 			String selectModellSql = "SELECT dhid, release, mayorversion, minorversion, "
-				+ "benutzer, kommentar, content FROM objektmodell "
+				+ "benutzer, kommentar, zeitstempel, content FROM objektmodell "
 				+ "WHERE dhid = ? AND release = ? AND mayorversion = ? AND minorversion = ?;";
 
 			PreparedStatement selectModellStmt = bfrkConn.prepareStatement(selectModellSql);
@@ -403,11 +400,13 @@ public class stopmodell extends HttpServlet {
 
 			if(selectModellRS.next()) {
 				String content = selectModellRS.getString("content");
+				Timestamp graphZeitstempel = selectModellRS.getTimestamp("zeitstempel");
 				JSONObject dbgraph = new JSONObject(content);
 
 				Graphaktualisierung graphaktualisierung = new Graphaktualisierung();
 				JSONObject aktualisierterGraph = graphaktualisierung.aktualisiereBFRKObjekteImGraph(dbgraph);
 				ergebnisJsonObject = graphaktualisierung.bereinigeKantenImGraph(aktualisierterGraph);
+				response.setDateHeader("Last-Modified", graphZeitstempel.getTime());
 			} else {
 				LOG.warning("der vorher gespeicherte Graph konnte über Select-Befehl nicht geholt werden, "
 					+ "SQL-Statement war: " + selectModellStmt.toString());
