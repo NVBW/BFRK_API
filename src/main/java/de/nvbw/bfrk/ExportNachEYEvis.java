@@ -143,6 +143,11 @@ public class ExportNachEYEvis {
 						&& 	(aktivezelle8.getStringCellValue().equals("Objektart"))
 						&&	(aktivezelle9.getStringCellValue().equals("HST_Fahrplananzeigetafel_jn"))) {
 					anzahlkorrekteStrukturen++;
+				} else if(	(aktivezelle1.getStringCellValue().equals("DHID"))
+						&& 	(aktivezelle4.getStringCellValue().equals("lat"))
+						&& 	(aktivezelle8.getStringCellValue().equals("Objektart"))
+						&&	(aktivezelle9.getStringCellValue().equals("BSTG_Foto"))) {
+					anzahlkorrekteStrukturen++;
 				}
 			} else {
 				LOG.severe("Das notwendige Blatt 'Erfassung' wurde nicht gefunden.");
@@ -190,6 +195,47 @@ public class ExportNachEYEvis {
 		
 	}
 
+	private static String getKurzausgabeObjektart(Objektart objektart) {
+		String output = "";
+		try {
+			if((objektart == Objektart.Aufzug) ||
+				(objektart == Objektart.Bahnhof) ||
+				(objektart == Objektart.Bahnsteig) ||
+				(objektart == Objektart.BuR) ||
+				(objektart == Objektart.Engstelle) ||
+				(objektart == Objektart.Haltestelle) ||
+				(objektart == Objektart.Haltesteig) ||
+				(objektart == Objektart.Leihradanlage) ||
+				(objektart == Objektart.Notiz) ||
+				(objektart == Objektart.Parkplatz) ||
+				(objektart == Objektart.Rampe) ||
+				(objektart == Objektart.Rolltreppe) ||
+				(objektart == Objektart.Stationsplan) ||
+				(objektart == Objektart.Toilette) ||
+				(objektart == Objektart.Treppe) ||
+				(objektart == Objektart.Tuer) ||
+				(objektart == Objektart.Weg))
+				output = objektart.toString();
+			else if(objektart == Objektart.Bahnsteigelement)
+				output = "GleisElement";
+			else if(objektart == Objektart.Gleisquerung)
+				output = "GlQuerung";
+			else if(objektart == Objektart.Informationsstelle)
+				output = "Infostelle";
+			else if(objektart == Objektart.Kartenautomat)
+				output = "Automat";
+			else if(objektart == Objektart.SEVHaltesteig)
+				output = "SEV-Steig";
+			else if(objektart == Objektart.Taxistand)
+				output = "Taxi";
+			else if(objektart == Objektart.Verkaufsstelle)
+				output = "Verkaufst";
+		} catch(Exception e) {
+			LOG.warning("in getKurzausgabeObjektart Exception bei objekart-Parsing: " + objektart.toString());
+			output = "Dummy";
+		}
+		return output;
+	}
 
 	/**
 	 * Schreibe die Daten in daten in die Zeile zeilenr (mit 0 beginnend)
@@ -526,7 +572,8 @@ LOG.info("in holhaltestellen nach DB-Datesatzschleife");
 		Map<Long, Double> latMap = new HashMap<>();
 		Map<Long, Double> osmlonMap = new HashMap<>();
 		Map<Long, Double> osmlatMap = new HashMap<>();
-		
+		Map<Long, Boolean> pseudoflagMap = new HashMap<>();
+
 
 		
 		
@@ -534,7 +581,7 @@ LOG.info("in holhaltestellen nach DB-Datesatzschleife");
 			+ "o.objektart, o.dhid, o.name AS objektname, "
 			+ "o.steig AS objektsteig, o.beschreibung, "
 			+ "ST_X(o.koordinate) AS lon, ST_Y(o.koordinate) AS lat, "
-			+ "infraidtemp, osmid, "
+			+ "infraidtemp, osmid, pseudoflag, "
 			+ "ST_X(osm.koordinate) AS osmlon, ST_Y(osm.koordinate) AS osmlat "
 			+ "FROM objekt AS o LEFT JOIN osmobjektbezug AS osm ON "
 			+ "o.id = osm.objekt_id WHERE "
@@ -549,11 +596,24 @@ LOG.info("in holhaltestellen nach DB-Datesatzschleife");
 			LOG.info("SQL-select Statement zum holen Haltestellen-Objekte aus Objekt-Tabelle '"
 				+  objektSelectStmt.toString() + "'");
 
+			long objekt_id = 0;
+			Objektart objektart = Objektart.unbekannt;
+			String dhid = "";
+			String beschreibung = "";
+			String infraidtemp = "";
+			String osmid = "";
+			String objektname = "";
+			double lon = 0;
+			double lat = 0;
+			double osmlon = 0;
+			double osmlat = 0;
+			String steig = "";
+			Boolean pseudoflag = false;
 			ResultSet objektSelectRs = objektSelectStmt.executeQuery();
 			while( objektSelectRs.next() ) {
 				
-				Long objekt_id = objektSelectRs.getLong("objekt_id");
-				Objektart objektart = null;
+				objekt_id = objektSelectRs.getLong("objekt_id");
+				objektart = null;
 				try {
 					objektart = Objektart.valueOf(objektSelectRs.getString("objektart"));
 				} catch(Exception e) {
@@ -561,21 +621,21 @@ LOG.info("in holhaltestellen nach DB-Datesatzschleife");
 						+ objektSelectRs.getString("objektart")
 						+ " kann nicht in die Programm-Objektart überführt werden.");
 				}
-				String dhid = objektSelectRs.getString("dhid");
-				String infraidtemp = objektSelectRs.getString("infraidtemp");
-				String steig = objektSelectRs.getString("objektsteig");
-				String beschreibung = objektSelectRs.getString("beschreibung");
-				String osmid = objektSelectRs.getString("osmid");
-				String objektname = objektSelectRs.getString("objektname");
-				double lon = objektSelectRs.getDouble("lon");
-				double lat = objektSelectRs.getDouble("lat");
-				double osmlon = objektSelectRs.getDouble("osmlon");
-				double osmlat = objektSelectRs.getDouble("osmlat");
+				dhid = objektSelectRs.getString("dhid");
+				infraidtemp = objektSelectRs.getString("infraidtemp");
+				steig = objektSelectRs.getString("objektsteig");
+				beschreibung = objektSelectRs.getString("beschreibung");
+				osmid = objektSelectRs.getString("osmid");
+				objektname = objektSelectRs.getString("objektname");
+				lon = objektSelectRs.getDouble("lon");
+				lat = objektSelectRs.getDouble("lat");
+				osmlon = objektSelectRs.getDouble("osmlon");
+				osmlat = objektSelectRs.getDouble("osmlat");
+				pseudoflag = objektSelectRs.getBoolean("pseudoflag");
 
 				
-				
 				if(osmid != null) {
-					if(osmid.indexOf(",") != -1)
+					if(osmid.contains(","))
 						osmid = osmid.replace(",", "|");
 					osmidMap.put(objekt_id,  osmid);
 				}
@@ -590,6 +650,7 @@ LOG.info("in holhaltestellen nach DB-Datesatzschleife");
 				latMap.put(objekt_id, lat);
 				osmlonMap.put(objekt_id, osmlon);
 				osmlatMap.put(objekt_id, osmlat);
+				pseudoflagMap.put(objekt_id, pseudoflag);
 			}
 			objektSelectRs.close();
 			objektSelectStmt.close();
@@ -619,22 +680,35 @@ LOG.info("in holhaltestellen nach DB-Datesatzschleife");
 				merkmaleSelectStmt.setLong(stmtindex++, objekt_id);
 				LOG.info("SQL-select Statement zum holen Haltestellen-Merkmale '"
 					+  merkmaleSelectStmt.toString() + "'");
-		
-	
+
+
+				Objektart objektart = Objektart.unbekannt;
+				String dhid = "";
+				String objektname = "";
+				String beschreibung = "";
+				String infraidtemp = "";
+				String osmid = "";
+				double lon = 0;
+				double lat = 0;
+				double osmlon = 0;
+				double osmlat = 0;
+				String steig = "";
+				boolean pseudoflag = false;
 				ResultSet merkmaleSelectRs = merkmaleSelectStmt.executeQuery();
 				while( merkmaleSelectRs.next() ) {
 	
-					Objektart objektart = objektartMap.get(objekt_id);
-					String dhid = dhidMap.get(objekt_id);
-					String objektname = nameMap.get(objekt_id);
-					String infraidtemp = infraidtempMap.get(objekt_id);
-					String steig = steigMap.get(objekt_id);
-					String beschreibung = beschreibungMap.get(objekt_id);
-					String osmid = osmidMap.get(objekt_id);
-					double lon = lonMap.get(objekt_id);
-					double lat = latMap.get(objekt_id);
-					double osmlon = osmlonMap.get(objekt_id);
-					double osmlat = osmlatMap.get(objekt_id);
+					objektart = objektartMap.get(objekt_id);
+					dhid = dhidMap.get(objekt_id);
+					objektname = nameMap.get(objekt_id);
+					infraidtemp = infraidtempMap.get(objekt_id);
+					steig = steigMap.get(objekt_id);
+					beschreibung = beschreibungMap.get(objekt_id);
+					osmid = osmidMap.get(objekt_id);
+					lon = lonMap.get(objekt_id);
+					lat = latMap.get(objekt_id);
+					osmlon = osmlonMap.get(objekt_id);
+					osmlat = osmlatMap.get(objekt_id);
+					pseudoflag = pseudoflagMap.get(objekt_id);
 
 					String feldname = merkmaleSelectRs.getString("name");
 					String feldwert = merkmaleSelectRs.getString("wert");
@@ -703,8 +777,11 @@ LOG.info("in holhaltestellen nach DB-Datesatzschleife");
 							merkmalliste.put(BFRKFeld.Name.valueOf(feld.getFeldname()), feld);
 						}
 
+						BFRKFeld feld = new BFRKFeld(BFRKFeld.Name.OBJ_Pseudoobjekt.typ(), BFRKFeld.Name.OBJ_Pseudoobjekt, "" + pseudoflag);
+						merkmalliste.put(BFRKFeld.Name.valueOf(feld.getFeldname()), feld);
+
 						if(osmid != null) {
-							BFRKFeld feld = new BFRKFeld(BFRKFeld.Name.ZUSATZ_OSM_Id.typ(), BFRKFeld.Name.ZUSATZ_OSM_Id, osmid);
+							feld = new BFRKFeld(BFRKFeld.Name.ZUSATZ_OSM_Id.typ(), BFRKFeld.Name.ZUSATZ_OSM_Id, osmid);
 							merkmalliste.put(BFRKFeld.Name.valueOf(feld.getFeldname()), feld);
 
 							feld = new BFRKFeld(BFRKFeld.Name.ZUSATZ_OSM_Lon.typ(), 
@@ -717,7 +794,7 @@ LOG.info("in holhaltestellen nach DB-Datesatzschleife");
 						}
 
 						if(bildname != null) {
-							BFRKFeld feld = new BFRKFeld(BFRKFeld.Name.ZUSATZ_Bild_Url.typ(), BFRKFeld.Name.ZUSATZ_Bild_Url, osmid);
+							feld = new BFRKFeld(BFRKFeld.Name.ZUSATZ_Bild_Url.typ(), BFRKFeld.Name.ZUSATZ_Bild_Url, osmid);
 							merkmalliste.put(BFRKFeld.Name.valueOf(feld.getFeldname()), feld);
 
 							feld = new BFRKFeld(BFRKFeld.Name.ZUSATZ_Bild_Lon.typ(), 
@@ -1150,13 +1227,13 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 				Map<Objektart, Map<Long, Map<Name, BFRKFeld>>> objektliste = holMerkmale(hstdbnr);
 	
 				
-					// Schleife über die Objekte (Steig, BuR, PuR, etc.) zur aktuellen Haltestelle
+					// Schleife über die ObjektARTEN (Steig, BuR, PuR, etc.) zur aktuellen Haltestelle
 				for(Map.Entry<Objektart, Map<Long, Map<Name, BFRKFeld>>> objektlistentry: objektliste.entrySet()) {
 					Objektart objektart = objektlistentry.getKey();
 					Map<Long, Map<Name, BFRKFeld>> objekte = objektlistentry.getValue();
 
 
-						// Schleife über alle Objekte des Bahnhofs / der Haltestelle
+						// Schleife über alle Objekte EINER OBJEKTART des Bahnhofs / der Haltestelle
 					for(Map.Entry<Long, Map<Name, BFRKFeld>> objektentry: objekte.entrySet()) {
 						Long objektdbid = objektentry.getKey();
 						Map<Name, BFRKFeld> objekt = objektentry.getValue();
@@ -1194,6 +1271,10 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 						}
 
 						Map<String, Excelfeld> eyevisWerte = new HashMap<>();
+						boolean pseudoobjekt = false;
+						if(objekt.containsKey(Name.OBJ_Pseudoobjekt) &&
+								objekt.get(Name.OBJ_Pseudoobjekt).getBooleanWert())
+							pseudoobjekt = true;
 
 						if(objektart == Objektart.Bahnhof) {
 							eyevisWerte = exportNachEYEvisPruefung.generateBahnhof(hstMerkmale, objekt);
@@ -1205,10 +1286,6 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 						}
 
 						if(objektart == Objektart.Haltestelle) {
-LOG.info("bei Bearbeitung Haltstelle - Objekt-Id: " + hstdbnr + ", DHID: " + hst_dhid);
-if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
-	LOG.info(", Objektart: " + hstMerkmale.get(BFRKFeld.Name.Objektart).getTextWert());
-
 							eyevisWerte = exportNachEYEvisPruefung.generateHaltestelle(hstMerkmale, objekt);
 							haltestellenobjektVorhanden = true;
 						}
@@ -1285,18 +1362,18 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 							eyevisWerte = exportNachEYEvisPruefung.generateWeg(hstMerkmale, objekt);
 						}
 
-
+							// wenn csv-Felder vorhanden sind, werden einige SOLLFELDER noch angepasst
 						if(		(eyevisWerte != null) 
 							&& 	(eyevisWerte.size() > 0)) {
 
 							if(eyevisWerte.containsKey("Name"))
 								hst_name = eyevisWerte.get("Name").getTextWert();
-							
+
+								// Feld Objekt eindeutig machen und ggfs. längenmäßig beschränken
 							String objektid = "";
 							if(eyevisWerte.containsKey("Objekt"))
 								objektid = eyevisWerte.get("Objekt").getTextWert();
-							if(		(objektid == null)
-								||	objektid.equals("")) {
+							if((objektid == null) || objektid.isEmpty()) {
 								objektid = generateEindeutigeObjektId(objektid, objektart,objektIdListe);
 								if(objektid == null) {
 									LOG.severe("es konnte keine eindeutige Objektid erzeugt werden für Objektart " 
@@ -1313,9 +1390,12 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 										+ " Zeichen ===" + objektid + "=== (Zeile 1416)");
 								}
 								Excelfeld objektfeld = eyevisWerte.get("Objekt");
-								objektfeld.setInhalt(objektid);
-								eyevisWerte.put("Objekt", objektfeld);
-								objektIdListe.add(objektid);
+								// Wenn in DB Feld "steig" in Tabelle Objekt nicht gefüllt ist, kommt hier null vor
+								if(objektfeld != null) {
+										objektfeld.setInhalt(objektid);
+										eyevisWerte.put("Objekt", objektfeld);
+										objektIdListe.add(objektid);
+								}
 							} else {
 								if(objektIdListe.contains(objektid)) {
 									objektid = generateEindeutigeObjektId(objektid, objektart,objektIdListe);
@@ -1353,9 +1433,42 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 									objektfeld.setInhalt(objektid);
 									eyevisWerte.put("Objekt", objektfeld);
 								}
+							} // Ende Bearbeitung Feld Objekt
+
+							String beschreibung = "";
+							if(eyevisWerte.containsKey("Beschreibung")) {
+								String text = "";
+								if(pseudoobjekt) {
+									text = "PSEUDO-" + getKurzausgabeObjektart(objektart) + ": ";
+								}
+								text += eyevisWerte.get("Beschreibung").getTextWert();
+
+								if(text.length() > EYEvisBeschreibungMaxlength) {
+									text = text.replace(" / ", "/");
+									if(text.length() > EYEvisBeschreibungMaxlength)
+										text = text.substring(0,EYEvisBeschreibungMaxlength - 1);
+								}
+								beschreibung = text;
+								Excelfeld objektfeld = eyevisWerte.get("Beschreibung");
+								if(objektfeld == null) {
+									objektfeld = new Excelfeld(Excelfeld.Datentyp.Text, beschreibung);
+								}
+								objektfeld.setInhalt(beschreibung);
+								eyevisWerte.put("Beschreibung", objektfeld);
+							} else {
+								LOG.info("Beschreibung ist leer");
+								if(pseudoobjekt) {
+									beschreibung = "";
+									beschreibung = "PSEUDO-" + getKurzausgabeObjektart(objektart);
+									Excelfeld objektfeld = new Excelfeld(Excelfeld.Datentyp.Text, beschreibung);
+									LOG.info("Beschreibungsfeld wurde für Pseudoobjekt gefüllt: " + beschreibung);
+									objektfeld.setInhalt(beschreibung);
+									eyevisWerte.put("Beschreibung", objektfeld);
+								}
 							}
 
 
+							// rausschreiben des kompletten Excel-Datensatzes
 							schreibeExcelZeile(sheetname, naechsteZeilennrMap.get(sheetname), eyevisWerte);
 							naechsteZeilennrMap.put(sheetname, 1 + naechsteZeilennrMap.get(sheetname));
 
@@ -1393,9 +1506,8 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 								eyevisCSVOutput.append(text);
 							}
 							eyevisCSVOutput.append(";");
-							if(eyevisWerte.containsKey("Beschreibung")) {
-								String text = eyevisWerte.get("Beschreibung").getTextWert();
-								eyevisCSVOutput.append(text);
+							if(!beschreibung.isEmpty()) {
+								eyevisCSVOutput.append(beschreibung);
 							}
 							eyevisCSVOutput.append(";");
 							if(eyevisWerte.containsKey("lat"))
@@ -1404,7 +1516,7 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 							if(eyevisWerte.containsKey("lon"))
 								eyevisCSVOutput.append(eyevisWerte.get("lon").getTextWert());
 							eyevisCSVOutput.append("\r\n");
-						}
+						} // Ende wenn csv-Felder vorhanden sind, werden diese noch angepasst
 					}	// Ende Schleife über alle Objekte des Bahnhofs / der Haltestelle					
 				}	// Schleife über die Objekte (Steig, BuR, PuR, etc.) zur aktuellen Haltestelle
 

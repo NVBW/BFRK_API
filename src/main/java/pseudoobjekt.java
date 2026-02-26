@@ -43,7 +43,7 @@ public class pseudoobjekt extends HttpServlet {
 
     
     private static boolean ObjektmerkmaleInDBSpeichern(long objektid, String objektart,
-    	String verbindungsinformation) {
+    	String verbindungsinformation, double lon, double lat) {
     	boolean returncode = false;
  
 		Map<BFRKFeld.Name, String> merkmaleMap = new HashMap<>();
@@ -86,7 +86,15 @@ public class pseudoobjekt extends HttpServlet {
                 merkmaleMap.put(BFRKFeld.Name.OBJ_BuR_Vorhanden, "true");
                 merkmaleMap.put(BFRKFeld.Name.OBJ_BuR_Notiz, verbindungsinformation);
             }
-            case "Parkplatz" -> merkmaleMap.put(BFRKFeld.Name.OBJ_Parkplatz_Art_D1051, "unbekannt");
+            case "Parkplatz" -> {
+				merkmaleMap.put(BFRKFeld.Name.OBJ_Parkplatz_Art_D1051, "unbekannt");
+				merkmaleMap.put(BFRKFeld.Name.OBJ_Parkplatz_Lon, "" + lon);
+				merkmaleMap.put(BFRKFeld.Name.OBJ_Parkplatz_Lat, "" + lat);
+			}
+			case "Taxistand" -> {
+				merkmaleMap.put(BFRKFeld.Name.OBJ_Taxistand_Lon, "" + lon);
+				merkmaleMap.put(BFRKFeld.Name.OBJ_Taxistand_Lat, "" + lat);
+			}
             default -> {
                 LOG.warning("ungültige Objektart für Pseudoobjekt mit Objekt-Id: " + objektid
                         + ", falsche Objektart: " + objektart);
@@ -464,9 +472,9 @@ public class pseudoobjekt extends HttpServlet {
 			+ "WHERE oevart = ? AND dhid = ? AND objektart = ?;";
 
 		String insertPseudoObjektSql = "INSERT INTO objekt (kreisschluessel, objektart, dhid, oevart, parent_id, "
-			+ "gemeinde, ortsteil, erfassungsdatum, pseudoflag, koordinate) "
+			+ "gemeinde, ortsteil, steig, beschreibung, erfassungsdatum, pseudoflag, koordinate) "
 			+ "VALUES(?, ?, ?, ?, ?, "
-			+ " ?, ?, now(), true, ST_SetSrid(ST_MakePoint(?, ?), 4326)) RETURNING id;";
+			+ " ?, ?, ?, ?, now(), true, ST_SetSrid(ST_MakePoint(?, ?), 4326)) RETURNING id;";
 
 		String kreisschluessel = "";
 		String gemeinde = "";
@@ -526,6 +534,8 @@ public class pseudoobjekt extends HttpServlet {
 			insertPseudoObjektStmt.setLong(stmtindex++, parentObjektId);
 			insertPseudoObjektStmt.setString(stmtindex++, gemeinde);
 			insertPseudoObjektStmt.setString(stmtindex++, ortsteil);
+			insertPseudoObjektStmt.setString(stmtindex++, "Dummy" + paramobjektart);
+			insertPseudoObjektStmt.setString(stmtindex++, paramverbindungsinformation);
 			insertPseudoObjektStmt.setDouble(stmtindex++, paramlon);
 			insertPseudoObjektStmt.setDouble(stmtindex++, paramlat);
 			LOG.info("Pseudo-Objekt store: " + insertPseudoObjektStmt.toString() + "===");
@@ -538,7 +548,8 @@ public class pseudoobjekt extends HttpServlet {
 				insertPseudoObjektRs.close();
 				insertPseudoObjektStmt.close();
 
-			    if(ObjektmerkmaleInDBSpeichern(pseudoObjektID, paramobjektart, paramverbindungsinformation)) {
+			    if(ObjektmerkmaleInDBSpeichern(pseudoObjektID, paramobjektart, paramverbindungsinformation,
+						paramlon, paramlat)) {
 					ergebnisJsonObject.put("objektid", pseudoObjektID);
 					response.getWriter().append(ergebnisJsonObject.toString());
 					response.setStatus(HttpServletResponse.SC_OK);
