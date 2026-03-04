@@ -7,6 +7,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -19,6 +23,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import de.nvbw.base.NVBWLogger;
+import de.nvbw.bfrk.util.DBVerbindung;
 import org.json.JSONObject;
 
 import de.nvbw.base.Applicationconfiguration;
@@ -36,7 +41,8 @@ public class eyevisprojektdaten extends HttpServlet {
 	static DateFormat datetime_filesystem_formatter = new SimpleDateFormat("yyyyMMdd_HHmmss");
 
 	private static final Logger LOG = NVBWLogger.getLogger(eyevisprojektdaten.class);
-	private static Applicationconfiguration configuration = new Applicationconfiguration();
+	private static final Applicationconfiguration configuration = new Applicationconfiguration();
+	private static Connection bfrkConn = null;
 
     /**
      * @see HttpServlet#HttpServlet()
@@ -51,6 +57,7 @@ public class eyevisprojektdaten extends HttpServlet {
      */
     @Override
     public void init() {
+		bfrkConn = DBVerbindung.getDBVerbindung();
     }
 
 
@@ -75,6 +82,93 @@ public class eyevisprojektdaten extends HttpServlet {
 		String paramObjektarten = "%";
 		String paramDatenlieferant = "";
 		String paramVorlage = "";
+
+/*
+			// Wenn im Requestheader kein accesstoken mitgeschickt wurde, Anfrage abblocken
+		if(request.getHeader("accesstoken") == null) {
+			resultObjectJson = new JSONObject();
+			resultObjectJson.put("status", "fehler");
+			resultObjectJson.put("fehlertext", "Pflicht Header accesstoken fehlt");
+			response.getWriter().append(resultObjectJson.toString());
+			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+			return;
+		}
+
+		String accesstoken = "";
+
+		LOG.info("Request Header accesstoken vorhanden ===" + request.getHeader("accesstoken") + "===");
+		accesstoken = request.getHeader("accesstoken");
+		if(accesstoken.isEmpty()) {
+			resultObjectJson = new JSONObject();
+			resultObjectJson.put("status", "fehler");
+			resultObjectJson.put("fehlertext", "Authentifizierung fehlgeschlagen, weil Header accesstoken leer ist");
+			response.getWriter().append(resultObjectJson.toString());
+			response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+			return;
+		}
+
+		try {
+			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
+				LOG.severe("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				init();
+				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
+					response.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
+					response.setCharacterEncoding("UTF-8");
+					response.getWriter().append("Datenbankverbindung verloren, bitte nochmal versuchen");
+					return;
+				}
+			}
+		} catch (Exception e1) {
+			response.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
+			response.setCharacterEncoding("UTF-8");
+			response.getWriter().append("Datenbankverbindung verloren, bitte nochmal versuchen");
+			return;
+		}
+
+		// ============= prüfen, ob accesstoken gültig ist ==============
+		String authentifizierungSql = "SELECT eyevisprojektdatenabruf, name FROM benutzer "
+				+ "WHERE accesstoken = ?;";
+
+		String bearbeiter = null;
+		PreparedStatement authentifizierungStmt;
+		try {
+			authentifizierungStmt = bfrkConn.prepareStatement(authentifizierungSql);
+			int stmtindex = 1;
+			authentifizierungStmt.setString(stmtindex++, accesstoken);
+			LOG.info("Authentifizierung query: " + authentifizierungStmt.toString() + "===");
+
+			ResultSet authentifizierungRS = authentifizierungStmt.executeQuery();
+
+			String dbaccesstoken = null;
+			boolean eyevisdatenabrufen = false;
+
+			if(authentifizierungRS.next()) {
+				bearbeiter = authentifizierungRS.getString("name");
+				eyevisdatenabrufen = authentifizierungRS.getBoolean("eyevisprojektdatenabruf");
+			}
+			authentifizierungRS.close();
+			authentifizierungStmt.close();
+
+			if(!eyevisdatenabrufen) {
+				resultObjectJson = new JSONObject();
+				resultObjectJson.put("status", "fehler");
+				resultObjectJson.put("fehlertext", "Authentifizierung fehlgeschlagen");
+				response.getWriter().append(resultObjectJson.toString());
+				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+				return;
+			}
+
+		} catch (SQLException e) {
+			LOG.info("SQLException::: " + e.toString());
+			resultObjectJson = new JSONObject();
+			resultObjectJson.put("status", "fehler");
+			resultObjectJson.put("fehlertext", "DB-Fehler aufgetreten, bitte den Administrtaor benachrichtigen");
+			response.getWriter().append(resultObjectJson.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
+		}
+*/
+			// ok, hier angekommen, das der Benutzer eyevisdaten herunterladen
 
 		if(request.getParameter("oevart") != null) {
 			LOG.info("url-Parameter oevart vorhanden ===" + request.getParameter("oevart") + "===");

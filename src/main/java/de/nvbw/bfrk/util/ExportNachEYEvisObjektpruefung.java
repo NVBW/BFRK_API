@@ -152,6 +152,22 @@ public class ExportNachEYEvisObjektpruefung {
 		return output;
 	}
 
+	private static String getFirstOsmid(String osmId) {
+		String outputtext = "";
+
+		if((osmId == null) || osmId.isEmpty())
+			return "";
+
+		String ersteosmid = osmId;
+		if(ersteosmid.contains("|"))
+			ersteosmid = ersteosmid.substring(0, ersteosmid.indexOf("|"));
+
+		if(ersteosmid.isEmpty())
+			return "";
+
+		return ersteosmid;
+	}
+
 	public String generateEYEvisLatLon(double lon, double lat) {
 		String output = "lat=";
 		if(lat != 0.0)
@@ -218,7 +234,7 @@ public class ExportNachEYEvisObjektpruefung {
 				
 				InputStream inputStream = conn.getInputStream();
 				String dateiname = bildurl;
-				if(dateiname.indexOf("/") != -1)
+				if(dateiname.contains("/"))
 					dateiname = dateiname.substring(dateiname.lastIndexOf("/") + 1);
 				
 	            gespeichertedateipfadundname = bilddownloadverzeichnis + File.separator + dateiname;
@@ -245,11 +261,11 @@ public class ExportNachEYEvisObjektpruefung {
 				else {
 					LOG.info("HTTP-Response Code nicht 200, sondern " + responseCode
 						+ ", für Bild-Url ===" + bildurl + "===");
-					if(bildurl.indexOf("bfrk_nvbw_intern/") != -1) {
+					if(bildurl.contains("bfrk_nvbw_intern/")) {
 						String dhid = bildurl;
-						if(dhid.indexOf("/bilder/") != -1) {
+						if(dhid.contains("/bilder/")) {
 							dhid = dhid.substring(dhid.indexOf("/bilder/") + 8);
-							if(dhid.indexOf("/") != -1) {
+							if(dhid.contains("/")) {
 								dhid = dhid.substring(0, dhid.indexOf("/"));
 								String bildname = bildurl;
 								bildname = bildname.substring(bildname.lastIndexOf("/") + 1);
@@ -291,7 +307,7 @@ public class ExportNachEYEvisObjektpruefung {
 			return outputListe;
 	
 			// bei EYEvis kann historisch eine Liste von Dateiname mit , (Komma) getrennt vorkommmen, auf Pipe-Zeichen ändern
-		if(dateiname.indexOf(",") != -1)
+		if(dateiname.contains(","))
 			dateiname = dateiname.replace(",","|");
 	
 			// in dateinamen können auch mehrere Fotos, per | (Pipe) getrennt, vorkommen
@@ -299,48 +315,46 @@ public class ExportNachEYEvisObjektpruefung {
 	
 		
 			// Verarbeitung aller Dateinamen (ggfs. mehrere)
-		for(int bildindex = 0; bildindex < dateinamenliste.length; bildindex++) {
-			String aktdateiname = dateinamenliste[bildindex];
-		
-			String bildurl = INTRANET_URL + "/bfrk/haltestelle/bilder/" + dhid + "/" + aktdateiname;
+        for (String aktdateiname : dateinamenliste) {
+            String bildurl = INTRANET_URL + "/bfrk/haltestelle/bilder/" + dhid + "/" + aktdateiname;
 
-			String bildpfadundname = downloadBild(bildurl);
-			if(!bildpfadundname.equals("")) {
+            String bildpfadundname = downloadBild(bildurl);
+            if (!bildpfadundname.isEmpty()) {
 
-				File bildhandle = new File(bildpfadundname);
-				if(bildhandle.exists()) {
-					outputListe.add(bildpfadundname);
-					continue;
-				}
-			} else {
-				if(bildquelle != Bildquellenart.downloadprivateundpublic) {
-					LOG.warning("Es wird in getBild nicht nach intern gespeichertem Bild gesucht, weil die Einstellung für Bildquelle nur public vorsieht");
-					continue;
-				}
+                File bildhandle = new File(bildpfadundname);
+                if (bildhandle.exists()) {
+                    outputListe.add(bildpfadundname);
+                    continue;
+                }
+            } else {
+                if (bildquelle != Bildquellenart.downloadprivateundpublic) {
+                    LOG.warning("Es wird in getBild nicht nach intern gespeichertem Bild gesucht, weil die Einstellung für Bildquelle nur public vorsieht");
+                    continue;
+                }
 
-				if(bildurl.indexOf("/bfrk/haltestelle") == -1) {
-					LOG.severe("Fehler in getBild, Url hat nicht /bfrk/haltestelle, da wurde was verändert und nicht im Programmcode angepasst: "
-						+ bildurl);
-					continue;
-				}
-				bildurl = bildurl.replace("/bfrk/haltestelle", "/bfrk_nvbw_intern/haltestelle");
+                if (!bildurl.contains("/bfrk/haltestelle")) {
+                    LOG.severe("Fehler in getBild, Url hat nicht /bfrk/haltestelle, da wurde was verändert und nicht im Programmcode angepasst: "
+                            + bildurl);
+                    continue;
+                }
+                bildurl = bildurl.replace("/bfrk/haltestelle", "/bfrk_nvbw_intern/haltestelle");
 
-				bildpfadundname = downloadBild(bildurl);
-				if(!bildpfadundname.equals("")) {
+                bildpfadundname = downloadBild(bildurl);
+                if (!bildpfadundname.equals("")) {
 
-					File bildhandle = new File(bildpfadundname);
-					if(bildhandle.exists()) {
-						outputListe.add(bildpfadundname);
-						continue;
-					}
-				} else {
-					if(bildurl.indexOf("/bfrk/haltestelle") != -1)
-						bildurl = bildurl.replace("/bfrk/haltestelle", "/bfrk_nvbw_intern/haltestelle");
-					System.out.println("offenbar noch nicht publik: " + bildurl);
-				}
-			}
+                    File bildhandle = new File(bildpfadundname);
+                    if (bildhandle.exists()) {
+                        outputListe.add(bildpfadundname);
+                        continue;
+                    }
+                } else {
+                    if (bildurl.contains("/bfrk/haltestelle"))
+                        bildurl = bildurl.replace("/bfrk/haltestelle", "/bfrk_nvbw_intern/haltestelle");
+                    System.out.println("offenbar noch nicht publik: " + bildurl);
+                }
+            }
 
-		}
+        }
 		Date endzeit = new Date();
 		LOG.info("Ende Methode getBildurl, Dauer in msek: "
 			+ (endzeit.getTime() - startzeit.getTime()));
@@ -2245,10 +2259,22 @@ public class ExportNachEYEvisObjektpruefung {
 				okFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+                objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put(Name.OBJ_Pseudoobjekt.toString(), new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+			felder.put("OBJ_Aufzug_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(BFRKFeld.Name.OBJ_Aufzug_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
@@ -2454,10 +2480,22 @@ public class ExportNachEYEvisObjektpruefung {
 				okFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+				objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put(Name.OBJ_Pseudoobjekt.toString(), new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+			felder.put("OBJ_BuR_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(Name.OBJ_BuR_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
@@ -2663,10 +2701,22 @@ public class ExportNachEYEvisObjektpruefung {
 				okFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+				objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put(Name.OBJ_Pseudoobjekt.toString(), new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+			felder.put("OBJ_Engstelle_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(Name.OBJ_Engstelle_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
@@ -2812,10 +2862,22 @@ public class ExportNachEYEvisObjektpruefung {
 				okFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+				objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put(Name.OBJ_Pseudoobjekt.toString(), new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+			felder.put("OBJ_Kartenautomat_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(Name.OBJ_Kartenautomat_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
@@ -2974,10 +3036,22 @@ public class ExportNachEYEvisObjektpruefung {
 				unsicherFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+				objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put(Name.OBJ_Pseudoobjekt.toString(), new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+			felder.put("OBJ_Querung_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(Name.OBJ_Gleisquerung_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
@@ -3130,10 +3204,22 @@ public class ExportNachEYEvisObjektpruefung {
 				okFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+				objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put(Name.OBJ_Pseudoobjekt.toString(), new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+			felder.put("OBJ_Infostelle_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(Name.OBJ_Infostelle_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
@@ -3287,10 +3373,22 @@ public class ExportNachEYEvisObjektpruefung {
 				okFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+				objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put(Name.OBJ_Pseudoobjekt.toString(), new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+			felder.put("OBJ_Leihrad_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(Name.OBJ_Leihradanlage_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
@@ -3428,10 +3526,22 @@ public class ExportNachEYEvisObjektpruefung {
 				okFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+				objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put(Name.OBJ_Pseudoobjekt.toString(), new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+			felder.put("OBJ_Parkplatz_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(Name.OBJ_Parkplatz_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
@@ -3702,10 +3812,22 @@ public class ExportNachEYEvisObjektpruefung {
 				okFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+				objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put(Name.OBJ_Pseudoobjekt.toString(), new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+			felder.put("OBJ_Rampe_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(Name.OBJ_Rampe_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
@@ -3874,10 +3996,22 @@ public class ExportNachEYEvisObjektpruefung {
 				unsicherFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+				objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put(Name.OBJ_Pseudoobjekt.toString(), new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+			felder.put("OBJ_Rolltreppe_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(Name.OBJ_Rolltreppe_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
@@ -4053,10 +4187,22 @@ public class ExportNachEYEvisObjektpruefung {
 				okFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+				objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put(Name.OBJ_Pseudoobjekt.toString(), new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+			felder.put("OBJ_Stationsplan_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(Name.OBJ_Stationsplan_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
@@ -4207,10 +4353,22 @@ public class ExportNachEYEvisObjektpruefung {
 				okFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+				objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put(Name.OBJ_Pseudoobjekt.toString(), new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+			felder.put("OBJ_Taxi_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(Name.OBJ_Taxistand_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
@@ -4340,10 +4498,22 @@ public class ExportNachEYEvisObjektpruefung {
 				okFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+				objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put(Name.OBJ_Pseudoobjekt.toString(), new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+			felder.put("OBJ_Toilette_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(Name.OBJ_Toilette_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
@@ -4512,10 +4682,22 @@ public class ExportNachEYEvisObjektpruefung {
 				okFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+				objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put(Name.OBJ_Pseudoobjekt.toString(), new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+			felder.put("OBJ_Treppe_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(Name.OBJ_Treppe_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
@@ -4678,10 +4860,22 @@ public class ExportNachEYEvisObjektpruefung {
 				okFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+				objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put(Name.OBJ_Pseudoobjekt.toString(), new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+			felder.put("OBJ_Tuer_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(Name.OBJ_Tuer_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
@@ -4817,10 +5011,22 @@ public class ExportNachEYEvisObjektpruefung {
 				okFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+				objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put(Name.OBJ_Pseudoobjekt.toString(), new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+			felder.put("OBJ_Verkaufstelle_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(Name.OBJ_Verkaufsstelle_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
@@ -4974,10 +5180,22 @@ public class ExportNachEYEvisObjektpruefung {
 				okFarbstyle));
 		}
 
+		if(objektDaten.containsKey(Name.OBJ_Pseudoobjekt) &&
+				objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()) {
+			felder.put("OBJ_Weg_Objektzustand", new Excelfeld(Datentyp.Text,
+					"vorhandenveraltet", unsicherFarbstyle));
+			felder.put("", new Excelfeld(Datentyp.Standard,
+					"" + (objektDaten.get(Name.OBJ_Pseudoobjekt).getBooleanWert()),
+					okFarbstyle));
+		}
+
 		double lon = 0.0;
 		double lat = 0.0;
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
+				felder.put(Name.OBJ_Weg_OSMID.toString(), new Excelfeld(Datentyp.Text,
+						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
 				}
