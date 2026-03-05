@@ -152,6 +152,32 @@ public class ExportNachEYEvisObjektpruefung {
 		return output;
 	}
 
+	private static String getFirstOsmObjektLink(String osmId) {
+		String outputtext = "";
+
+		if((osmId == null) || osmId.isEmpty())
+			return "";
+
+		String ersteosmid = osmId;
+		if(ersteosmid.contains("|"))
+			ersteosmid = ersteosmid.substring(0, ersteosmid.indexOf("|"));
+
+		if((osmId == null) || osmId.isEmpty())
+			return "";
+
+		String osmtyplang = "";
+		if(ersteosmid.startsWith("n"))
+			osmtyplang = "node";
+		else if(ersteosmid.startsWith("w"))
+			osmtyplang = "way";
+		else if(ersteosmid.startsWith("r"))
+			osmtyplang = "relation";
+
+		outputtext = "https://www.openstreetmap.org/" + osmtyplang + "/" + ersteosmid.substring(1);
+
+		return outputtext;
+	}
+
 	private static String getFirstOsmid(String osmId) {
 		String outputtext = "";
 
@@ -2273,7 +2299,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(BFRKFeld.Name.OBJ_Aufzug_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
@@ -2494,7 +2520,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(Name.OBJ_BuR_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
@@ -2715,7 +2741,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(Name.OBJ_Engstelle_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
@@ -2876,7 +2902,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(Name.OBJ_Kartenautomat_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
@@ -3050,7 +3076,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(Name.OBJ_Gleisquerung_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
@@ -3218,7 +3244,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(Name.OBJ_Infostelle_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
@@ -3387,7 +3413,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(Name.OBJ_Leihradanlage_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
@@ -3540,7 +3566,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(Name.OBJ_Parkplatz_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
@@ -3826,7 +3852,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(Name.OBJ_Rampe_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
@@ -4010,7 +4036,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(Name.OBJ_Rolltreppe_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
@@ -4201,7 +4227,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(Name.OBJ_Stationsplan_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
@@ -4367,7 +4393,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(Name.OBJ_Taxistand_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
@@ -4512,7 +4538,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(Name.OBJ_Toilette_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
@@ -4696,7 +4722,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(Name.OBJ_Treppe_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
@@ -4874,7 +4900,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(Name.OBJ_Tuer_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
@@ -5025,7 +5051,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(Name.OBJ_Verkaufsstelle_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
@@ -5194,7 +5220,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Id)) {
 			if(!objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert().isEmpty()) {
 				felder.put(Name.OBJ_Weg_OSMID.toString(), new Excelfeld(Datentyp.Text,
-						getFirstOsmid(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
+						getFirstOsmObjektLink(objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Id).getTextWert()), okFarbstyle));
 
 				if(objektDaten.containsKey(BFRKFeld.Name.ZUSATZ_OSM_Lon)) {
 					lon = objektDaten.get(BFRKFeld.Name.ZUSATZ_OSM_Lon).getZahlWert();
