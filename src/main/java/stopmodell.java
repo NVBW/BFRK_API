@@ -404,8 +404,7 @@ public class stopmodell extends HttpServlet {
 				JSONObject dbgraph = new JSONObject(content);
 
 				Graphaktualisierung graphaktualisierung = new Graphaktualisierung();
-				JSONObject aktualisierterGraph = graphaktualisierung.aktualisiereBFRKObjekteImGraph(dbgraph);
-				ergebnisJsonObject = graphaktualisierung.bereinigeKantenImGraph(aktualisierterGraph);
+				ergebnisJsonObject = graphaktualisierung.aktualisiereBFRKObjekteImGraph(dbgraph);
 				response.setDateHeader("Last-Modified", graphZeitstempel.getTime());
 			} else {
 				LOG.warning("der vorher gespeicherte Graph konnte über Select-Befehl nicht geholt werden, "
