@@ -1,6 +1,5 @@
 
 import java.io.IOException;
-import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -8,6 +7,7 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -19,11 +19,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import de.nvbw.base.NVBWLogger;
-import de.nvbw.bfrk.base.BFRKFeld;
 import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
-import de.nvbw.bfrk.util.OpenStreetMap;
-import de.nvbw.bfrk.util.ReaderBase;
 
 
 /**
@@ -35,20 +32,20 @@ import de.nvbw.bfrk.util.ReaderBase;
 public class filter extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
-	private static DateFormat date_rfc3339_formatter = new SimpleDateFormat("yyyy-MM-dd");
-
+	private static final Logger LOG = NVBWLogger.getLogger(notiz.class);
     private static Connection bfrkConn = null;
 
-    /**
+	private static final DateFormat date_rfc3339_formatter = new SimpleDateFormat("yyyy-MM-dd");
+
+	/**
      * @see HttpServlet#HttpServlet()
      */
     public filter() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     /**
-     * initialization on servlett startup
+     * initialization on servlet startup
      * - connect to bfrk DB
      */
     @Override
@@ -64,18 +61,35 @@ public class filter extends HttpServlet {
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				System.out.println("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.severe("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-					response.getWriter().append("FEHLER: keine DB-Verbindung offen");
+					LOG.severe("es konnte keine DB-Verbindung herstellt werden");
+					JSONObject ergebnisJsonObject = new JSONObject();
+					ergebnisJsonObject.put("status", "fehler");
+					ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren");
+					response.getWriter().append(ergebnisJsonObject.toString());
+					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					return;
 				}
 			}
 		} catch (SQLException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei SQLException " + e1.toString());
+			LOG.severe("SQLException aufgetreten, " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		} catch (IOException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei IOException " + e1.toString());
+			LOG.severe("IOException aufgetreten, " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unbekannter Fehler aufgetreten, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
 
@@ -89,10 +103,10 @@ public class filter extends HttpServlet {
 		String filtertext = "";
 		if(		(request.getParameter("filter") != null)
 			&&	(!request.getParameter("filter").isEmpty())) {
-			System.out.println("url-Parameter filter vorhanden ===" + request.getParameter("filter"));
+			LOG.info("url-Parameter filter vorhanden ===" + request.getParameter("filter"));
 			filtertext = request.getParameter("filter");
 		} else {
-			System.out.println("kein zulässiger Parameter vorhanden ...");
+			LOG.info("kein zulässiger Parameter vorhanden ...");
 			JSONObject errorObjektJson = new JSONObject();
 			errorObjektJson.put("subject", "Request parameter filter fehlt");
 			errorObjektJson.put("message", "Der Parameter filter ist nicht vorhanden oder leer");
@@ -156,11 +170,11 @@ String paramstoppointDHID = "%";
 			selectHaltestelleStmt = bfrkConn.prepareStatement(selectHaltestelleSql);
 			selectHaltestelleStmt.setString(1, paramstopDHID);
 			selectHaltestelleStmt.setString(2, paramstoppointDHID);
-			System.out.println("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
+			LOG.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
 
 			ResultSet selectMerkmaleRS = selectHaltestelleStmt.executeQuery();
 
-int anzahldatensaetze = 0;
+			int anzahldatensaetze = 0;
 			long aktuelleHstObjektID = 0;
 			long aktuelleObjektID = 0;
 			long vorherigeHstObjektID = 0;
@@ -200,34 +214,33 @@ int anzahldatensaetze = 0;
 						aufzugJsonObjekt.put("CoordY", osmlat);
 					}
 
-					if(merkmalname.equals("OBJ_Aufzug_Tuerbreite_cm_D2091"))
-						aufzugJsonObjekt.put("Width", (int) Double.parseDouble(merkmalwert));
-					else if(merkmalname.equals("OBJ_Aufzug_Grundflaechenlaenge_cm_D2093"))
-						aufzugJsonObjekt.put("Length", (int) Double.parseDouble(merkmalwert));
-					else if(merkmalname.equals("OBJ_Aufzug_Grundflaechenbreite_cm_D2094"))
-						aufzugJsonObjekt.put("Depth", (int) Double.parseDouble(merkmalwert));
-					else if(merkmalname.equals("OBJ_Aufzug_Verbindungsfunktion_D2095"))
-						aufzugJsonObjekt.put("Description", merkmalwert);
-					else if(merkmalname.equals("OBJ_Aufzug_OSMID"))
-						aufzugJsonObjekt.put("OsmId", merkmalwert);
-					else if(merkmalname.equals("OBJ_Aufzug_Foto"))
-						aufzugJsonObjekt.put("aufzug_Foto", Bild.getBildUrl(merkmalwert, steigDHID));
-					else if(merkmalname.equals("OBJ_Aufzug_Ebene1_Foto"))
-						aufzugJsonObjekt.put("ebene1_Foto", Bild.getBildUrl(merkmalwert, steigDHID));
-					else if(merkmalname.equals("OBJ_Aufzug_Ebene2_Foto"))
-						aufzugJsonObjekt.put("ebene2_Foto", Bild.getBildUrl(merkmalwert, steigDHID));
-					else if(merkmalname.equals("OBJ_Aufzug_Ebene3_Foto"))
-						aufzugJsonObjekt.put("ebene3_Foto", Bild.getBildUrl(merkmalwert, steigDHID));
-					else if(merkmalname.equals("OBJ_Aufzug_Bedienelemente_Foto"))
-						aufzugJsonObjekt.put("bedienelemente_Foto", Bild.getBildUrl(merkmalwert, steigDHID));
-					else if(merkmalname.equals("OBJ_Aufzug_ID_Foto"))
-						aufzugJsonObjekt.put("schild_Foto", Bild.getBildUrl(merkmalwert, steigDHID));
-					else if(merkmalname.equals("OBJ_Aufzug_StoerungKontakt_Foto"))
-						aufzugJsonObjekt.put("stoerungkontakt_Foto", Bild.getBildUrl(merkmalwert, steigDHID));
-					else
-						NVBWLogger.warning("in Servlet " + this.getServletName() 
-							+ " nicht verarbeitetes Merkmal Name '" + merkmalname + "'" 
-							+ ", Wert '" + merkmalwert + "'");
+                    switch (merkmalname) {
+                        case "OBJ_Aufzug_Tuerbreite_cm_D2091" ->
+                                aufzugJsonObjekt.put("Width", (int) Double.parseDouble(merkmalwert));
+                        case "OBJ_Aufzug_Grundflaechenlaenge_cm_D2093" ->
+                                aufzugJsonObjekt.put("Length", (int) Double.parseDouble(merkmalwert));
+                        case "OBJ_Aufzug_Grundflaechenbreite_cm_D2094" ->
+                                aufzugJsonObjekt.put("Depth", (int) Double.parseDouble(merkmalwert));
+                        case "OBJ_Aufzug_Verbindungsfunktion_D2095" -> aufzugJsonObjekt.put("Description", merkmalwert);
+                        case "OBJ_Aufzug_OSMID" -> aufzugJsonObjekt.put("OsmId", merkmalwert);
+                        case "OBJ_Aufzug_Foto" ->
+                                aufzugJsonObjekt.put("aufzug_Foto", Bild.getBildUrl(merkmalwert, steigDHID));
+                        case "OBJ_Aufzug_Ebene1_Foto" ->
+                                aufzugJsonObjekt.put("ebene1_Foto", Bild.getBildUrl(merkmalwert, steigDHID));
+                        case "OBJ_Aufzug_Ebene2_Foto" ->
+                                aufzugJsonObjekt.put("ebene2_Foto", Bild.getBildUrl(merkmalwert, steigDHID));
+                        case "OBJ_Aufzug_Ebene3_Foto" ->
+                                aufzugJsonObjekt.put("ebene3_Foto", Bild.getBildUrl(merkmalwert, steigDHID));
+                        case "OBJ_Aufzug_Bedienelemente_Foto" ->
+                                aufzugJsonObjekt.put("bedienelemente_Foto", Bild.getBildUrl(merkmalwert, steigDHID));
+                        case "OBJ_Aufzug_ID_Foto" ->
+                                aufzugJsonObjekt.put("schild_Foto", Bild.getBildUrl(merkmalwert, steigDHID));
+                        case "OBJ_Aufzug_StoerungKontakt_Foto" ->
+                                aufzugJsonObjekt.put("stoerungkontakt_Foto", Bild.getBildUrl(merkmalwert, steigDHID));
+                        default -> LOG.warning("in Servlet " + this.getServletName()
+                                + " nicht verarbeitetes Merkmal Name '" + merkmalname + "'"
+                                + ", Wert '" + merkmalwert + "'");
+                    }
 				}
 
 				vorherigeHstObjektID = aktuelleHstObjektID;
@@ -242,9 +255,14 @@ int anzahldatensaetze = 0;
 				return;
 			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.out.println("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten, bitte Administrator informieren: "
+					+ e.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
 		}
 		response.getWriter().append(aufzugJsonObjekt.toString());
 	}

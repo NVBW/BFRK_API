@@ -1,7 +1,5 @@
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -10,6 +8,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -17,11 +16,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import de.nvbw.base.NVBWLogger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import de.nvbw.base.BFRKApiApplicationconfiguration;
-import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
 import de.nvbw.bfrk.util.OpenStreetMap;
@@ -36,11 +35,12 @@ import de.nvbw.bfrk.util.OpenStreetMap;
 public class taxistaende extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
+	private static final Logger LOG = NVBWLogger.getLogger(taxistaende.class);
+
 	private static DateFormat datetime_de_formatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
 	private static DateFormat date_rfc3339_formatter = new SimpleDateFormat("yyyy-MM-dd");
 
 
-	private static BFRKApiApplicationconfiguration bfrkapiconfiguration = null;
     private static Connection bfrkConn = null;
 
 
@@ -49,16 +49,14 @@ public class taxistaende extends HttpServlet {
      */
     public taxistaende() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     /**
-     * initialization on servlett startup
+     * initialization on servlet startup
      * - connect to bfrk DB
      */
     @Override
     public void init() {
-		bfrkapiconfiguration = new BFRKApiApplicationconfiguration();
     	bfrkConn = DBVerbindung.getDBVerbindung();
     }
 
@@ -71,26 +69,41 @@ public class taxistaende extends HttpServlet {
 		Date requestStart = new Date();
 		Date requestEnde = null;
 
-		System.out.println("Request-Beginn: " + datetime_de_formatter.format(requestStart));
+		LOG.info("Request-Beginn: " + datetime_de_formatter.format(requestStart));
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				System.out.println("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.severe("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-					response.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
-					response.setCharacterEncoding("UTF-8");
-					response.getWriter().append("Datenbankverbindung verloren, bitte nochmal versuchen");
+					LOG.severe("es konnte keine DB-Verbindung herstellt werden");
+					JSONObject ergebnisJsonObject = new JSONObject();
+					ergebnisJsonObject.put("status", "fehler");
+					ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren");
+					response.getWriter().append(ergebnisJsonObject.toString());
+					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					return;
 				}
 			}
-		} catch (Exception e1) {
-			response.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
-			response.setCharacterEncoding("UTF-8");
-			response.getWriter().append("Datenbankverbindung verloren, bitte nochmal versuchen");
+		} catch (SQLException e1) {
+			LOG.severe("SQLException aufgetreten, " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
+		} catch (IOException e1) {
+			LOG.severe("IOException aufgetreten, " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unbekannter Fehler aufgetreten, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
-		
 
 		
 		response.setContentType("application/json");
@@ -141,7 +154,7 @@ public class taxistaende extends HttpServlet {
 		PreparedStatement selectHaltestelleStmt;
 		try {
 			selectHaltestelleStmt = bfrkConn.prepareStatement(selectHaltestelleSql);
-			System.out.println("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
+			LOG.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
 
 			ResultSet selectMerkmaleRS = selectHaltestelleStmt.executeQuery();
 
@@ -167,11 +180,11 @@ public class taxistaende extends HttpServlet {
 			boolean osmimportiert = false;
 			while(selectMerkmaleRS.next()) {
 				objektid = selectMerkmaleRS.getLong("objekt_id");
-NVBWLogger.info("jetzt kommt objektid: " + objektid + ", vorherigeobjektid ist: " + vorherigeobjektid);
+				LOG.info("jetzt kommt objektid: " + objektid + ", vorherigeobjektid ist: " + vorherigeobjektid);
 
 					// Bei Objektwechsel zuerst die Daten in JsonObject sammeln und ins JsonArray ergänzen
 				if((objektid != vorherigeobjektid) && (vorherigeobjektid != 0)) {
-				NVBWLogger.info(" ok objektid hat sich geändert, lon ist: " + lon + ", lat ist: " + lat + " vor speicher in jsonobject");
+				LOG.info(" ok objektid hat sich geändert, lon ist: " + lon + ", lat ist: " + lat + " vor speicher in jsonobject");
 					merkmaleJsonObject.put("lon", lon);
 					merkmaleJsonObject.put("lat", lat);
 					merkmaleJsonObject.put("osmimportiert", osmimportiert);
@@ -187,9 +200,9 @@ NVBWLogger.info("jetzt kommt objektid: " + objektid + ", vorherigeobjektid ist: 
 						merkmaleJsonObject.put("osmlinks", osmlinksJA);
 					}
 				
-					System.out.println("Länge merkmaleJsonObject: " + merkmaleJsonObject.toString().length());
+					LOG.info("Länge merkmaleJsonObject: " + merkmaleJsonObject.toString().length());
 					objektarray.put(merkmaleJsonObject);
-					System.out.println("objektarray nach Erweiterung: " + objektarray.toString().length());
+					LOG.info("objektarray nach Erweiterung: " + objektarray.toString().length());
 					merkmaleJsonObject = new JSONObject();
 					lon = 0.0;
 					lat = 0.0;
@@ -222,8 +235,8 @@ NVBWLogger.info("jetzt kommt objektid: " + objektid + ", vorherigeobjektid ist: 
 					if(erfassungsdatum != null)
 						merkmaleJsonObject.put("erfassungsdatum", date_rfc3339_formatter.format(erfassungsdatum));
 
-					NVBWLogger.info("ok, bin bei Objekt-Erstbefüllung, lon: " + lon + ", lat: " + lat);
-					System.out.println("Neues Objekt #" + anzahlobjekte + " gefunden, gefunden HST-DHID: " + hstdhid 
+					LOG.info("ok, bin bei Objekt-Erstbefüllung, lon: " + lon + ", lat: " + lat);
+					LOG.info("Neues Objekt #" + anzahlobjekte + " gefunden, gefunden HST-DHID: " + hstdhid 
 					+ ", Objekt-DHID: " + dhid + ", Objektart: " + objektart
 					+ ", Objekt-ID: " + objektid + ", OSM-Importiert? " + osmimportiert);
 				}
@@ -239,26 +252,27 @@ NVBWLogger.info("jetzt kommt objektid: " + objektid + ", vorherigeobjektid ist: 
 					continue;
 				}
 
-				System.out.println("Merkmal name zu verarbeiten: " + name + ", mit Wert ===" + wert + "===");
-				if(name.equals("OBJ_Taxistand_Lon")) {
-					if(lon == 0.0) {
-						lon = Double.parseDouble(wert);
-						NVBWLogger.info("bei Merkmalbearbeitung ..Lon, lon war noch 0.0, wird jetzt gesetzt mit: " + lon);
-					}
-				} else if(name.equals("OBJ_Taxistand_Lat")) {
-					if(lat == 0.0) {
-						lat = Double.parseDouble(wert);
-						NVBWLogger.info("bei Merkmalbearbeitung ..Lat, lat war noch 0.0, wird jetzt gesetzt mit: " + lat);
-					}
-				} else if(name.equals("OBJ_Taxistand_Foto")) {
-					merkmaleJsonObject.put("objekt_Foto", Bild.getBildUrl(wert, hstdhid));
-				} else if(name.equals("OBJ_Taxistand_WegzurHaltestelle_Foto")) {
-					merkmaleJsonObject.put("wegzuhaltestelle_Foto", Bild.getBildUrl(wert, hstdhid));
-				} else {
-					NVBWLogger.warning("in Servlet " + this.getServletName() 
-						+ " nicht verarbeitetes Merkmal Name '" + name + "'" 
-						+ ", Wert '" + wert + "'");
-				}
+				LOG.info("Merkmal name zu verarbeiten: " + name + ", mit Wert ===" + wert + "===");
+                switch (name) {
+                    case "OBJ_Taxistand_Lon" -> {
+                        if (lon == 0.0) {
+                            lon = Double.parseDouble(wert);
+                            LOG.info("bei Merkmalbearbeitung ..Lon, lon war noch 0.0, wird jetzt gesetzt mit: " + lon);
+                        }
+                    }
+                    case "OBJ_Taxistand_Lat" -> {
+                        if (lat == 0.0) {
+                            lat = Double.parseDouble(wert);
+                            LOG.info("bei Merkmalbearbeitung ..Lat, lat war noch 0.0, wird jetzt gesetzt mit: " + lat);
+                        }
+                    }
+                    case "OBJ_Taxistand_Foto" -> merkmaleJsonObject.put("objekt_Foto", Bild.getBildUrl(wert, hstdhid));
+                    case "OBJ_Taxistand_WegzurHaltestelle_Foto" ->
+                            merkmaleJsonObject.put("wegzuhaltestelle_Foto", Bild.getBildUrl(wert, hstdhid));
+                    default -> LOG.warning("in Servlet " + this.getServletName()
+                            + " nicht verarbeitetes Merkmal Name '" + name + "'"
+                            + ", Wert '" + wert + "'");
+                }
 
 				vorherigeobjektid = objektid;
 			} // end of Schleife über alle Datensatzmerkmale
@@ -281,10 +295,10 @@ NVBWLogger.info("jetzt kommt objektid: " + objektid + ", vorherigeobjektid ist: 
 					merkmaleJsonObject.put("osmlinks", osmlinksJA);
 				}
 	
-				System.out.println("Länge merkmaleJsonObject: " + merkmaleJsonObject.toString().length() + " Bytes");
+				LOG.info("Länge merkmaleJsonObject: " + merkmaleJsonObject.toString().length() + " Bytes");
 				objektarray.put(merkmaleJsonObject);
-				System.out.println("objektarray nach Erweiterung: " + objektarray.toString().length() + " Bytes");
-				System.out.println("Am Ende Anzahl Objekte in objektarray: " + anzahlobjekte);
+				LOG.info("objektarray nach Erweiterung: " + objektarray.toString().length() + " Bytes");
+				LOG.info("Am Ende Anzahl Objekte in objektarray: " + anzahlobjekte);
 			}
 	
 
@@ -312,13 +326,13 @@ NVBWLogger.info("jetzt kommt objektid: " + objektid + ", vorherigeobjektid ist: 
 			requestEnde = new Date();
 
 			if(anzahldatensaetze == 0) {
-				System.out.println("keine Datensätze gefunden, ENDE Request: " 
+				LOG.info("keine Datensätze gefunden, ENDE Request: " 
 					+ datetime_de_formatter.format(requestEnde));
 				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 				return;
 			}
 			if(falscheobjektart) {
-				System.out.println("falsche Objektart, ENDE Request: " 
+				LOG.info("falsche Objektart, ENDE Request: " 
 					+ datetime_de_formatter.format(requestEnde));
 				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 				response.setCharacterEncoding("UTF-8");
@@ -326,12 +340,19 @@ NVBWLogger.info("jetzt kommt objektid: " + objektid + ", vorherigeobjektid ist: 
 				return;
 			}
 		} catch (SQLException e) {
-			System.out.println("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten, bitte Administrator informieren: "
+					+ e.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
 		}
 		response.getWriter().append(objektarray.toString());
-		System.out.println("objektarray am Ende: " + objektarray.toString().length()
+		LOG.info("objektarray am Ende: " + objektarray.toString().length()
 			+ ", " + datetime_de_formatter.format(requestEnde));
-		System.out.println("Am Ende Anzahl Objekte in objektarray: " + anzahlobjekte);
+		LOG.info("Am Ende Anzahl Objekte in objektarray: " + anzahlobjekte);
 	}
 
 
@@ -339,11 +360,13 @@ NVBWLogger.info("jetzt kommt objektid: " + objektid + ", vorherigeobjektid ist: 
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		System.out.println("Request /taxistaende, doPost ...");
+		LOG.info("Request angekommen in /taxistaende doPost ...");
 
-		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		response.setCharacterEncoding("UTF-8");
-		response.getWriter().append("POST Request ist nicht erlaubt");
-		return;
+		JSONObject ergebnisJsonObject = new JSONObject();
+		ergebnisJsonObject.put("status", "fehler");
+		ergebnisJsonObject.put("fehlertext", "POST Request /taxistaende ist nicht vorhanden");
+		response.getWriter().append(ergebnisJsonObject.toString());
+		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 	}
 }

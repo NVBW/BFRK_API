@@ -1,10 +1,10 @@
 
 import java.io.IOException;
-import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -15,10 +15,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.json.JSONObject;
 
 import de.nvbw.base.NVBWLogger;
-import de.nvbw.bfrk.base.BFRKFeld;
 import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
-import de.nvbw.bfrk.util.ReaderBase;
 
 
 /**
@@ -30,11 +28,8 @@ import de.nvbw.bfrk.util.ReaderBase;
 public class notiz extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
+	private static final Logger LOG = NVBWLogger.getLogger(notiz.class);
     private static Connection bfrkConn = null;
-
-    public static int SC_OK = 200;
-    public static int SC_ACCEPTED = 202;
-    public static int SC_NOTFOUND = 404;
 
 
     /**
@@ -42,11 +37,10 @@ public class notiz extends HttpServlet {
      */
     public notiz() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     /**
-     * initialization on servlett startup
+     * initialization on servlet startup
      * - connect to bfrk DB
      */
     @Override
@@ -62,35 +56,52 @@ public class notiz extends HttpServlet {
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				System.out.println("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.severe("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-					response.getWriter().append("FEHLER: keine DB-Verbindung offen");
+					LOG.severe("es konnte keine DB-Verbindung herstellt werden");
+					JSONObject ergebnisJsonObject = new JSONObject();
+					ergebnisJsonObject.put("status", "fehler");
+					ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren");
+					response.getWriter().append(ergebnisJsonObject.toString());
+					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					return;
 				}
 			}
 		} catch (SQLException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei SQLException " + e1.toString());
+			LOG.severe("SQLException aufgetreten, " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		} catch (IOException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei IOException " + e1.toString());
+			LOG.severe("IOException aufgetreten, " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unbekannter Fehler aufgetreten, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
 
 		long paramObjektid = 0;
 		if(request.getParameter("dhid") != null) {
-			System.out.println("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
+			LOG.info("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
 			paramObjektid = Long.parseLong(request.getParameter("dhid"));
 		} else {
-			System.out.println("url-Parameter dhid fehlt ...");
+			LOG.info("url-Parameter dhid fehlt ...");
 			String requesturi = request.getRequestURI();
-			System.out.println("requesturi ===" + requesturi + "===");
-			if(requesturi.indexOf("/notiz") != -1) {
+			LOG.info("requesturi ===" + requesturi + "===");
+			if(requesturi.contains("/notiz")) {
 				int startpos = requesturi.indexOf("/notiz");
-				System.out.println("startpos #1: " + startpos);
+				LOG.info("startpos #1: " + startpos);
 				if(requesturi.indexOf("/",startpos + 1) != -1) {
 					paramObjektid = Long.parseLong(requesturi.substring(requesturi.indexOf("/",startpos + 1) + 1));
-					System.out.println("Versuch, Objektid zu extrahieren ===" + paramObjektid + "===");
+					LOG.info("Versuch, Objektid zu extrahieren ===" + paramObjektid + "===");
 				}
 			}
 		}
@@ -133,7 +144,7 @@ public class notiz extends HttpServlet {
 			selectHaltestelleStmt = bfrkConn.prepareStatement(selectHaltestelleSql);
 			selectHaltestelleStmt.setLong(1, paramObjektid);
 			selectHaltestelleStmt.setLong(2, paramObjektid);
-			System.out.println("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
+			LOG.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
 
 			ResultSet selectMerkmaleRS = selectHaltestelleStmt.executeQuery();
 
@@ -144,42 +155,41 @@ public class notiz extends HttpServlet {
 				String name = selectMerkmaleRS.getString("name");
 				String wert = selectMerkmaleRS.getString("wert");
 
-				if(name.equals("OBJ_Notiz_Objektart")) {
-					if(wert.equals("Haltestelle")) {
-						merkmaleJsonObject.put("objektart", "Haltestelle");
-					} else if(wert.equals("Steig")) {
-						merkmaleJsonObject.put("objektart", "Steig");
-					} else if(	(wert.toLowerCase().indexOf("hst ") == 0)
-						||		(wert.toLowerCase().indexOf("haltestelle ") == 0)) {
-						merkmaleJsonObject.put("objektart", "Haltestelle");
-					} else if(	wert.toLowerCase().indexOf("steig") == 0) {
-						merkmaleJsonObject.put("objektart", "Steig");
-					} else {
-						merkmaleJsonObject.put("objektart", "Sonstiges");
-						NVBWLogger.warning("in Servlet " + this.getServletName() 
-						+ " unerwarteter Wert bei Merkmal Name '" + name + "'" 
-						+ ", Wert '" + wert + "'");
-					}
-				} else if(name.equals("OBJ_Notiz_Inhalt"))
-					merkmaleJsonObject.put("inhalt", wert);
-				else if(name.equals("OBJ_Notiz_weitereBilder1_Foto_Kommentar"))
-					merkmaleJsonObject.put("bild1_Kommentar", wert);
-				else if(name.equals("OBJ_Notiz_weitereBilder2_Foto_Kommentar"))
-					merkmaleJsonObject.put("bild2_Kommentar", wert);
-				else if(name.equals("OBJ_Notiz_weitereBilder3_Foto_Kommentar"))
-					merkmaleJsonObject.put("bild3_Kommentar", wert);
-				else if(name.equals("OBJ_Notiz_weitereBilder_Auswahl")) {
-					//nichts zu tun
-				} else if(name.equals("OBJ_Notiz_weitereBilder1_Foto"))
-					merkmaleJsonObject.put("bild1_Foto", Bild.getBildUrl(wert, dhid));
-				else if(name.equals("OBJ_Notiz_weitereBilder2_Foto"))
-					merkmaleJsonObject.put("bild2_Foto", Bild.getBildUrl(wert, dhid));
-				else if(name.equals("OBJ_Notiz_weitereBilder3_Foto"))
-					merkmaleJsonObject.put("bild3_Foto", Bild.getBildUrl(wert, dhid));
-				else
-					NVBWLogger.warning("in Servlet " + this.getServletName() 
-						+ " nicht verarbeitetes Merkmal Name '" + name + "'" 
-						+ ", Wert '" + wert + "'");
+                switch (name) {
+                    case "OBJ_Notiz_Objektart" -> {
+                        if (wert.equals("Haltestelle")) {
+                            merkmaleJsonObject.put("objektart", "Haltestelle");
+                        } else if (wert.equals("Steig")) {
+                            merkmaleJsonObject.put("objektart", "Steig");
+                        } else if ((wert.toLowerCase().indexOf("hst ") == 0)
+                                || (wert.toLowerCase().indexOf("haltestelle ") == 0)) {
+                            merkmaleJsonObject.put("objektart", "Haltestelle");
+                        } else if (wert.toLowerCase().indexOf("steig") == 0) {
+                            merkmaleJsonObject.put("objektart", "Steig");
+                        } else {
+                            merkmaleJsonObject.put("objektart", "Sonstiges");
+                            LOG.warning("in Servlet " + this.getServletName()
+                                    + " unerwarteter Wert bei Merkmal Name '" + name + "'"
+                                    + ", Wert '" + wert + "'");
+                        }
+                    }
+                    case "OBJ_Notiz_Inhalt" -> merkmaleJsonObject.put("inhalt", wert);
+                    case "OBJ_Notiz_weitereBilder1_Foto_Kommentar" -> merkmaleJsonObject.put("bild1_Kommentar", wert);
+                    case "OBJ_Notiz_weitereBilder2_Foto_Kommentar" -> merkmaleJsonObject.put("bild2_Kommentar", wert);
+                    case "OBJ_Notiz_weitereBilder3_Foto_Kommentar" -> merkmaleJsonObject.put("bild3_Kommentar", wert);
+                    case "OBJ_Notiz_weitereBilder_Auswahl" -> {
+                        //nichts zu tun
+                    }
+                    case "OBJ_Notiz_weitereBilder1_Foto" ->
+                            merkmaleJsonObject.put("bild1_Foto", Bild.getBildUrl(wert, dhid));
+                    case "OBJ_Notiz_weitereBilder2_Foto" ->
+                            merkmaleJsonObject.put("bild2_Foto", Bild.getBildUrl(wert, dhid));
+                    case "OBJ_Notiz_weitereBilder3_Foto" ->
+                            merkmaleJsonObject.put("bild3_Foto", Bild.getBildUrl(wert, dhid));
+                    default -> LOG.warning("in Servlet " + this.getServletName()
+                            + " nicht verarbeitetes Merkmal Name '" + name + "'"
+                            + ", Wert '" + wert + "'");
+                }
 			}
 			selectMerkmaleRS.close();
 			selectHaltestelleStmt.close();
@@ -189,9 +199,14 @@ public class notiz extends HttpServlet {
 				return;
 			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.out.println("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten, bitte Administrator informieren: "
+					+ e.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
 		}
 		response.getWriter().append(merkmaleJsonObject.toString());
 	}
@@ -200,11 +215,14 @@ public class notiz extends HttpServlet {
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		LOG.info("Request angekommen in /notiz doPost ...");
 
-		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		response.setCharacterEncoding("UTF-8");
-		response.getWriter().append("POST Request ist nicht erlaubt");
-		return;
+		JSONObject ergebnisJsonObject = new JSONObject();
+		ergebnisJsonObject.put("status", "fehler");
+		ergebnisJsonObject.put("fehlertext", "POST Request /notiz ist nicht vorhanden");
+		response.getWriter().append(ergebnisJsonObject.toString());
+		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 	}
 
 }

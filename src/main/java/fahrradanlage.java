@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -16,11 +17,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import de.nvbw.base.NVBWLogger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import de.nvbw.base.BFRKApiApplicationconfiguration;
-import de.nvbw.base.NVBWLogger;
+import de.nvbw.base.Applicationconfiguration;
 import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
 import de.nvbw.bfrk.util.OpenStreetMap;
@@ -35,8 +36,9 @@ import de.nvbw.bfrk.util.OpenStreetMap;
 public class fahrradanlage extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
-	private static BFRKApiApplicationconfiguration bfrkapiconfiguration = null;
-    private static Connection bfrkConn = null;
+	private static final Logger LOG = NVBWLogger.getLogger(fahrradanlage.class);
+	private static Applicationconfiguration configuration = new Applicationconfiguration();
+	private static Connection bfrkConn = null;
 
 
     /**
@@ -44,16 +46,14 @@ public class fahrradanlage extends HttpServlet {
      */
     public fahrradanlage() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     /**
-     * initialization on servlett startup
+     * initialization on servlet startup
      * - connect to bfrk DB
      */
     @Override
     public void init() {
-		bfrkapiconfiguration = new BFRKApiApplicationconfiguration();
     	bfrkConn = DBVerbindung.getDBVerbindung();
     }
 
@@ -70,11 +70,11 @@ public class fahrradanlage extends HttpServlet {
 
 		JSONObject resultObjectJson = new JSONObject();
 
-		NVBWLogger.info("===== Request /fahrradanlage GET ...");
+		LOG.info("===== Request /fahrradanlage GET ...");
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				System.out.println("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.info("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
 					JSONObject errorObjektJson = new JSONObject();
@@ -102,13 +102,13 @@ public class fahrradanlage extends HttpServlet {
 		
 		long paramObjektid = 0;
 		String requesturi = request.getRequestURI();
-		NVBWLogger.info("requesturi ===" + requesturi + "===");
-		if(requesturi.indexOf("/fahrradanlage") != -1) {
+		LOG.info("requesturi ===" + requesturi + "===");
+		if(requesturi.contains("/fahrradanlage")) {
 			int startpos = requesturi.indexOf("/fahrradanlage");
-			System.out.println("startpos #1: " + startpos);
+			LOG.info("startpos #1: " + startpos);
 			if(requesturi.indexOf("/",startpos + 1) != -1) {
 				paramObjektid = Long.parseLong(requesturi.substring(requesturi.indexOf("/",startpos + 1) + 1));
-				System.out.println("Versuch, Objektid zu extrahieren ===" + paramObjektid + "===");
+				LOG.info("Versuch, Objektid zu extrahieren ===" + paramObjektid + "===");
 			}
 		}
 
@@ -168,7 +168,7 @@ public class fahrradanlage extends HttpServlet {
 			selectHaltestelleStmt = bfrkConn.prepareStatement(selectHaltestelleSql);
 			selectHaltestelleStmt.setLong(1, paramObjektid);
 			selectHaltestelleStmt.setLong(2, paramObjektid);
-			System.out.println("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
+			LOG.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
 
 			ResultSet selectMerkmaleRS = selectHaltestelleStmt.executeQuery();
 
@@ -210,76 +210,74 @@ public class fahrradanlage extends HttpServlet {
 				name = selectMerkmaleRS.getString("name");
 				wert = selectMerkmaleRS.getString("wert");
 				typ = selectMerkmaleRS.getString("typ");
-				System.out.println("akt name: " + name + ", wert: " + wert);
+				LOG.info("akt name: " + name + ", wert: " + wert);
 
 				if(!objektart.equals("BuR")) {
 					falscheobjektart = true;
 					continue;
 				}
 
-				if(name.equals("OBJ_BuR_Anlagentyp")) {
-					merkmaleJsonObject.put("anlagentyp", wert);
-					String osmwert = "";
-					if(wert.equals("Anlehnbuegel"))
-						osmwert = "stands";
-					else if(wert.equals("doppelstoeckig"))
-						osmwert = "two-tier";
-					else if(wert.equals("Fahrradboxen"))
-						osmwert = "lockers";
-					else if(wert.equals("Fahrradparkhaus"))
-						osmwert = "building";
-					else if(wert.equals("Fahrradsammelanlage"))
-						osmwert = "shed";
-					else if(wert.equals("Vorderradhalter"))
-						osmwert = "wall_loops";
-					else
-						NVBWLogger.warning("OSM-Tagging kann nicht gesetzt werden "
-							+ "für OSM-Key bicycle_parking mit DB-Wert '" + wert + "'");
-					if(!osmwert.isEmpty())
-						osmTags.append("<tag k='bicycle_parking' v='" + osmwert + "'></tag>\r\n");
-				} else if(name.equals("OBJ_BuR_Stellplatzanzahl")) {
-					merkmaleJsonObject.put("stellplatzanzahl", (int) Double.parseDouble(wert));
-					osmTags.append("<tag k='capacity' v='" + (int) Double.parseDouble(wert) + "'></tag>\r\n");
-				} else if(name.equals("OBJ_BuR_Beleuchtet")) {
-					merkmaleJsonObject.put("beleuchtet", wert.equals("true"));
-					osmTags.append("<tag k='lit' v='" + (wert.equals("true") ? "yes" : "no") + "'></tag>\r\n");
-				} else if(name.equals("OBJ_BuR_Ueberdacht")) {
-					merkmaleJsonObject.put("ueberdacht", wert.equals("true"));
-					osmTags.append("<tag k='covered' v='" + (wert.equals("true") ? "yes" : "no") + "'></tag>\r\n");
-				} else if(name.equals("OBJ_BuR_Hinderniszufahrt_Beschreibung"))
-					merkmaleJsonObject.put("hinderniszufahrt", wert);
-				else if(name.equals("OBJ_BuR_Kostenpflichtig")) {
-					merkmaleJsonObject.put("kostenpflichtig", wert.equals("true"));
-					osmTags.append("<tag k='fee' v='" + (wert.equals("true") ? "yes" : "no") + "'></tag>\r\n");
-					if(wert.equals("true"))
-						osmaccess = "customers";
-				} else if(name.equals("OBJ_BuR_KostenpflichtigNotiz"))
-					merkmaleJsonObject.put("kostenpflichtignotiz", wert);
-				else if(name.equals("OBJ_BuR_WegZurAnlageAnfahrbar"))
-					merkmaleJsonObject.put("wegzuranlageanfahrbar", wert.equals("true"));
-				else if(name.equals("OBJ_BuR_Lon")) {
-					if(lon == 0.0) {
-						lon = Double.parseDouble(wert);
-					}
-				} else if(name.equals("OBJ_BuR_Lat")) {
-					if(lat == 0.0)
-						lat = Double.parseDouble(wert);
-				} else if(name.equals("OBJ_BuR_Buegelabstand_cm"))
-					merkmaleJsonObject.put("buegelabstand", (int) Double.parseDouble(wert));
-				else if(name.equals("OBJ_BuR_Notiz"))
-					merkmaleJsonObject.put("notiz", wert);
-				else if(name.equals("OBJ_BuR_Foto"))
-					merkmaleJsonObject.put("objekt_Foto", Bild.getBildUrl(wert, dhid));
-				else if(name.equals("OBJ_BuR_Weg_Foto"))
-					merkmaleJsonObject.put("weg_Foto", Bild.getBildUrl(wert, dhid));
-				else if(name.equals("OBJ_BuR_Besonderheiten_Foto"))
-					merkmaleJsonObject.put("besonderheiten_Foto", Bild.getBildUrl(wert, dhid));
-				else if(name.equals("OBJ_BuR_Hinderniszufahrt_Foto"))
-					merkmaleJsonObject.put("hinderniszufahrt_Foto", Bild.getBildUrl(wert, dhid));
-				else
-					NVBWLogger.warning("in Servlet " + this.getServletName() 
-						+ " nicht verarbeitetes Merkmal Name '" + name + "'" 
-						+ ", Wert '" + wert + "'");
+                switch (name) {
+                    case "OBJ_BuR_Anlagentyp" -> {
+                        merkmaleJsonObject.put("anlagentyp", wert);
+                        String osmwert = "";
+                        switch (wert) {
+                            case "Anlehnbuegel" -> osmwert = "stands";
+                            case "doppelstoeckig" -> osmwert = "two-tier";
+                            case "Fahrradboxen" -> osmwert = "lockers";
+                            case "Fahrradparkhaus" -> osmwert = "building";
+                            case "Fahrradsammelanlage" -> osmwert = "shed";
+                            case "Vorderradhalter" -> osmwert = "wall_loops";
+                            default -> LOG.warning("OSM-Tagging kann nicht gesetzt werden "
+                                    + "für OSM-Key bicycle_parking mit DB-Wert '" + wert + "'");
+                        }
+                        if (!osmwert.isEmpty())
+                            osmTags.append("<tag k='bicycle_parking' v='" + osmwert + "'></tag>\r\n");
+                    }
+                    case "OBJ_BuR_Stellplatzanzahl" -> {
+                        merkmaleJsonObject.put("stellplatzanzahl", (int) Double.parseDouble(wert));
+                        osmTags.append("<tag k='capacity' v='" + (int) Double.parseDouble(wert) + "'></tag>\r\n");
+                    }
+                    case "OBJ_BuR_Beleuchtet" -> {
+                        merkmaleJsonObject.put("beleuchtet", wert.equals("true"));
+                        osmTags.append("<tag k='lit' v='" + (wert.equals("true") ? "yes" : "no") + "'></tag>\r\n");
+                    }
+                    case "OBJ_BuR_Ueberdacht" -> {
+                        merkmaleJsonObject.put("ueberdacht", wert.equals("true"));
+                        osmTags.append("<tag k='covered' v='" + (wert.equals("true") ? "yes" : "no") + "'></tag>\r\n");
+                    }
+                    case "OBJ_BuR_Hinderniszufahrt_Beschreibung" -> merkmaleJsonObject.put("hinderniszufahrt", wert);
+                    case "OBJ_BuR_Kostenpflichtig" -> {
+                        merkmaleJsonObject.put("kostenpflichtig", wert.equals("true"));
+                        osmTags.append("<tag k='fee' v='" + (wert.equals("true") ? "yes" : "no") + "'></tag>\r\n");
+                        if (wert.equals("true"))
+                            osmaccess = "customers";
+                    }
+                    case "OBJ_BuR_KostenpflichtigNotiz" -> merkmaleJsonObject.put("kostenpflichtignotiz", wert);
+                    case "OBJ_BuR_WegZurAnlageAnfahrbar" ->
+                            merkmaleJsonObject.put("wegzuranlageanfahrbar", wert.equals("true"));
+                    case "OBJ_BuR_Lon" -> {
+                        if (lon == 0.0) {
+                            lon = Double.parseDouble(wert);
+                        }
+                    }
+                    case "OBJ_BuR_Lat" -> {
+                        if (lat == 0.0)
+                            lat = Double.parseDouble(wert);
+                    }
+                    case "OBJ_BuR_Buegelabstand_cm" ->
+                            merkmaleJsonObject.put("buegelabstand", (int) Double.parseDouble(wert));
+                    case "OBJ_BuR_Notiz" -> merkmaleJsonObject.put("notiz", wert);
+                    case "OBJ_BuR_Foto" -> merkmaleJsonObject.put("objekt_Foto", Bild.getBildUrl(wert, dhid));
+                    case "OBJ_BuR_Weg_Foto" -> merkmaleJsonObject.put("weg_Foto", Bild.getBildUrl(wert, dhid));
+                    case "OBJ_BuR_Besonderheiten_Foto" ->
+                            merkmaleJsonObject.put("besonderheiten_Foto", Bild.getBildUrl(wert, dhid));
+                    case "OBJ_BuR_Hinderniszufahrt_Foto" ->
+                            merkmaleJsonObject.put("hinderniszufahrt_Foto", Bild.getBildUrl(wert, dhid));
+                    default -> LOG.warning("in Servlet " + this.getServletName()
+                            + " nicht verarbeitetes Merkmal Name '" + name + "'"
+                            + ", Wert '" + wert + "'");
+                }
 			} // end of Schleife über alle Datensatzmerkmale
 
 			merkmaleJsonObject.put("objekt_dhid", dhid);
@@ -299,12 +297,11 @@ public class fahrradanlage extends HttpServlet {
 				merkmaleJsonObject.put("koordinatenqualitaet", "validierte-Position");
 				List<String> osmlinksArray = OpenStreetMap.getHyperlinksAsArray(osmids);
 				JSONArray osmlinksJA = new JSONArray();
-				for(int osmlinkindex = 0; osmlinkindex < osmlinksArray.size(); osmlinkindex++)
-					osmlinksJA.put(osmlinksArray.get(osmlinkindex));
+                for (String s : osmlinksArray) osmlinksJA.put(s);
 				merkmaleJsonObject.put("osmlinks", osmlinksJA);
 			}
 
-			StringBuffer osmObjekt = new StringBuffer();
+			StringBuilder osmObjekt = new StringBuilder();
 			osmObjekt.append("<?xml version='1.0' encoding='UTF-8'?>\r\n");
 			osmObjekt.append("<osm version='0.6' generator='NVBW Haltestellenimport' upload='never' download='never'>\r\n");
 			osmObjekt.append("<node id='-1' "
@@ -312,16 +309,14 @@ public class fahrradanlage extends HttpServlet {
 			osmObjekt.append("<tag k='amenity' v='bicycle_parking'></tag>\r\n");
 			osmObjekt.append("<tag k='bike_ride' v='yes'></tag>\r\n");
 			osmObjekt.append(osmTags);
-System.out.println("osmaccess: " + osmaccess);
-			if(!osmaccess.isEmpty())
-				osmObjekt.append("<tag k='access' v='" + osmaccess + "'></tag>\r\n");
+			osmObjekt.append("<tag k='access' v='" + osmaccess + "'></tag>\r\n");
 			osmObjekt.append("</node>\r\n");
 			osmObjekt.append("</osm>\r\n");
 			merkmaleJsonObject.put("osmtagging", osmObjekt.toString());
 
 			String josmlink = "http://localhost:8111/load_data?&new_layer=false&"
 				+ "download_policy=never&upload_policy=never&data=" 
-				+ URLEncoder.encode(osmObjekt.toString(), StandardCharsets.UTF_8.toString());
+				+ URLEncoder.encode(osmObjekt.toString(), StandardCharsets.UTF_8);
 			merkmaleJsonObject.put("josmimportlink", josmlink);
 
 			selectMerkmaleRS.close();
@@ -338,9 +333,13 @@ System.out.println("osmaccess: " + osmaccess);
 				return;
 			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.out.println("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "SQL-DB Fehler aufgetreten, bitte Administrator informieren.");
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
 		}
 		response.getWriter().append(merkmaleJsonObject.toString());
 	}
@@ -350,7 +349,7 @@ System.out.println("osmaccess: " + osmaccess);
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		System.out.println("Request /fahrradanlage, doPost ...");
+		LOG.info("Request /fahrradanlage, doPost ...");
 
 		String paramAuthorisierungsId = "";
 		String paramOSMUser = "_BFRKWebiste_Sonstiger";
@@ -367,44 +366,84 @@ System.out.println("osmaccess: " + osmaccess);
 		StringBuffer dbfehlermeldungen = new StringBuffer();
 		Date zeitstempelimport = new Date();
 
-		System.out.println("requesturi ===" + requesturi + "===");
-		if(requesturi.indexOf("/fahrradanlage") != -1) {
+
+		String accesstoken = "";
+
+		LOG.info("Request Header accesstoken vorhanden ===" + request.getHeader("accesstoken") + "===");
+		accesstoken = request.getHeader("accesstoken");
+		if(accesstoken.isEmpty()) {
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "Authentifizierung fehlgeschlagen, weil Header accesstoken leer ist");
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+			return;
+		}
+
+		// ============= prüfen, ob accesstoken gültig ist ==============
+		String authentifizierungSql = "SELECT objekteaendern, name FROM benutzer "
+				+ "WHERE accesstoken = ?;";
+
+		String bearbeiter = null;
+		PreparedStatement authentifizierungStmt;
+		try {
+			authentifizierungStmt = bfrkConn.prepareStatement(authentifizierungSql);
+			int stmtindex = 1;
+			authentifizierungStmt.setString(stmtindex++, accesstoken);
+			LOG.info("Authentifizierung query: " + authentifizierungStmt.toString() + "===");
+
+			ResultSet authentifizierungRS = authentifizierungStmt.executeQuery();
+
+			String dbaccesstoken = null;
+			boolean objekteaendern = false;
+
+			if(authentifizierungRS.next()) {
+				bearbeiter = authentifizierungRS.getString("name");
+				objekteaendern = authentifizierungRS.getBoolean("objekteaendern");
+			}
+			authentifizierungRS.close();
+			authentifizierungStmt.close();
+
+			if(!objekteaendern) {
+				JSONObject ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "Authentifizierung fehlgeschlagen");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+				return;
+			}
+
+		} catch (SQLException e) {
+			LOG.info("SQLException::: " + e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "DB-Fehler aufgetreten, bitte den Administrtaor benachrichtigen");
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
+		}
+
+		LOG.info("requesturi ===" + requesturi + "===");
+		if(requesturi.contains("/fahrradanlage")) {
 			int startpos = requesturi.indexOf("/fahrradanlage");
-			System.out.println("startpos #1: " + startpos);
+			LOG.info("startpos #1: " + startpos);
 			if(requesturi.indexOf("/",startpos + 1) != -1) {
 				startpos = requesturi.indexOf("/",startpos + 1) + 1;
 				int endpos = requesturi.indexOf("/",startpos + 1);
 				if(endpos == -1)
 					endpos = requesturi.length();
-				System.out.println("für Merkmal: Startpos: " + startpos + ",   endpos: " + endpos);
+				LOG.info("für Merkmal: Startpos: " + startpos + ",   endpos: " + endpos);
 				paramObjektid = Long.parseLong(URLDecoder.decode(requesturi.substring(startpos, endpos),"UTF-8"));
-				System.out.println("ObjektId===" + paramObjektid + "===");
+				LOG.info("ObjektId===" + paramObjektid + "===");
 			}
-		}
-
-		paramAuthorisierungsId = "";
-		if(request.getParameter("authorisierungsid") != null) {
-			paramAuthorisierungsId = request.getParameter("authorisierungsid");
-			System.out.println("url-Parameter authorisierungsid gesetzt ===" + paramAuthorisierungsId + "===");
-		} else {
-			System.out.println("url-Parameter authorisierungsid fehlt, Pech gehabt");
-		}
-
-			// Authorisierung zum PUT-Request prüfen und ggfs. abbrechen
-		if(		paramAuthorisierungsId.isEmpty()
-			||	(bfrkapiconfiguration.authorisierungsid == null)
-			||	!paramAuthorisierungsId.equals(bfrkapiconfiguration.authorisierungsid)) {
-			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-			response.setCharacterEncoding("UTF-8");
-			return;
 		}
 
 		paramDHID = "";
 		if(request.getParameter("dhid") != null) {
 			paramDHID = request.getParameter("dhid");
-			System.out.println("url-Parameter dhid gesetzt ===" + paramDHID + "===");
+			LOG.info("url-Parameter dhid gesetzt ===" + paramDHID + "===");
 		} else {
-			System.out.println("url-Parameter dhid fehlt, Pech gehabt");
+			LOG.info("url-Parameter dhid fehlt, Pech gehabt");
 		}
 
 		String selectObjektSql = "SELECT id FROM objekt WHERE dhid = ? AND id = ? "
@@ -416,7 +455,7 @@ System.out.println("osmaccess: " + osmaccess);
 			int stmtindex = 1;
 			selectObjektStmt.setString(stmtindex++, paramDHID);
 			selectObjektStmt.setLong(stmtindex++, paramObjektid);
-			System.out.println("Objekt query: " + selectObjektStmt.toString() + "===");
+			LOG.info("Objekt query: " + selectObjektStmt.toString() + "===");
 
 			ResultSet selectMerkmaleRS = selectObjektStmt.executeQuery();
 
@@ -426,37 +465,45 @@ System.out.println("osmaccess: " + osmaccess);
 				anzahldatensaetze++;
 			}
 			if(anzahldatensaetze != 1) {
-				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 				response.setCharacterEncoding("UTF-8");
-				response.getWriter().append("Parameter DHID und objekt_id passen nicht zur Objektart");
+				JSONObject ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "Parameter DHID und objekt_id passen nicht zur Objektart");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 				return;
 			}
 		} catch (SQLException e) {
-			NVBWLogger.severe("DB Transaktion kann nicht gestartet werden");
-			NVBWLogger.severe(e.toString());
-			dbfehlermeldungen.append("* DB Transaktion kann nicht gestartet werden\r\n");
-
-			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			LOG.severe("DB Transaktion kann nicht gestartet werden");
+			LOG.severe(e.toString());
 			response.setCharacterEncoding("UTF-8");
-			response.getWriter().append(dbfehlermeldungen);
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			return;
 		}
 
-			
-			
+
 		if(request.getParameter("osmuser") != null) {
 			paramOSMUser = request.getParameter("osmuser");
-			System.out.println("url-Parameter osmuser gesetzt ===" + paramOSMUser + "===");
+			LOG.info("url-Parameter osmuser gesetzt ===" + paramOSMUser + "===");
 		} else {
-			System.out.println("url-Parameter osmuser fehlt, Pech gehabt");
+			LOG.info("url-Parameter osmuser fehlt, Pech gehabt");
 		}
 
 		try {
 			bfrkConn.setAutoCommit(false);
 		} catch (SQLException e) {
-			NVBWLogger.severe("DB Transaktion kann nicht gestartet werden");
-			NVBWLogger.severe(e.toString());
-			dbfehlermeldungen.append("* DB Transaktion kann nicht gestartet werden\r\n");
+			LOG.severe("DB Transaktion kann nicht gestartet werden");
+			LOG.severe(e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			return;
 		}
 
 		int anzahlerfolgreich = 0;
@@ -472,7 +519,7 @@ System.out.println("osmaccess: " + osmaccess);
 				||	paramAnlagentyp.equals("Fahrradsammelanlage")
 				||	paramAnlagentyp.equals("Sonstiges")
 				||	paramAnlagentyp.equals("Vorderradhalter")) {
-				System.out.println("url-Parameter anlagentyp gesetzt ===" + paramAnlagentyp + "===");
+				LOG.info("url-Parameter anlagentyp gesetzt ===" + paramAnlagentyp + "===");
 
 				String insertKorrekturmerkmalSql = "INSERT INTO merkmalkorrektur "
 					+ "(objekt_id, name, wert, typ, zeitstempel) "
@@ -490,20 +537,25 @@ System.out.println("osmaccess: " + osmaccess);
 					insertKorrekturmerkmalStmt.setTimestamp(stmtindex++, new java.sql.Timestamp(zeitstempelimport.getTime()));
 					insertKorrekturmerkmalStmt.setLong(stmtindex++, paramObjektid);
 					insertKorrekturmerkmalStmt.setString(stmtindex++, paramAnlagentyp);
-					System.out.println("insertKorrekturmerkmal Statement: " + insertKorrekturmerkmalStmt.toString() + "===");
+					LOG.info("insertKorrekturmerkmal Statement: " + insertKorrekturmerkmalStmt.toString() + "===");
 
 					int anzahlinserts = insertKorrekturmerkmalStmt.executeUpdate();
 					if(anzahlinserts == 1) {
-						System.out.println("insert Korrekturmerkmal Anlagentyp war erfolgreich");
+						LOG.info("insert Korrekturmerkmal Anlagentyp war erfolgreich");
 						anzahlerfolgreich++;
 					} else
 						dbfehlermeldungen.append("* DB Insert Merkmalkorrektur Anlagentyp führte nicht zu einem DB Eintrag\r\n");
 				} catch (SQLException e1) {
-					NVBWLogger.severe("SQL-Insert Fehler, als eine Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
+					LOG.severe("SQL-Insert Fehler, als eine Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
 						+ "Statement war '" + insertKorrekturmerkmalStmt.toString() 
 						+ "' Details folgen ...");
-					NVBWLogger.severe(e1.toString());
-					dbfehlermeldungen.append("* DB Insert Merkmalkorrektur Anlagentyp führte zu einer Exception\r\n");
+					LOG.severe(e1.toString());
+					JSONObject ergebnisJsonObject = new JSONObject();
+					ergebnisJsonObject.put("status", "fehler");
+					ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
+					response.getWriter().append(ergebnisJsonObject.toString());
+					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+					return;
 				}
 			} else {
 				if(!paramAnlagentyp.isEmpty())
@@ -511,16 +563,16 @@ System.out.println("osmaccess: " + osmaccess);
 				paramAnlagentyp = "";
 			}
 		} else {
-			System.out.println("url-Parameter anlagentyp fehlt, Pech gehabt");
+			LOG.info("url-Parameter anlagentyp fehlt, Pech gehabt");
 		}
 
 		paramOSMids = "";
 		if(request.getParameter("osmids") != null) {
 			paramOSMids = request.getParameter("osmids");
-			System.out.println("url-Parameter osmids gesetzt ===" + paramOSMids + "===");
+			LOG.info("url-Parameter osmids gesetzt ===" + paramOSMids + "===");
 
-			String insertOSMBezugSql = "INSERT INTO osmobjektbezug (objekt_id, osmid, bezugzeitpunkt) "
-				+ "SELECT o.id, ?, ? from objekt as o WHERE objektart = 'BuR' and o.id = ?;";
+			String insertOSMBezugSql = "INSERT INTO osmobjektbezug (objekt_id, osmid, bezugzeitpunkt, subobjektart) "
+				+ "SELECT o.id, ?, ?, 'Hauptobjekt' from objekt as o WHERE objektart = 'BuR' and o.id = ?;";
 
 			PreparedStatement insertOSMBezugStmt = null;
 			try {
@@ -530,31 +582,36 @@ System.out.println("osmaccess: " + osmaccess);
 				insertOSMBezugStmt.setString(stmtindex++, paramOSMids);
 				insertOSMBezugStmt.setTimestamp(stmtindex++, new java.sql.Timestamp(zeitstempelimport.getTime()));
 				insertOSMBezugStmt.setLong(stmtindex++, paramObjektid);
-				System.out.println("insertOSMBezug Statement: " + insertOSMBezugStmt.toString() + "===");
+				LOG.info("insertOSMBezug Statement: " + insertOSMBezugStmt.toString() + "===");
 
 				int anzahlinserts = insertOSMBezugStmt.executeUpdate();
 				if(anzahlinserts == 1) {
-					System.out.println("insert osmobjektbezug war erfolgreich");
+					LOG.info("insert osmobjektbezug war erfolgreich");
 					anzahlerfolgreich++;
 				} else
 					dbfehlermeldungen.append("* DB Insert OSMObjektbezug führte nicht zu einem DB Eintrag\r\n");
 			} catch (SQLException e1) {
-				NVBWLogger.severe("SQL-Insert Fehler in Tabelle osmobjektbezug, " 
+				LOG.severe("SQL-Insert Fehler in Tabelle osmobjektbezug, " 
 					+ "Statement war '" + insertOSMBezugStmt.toString() 
 					+ "' Details folgen ...");
-				NVBWLogger.severe(e1.toString());
-				dbfehlermeldungen.append("* DB Insert OSMObjektbezug führte zu einer Exception\r\n");
+				LOG.severe(e1.toString());
+				JSONObject ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+				return;
 			}
 		} else {
-			System.out.println("url-Parameter osmids fehlt, Pech gehabt");
+			LOG.info("url-Parameter osmids fehlt, Pech gehabt");
 		}
 
 		paramBemerkungen = "";
 		if(request.getParameter("bemerkungen") != null) {
 			paramOSMids = request.getParameter("bemerkungen");
-			System.out.println("url-Parameter bemerkungen gesetzt ===" + paramBemerkungen + "===");
+			LOG.info("url-Parameter bemerkungen gesetzt ===" + paramBemerkungen + "===");
 		} else {
-			System.out.println("url-Parameter bemerkungen fehlt, Pech gehabt");
+			LOG.info("url-Parameter bemerkungen fehlt, Pech gehabt");
 		}
 
 		paramInOSMVollstaendig = false;
@@ -564,7 +621,7 @@ System.out.println("osmaccess: " + osmaccess);
 			else {
 				paramInOSMVollstaendig = false;
 			}
-			System.out.println("url-Parameter inosmvollstaendigerfasst: " + (paramInOSMVollstaendig == true));
+			LOG.info("url-Parameter inosmvollstaendigerfasst: " + (paramInOSMVollstaendig == true));
 
 			String insertOSMimportiertSql = "INSERT INTO osmimport "
 				+ "(objekt_id, importiertdurch, vollstaendig, bemerkungen, zeitstempel) "
@@ -581,29 +638,34 @@ System.out.println("osmaccess: " + osmaccess);
 				insertOSMimportiertStmt.setString(stmtindex++, paramBemerkungen);
 				insertOSMimportiertStmt.setTimestamp(stmtindex++, new java.sql.Timestamp(zeitstempelimport.getTime()));
 				insertOSMimportiertStmt.setLong(stmtindex++, paramObjektid);
-				System.out.println("insertOSMimportiert Statement: " + insertOSMimportiertStmt.toString() + "===");
+				LOG.info("insertOSMimportiert Statement: " + insertOSMimportiertStmt.toString() + "===");
 
 				int anzahlinserts = insertOSMimportiertStmt.executeUpdate();
 				if(anzahlinserts == 1) {
-					System.out.println("insert osmimport war erfolgreich");
+					LOG.info("insert osmimport war erfolgreich");
 					anzahlerfolgreich++;
 				} else
 					dbfehlermeldungen.append("* DB Insert OSMImport führte nicht zu einem DB Eintrag\r\n");
 			} catch (SQLException e1) {
-				NVBWLogger.severe("SQL-Insert Fehler in Tabelle osmimport, " 
+				LOG.severe("SQL-Insert Fehler in Tabelle osmimport, " 
 					+ "Statement war '" + insertOSMimportiertStmt.toString() 
 					+ "' Details folgen ...");
-				NVBWLogger.severe(e1.toString());
-				dbfehlermeldungen.append("* DB Insert OSMImport führte zu einer Exception\r\n");
+				LOG.severe(e1.toString());
+				JSONObject ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+				return;
 			}
 		} else {
-			System.out.println("url-Parameter inosmvollstaendigerfasst fehlt, Pech gehabt");
+			LOG.info("url-Parameter inosmvollstaendigerfasst fehlt, Pech gehabt");
 		}
 
 		paramStellplatzanzahl = 0;
 		if(request.getParameter("stellplatzanzahl") != null) {
 			paramStellplatzanzahl = Integer.parseInt(request.getParameter("stellplatzanzahl"));
-			System.out.println("url-Parameter stellplatzanzahl gesetzt ===" + paramStellplatzanzahl + "===");
+			LOG.info("url-Parameter stellplatzanzahl gesetzt ===" + paramStellplatzanzahl + "===");
 
 			String insertKorrekturmerkmalSql = "INSERT INTO merkmalkorrektur "
 				+ "(objekt_id, name, wert, typ, zeitstempel) "
@@ -621,23 +683,28 @@ System.out.println("osmaccess: " + osmaccess);
 				insertKorrekturmerkmalStmt.setTimestamp(stmtindex++, new java.sql.Timestamp(zeitstempelimport.getTime()));
 				insertKorrekturmerkmalStmt.setLong(stmtindex++, paramObjektid);
 				insertKorrekturmerkmalStmt.setString(stmtindex++, "" + paramStellplatzanzahl + ".0");
-				System.out.println("insertKorrekturmerkmal Statement: " + insertKorrekturmerkmalStmt.toString() + "===");
+				LOG.info("insertKorrekturmerkmal Statement: " + insertKorrekturmerkmalStmt.toString() + "===");
 
 				int anzahlinserts = insertKorrekturmerkmalStmt.executeUpdate();
 				if(anzahlinserts == 1) {
-					System.out.println("insert Korrekturmerkmal Stellplatzanzahl war erfolgreich");
+					LOG.info("insert Korrekturmerkmal Stellplatzanzahl war erfolgreich");
 					anzahlerfolgreich++;
 				} else
 					dbfehlermeldungen.append("* DB Insert Merkmalkorrektur Stellplatzanzahl führte nicht zu einem DB Eintrag\r\n");
 			} catch (SQLException e1) {
-				NVBWLogger.severe("SQL-Insert Fehler, als eine Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
+				LOG.severe("SQL-Insert Fehler, als eine Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
 					+ "Statement war '" + insertKorrekturmerkmalStmt.toString() 
 					+ "' Details folgen ...");
-				NVBWLogger.severe(e1.toString());
-				dbfehlermeldungen.append("* DB Insert Merkmalkorrektur Stellplatzanzahl führte zu einer Exception\r\n");
+				LOG.severe(e1.toString());
+				JSONObject ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+				return;
 			}
 		} else {
-			System.out.println("url-Parameter stellplatzanzahl nicht vorhanden gewesen");
+			LOG.info("url-Parameter stellplatzanzahl nicht vorhanden gewesen");
 		}
 
 		paramBeleuchtet = false;
@@ -664,23 +731,28 @@ System.out.println("osmaccess: " + osmaccess);
 				insertKorrekturmerkmalStmt.setTimestamp(stmtindex++, new java.sql.Timestamp(zeitstempelimport.getTime()));
 				insertKorrekturmerkmalStmt.setLong(stmtindex++, paramObjektid);
 				insertKorrekturmerkmalStmt.setString(stmtindex++, "" + paramBeleuchtet);
-				System.out.println("insertKorrekturmerkmal Statement: " + insertKorrekturmerkmalStmt.toString() + "===");
+				LOG.info("insertKorrekturmerkmal Statement: " + insertKorrekturmerkmalStmt.toString() + "===");
 
 				int anzahlinserts = insertKorrekturmerkmalStmt.executeUpdate();
 				if(anzahlinserts == 1) {
-					System.out.println("insert Korrekturmerkmal Beleuchtung war erfolgreich");
+					LOG.info("insert Korrekturmerkmal Beleuchtung war erfolgreich");
 					anzahlerfolgreich++;
 				} else
 					dbfehlermeldungen.append("* DB Insert Merkmalkorrektur Beleuchtung führte nicht zu einem DB Eintrag\r\n");
 			} catch (SQLException e1) {
-				NVBWLogger.severe("SQL-Insert Fehler, als eine Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
+				LOG.severe("SQL-Insert Fehler, als eine Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
 					+ "Statement war '" + insertKorrekturmerkmalStmt.toString() 
 					+ "' Details folgen ...");
-				NVBWLogger.severe(e1.toString());
-				dbfehlermeldungen.append("* DB Insert Merkmalkorrektur Beleuchtung führte zu einer Exception\r\n");
+				LOG.severe(e1.toString());
+				JSONObject ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+				return;
 			}
 		} else {
-			System.out.println("url-Parameter beleuchtet nicht vorhanden gewesen");
+			LOG.info("url-Parameter beleuchtet nicht vorhanden gewesen");
 		}
 
 		paramUeberdacht = false;
@@ -690,7 +762,7 @@ System.out.println("osmaccess: " + osmaccess);
 			else {
 				paramUeberdacht = false;
 			}
-			System.out.println("url-Parameter ueberdacht: " + (paramUeberdacht == true));
+			LOG.info("url-Parameter ueberdacht: " + (paramUeberdacht == true));
 
 			String insertKorrekturmerkmalSql = "INSERT INTO merkmalkorrektur "
 				+ "(objekt_id, name, wert, typ, zeitstempel) "
@@ -708,23 +780,28 @@ System.out.println("osmaccess: " + osmaccess);
 				insertKorrekturmerkmalStmt.setTimestamp(stmtindex++, new java.sql.Timestamp(zeitstempelimport.getTime()));
 				insertKorrekturmerkmalStmt.setLong(stmtindex++, paramObjektid);
 				insertKorrekturmerkmalStmt.setString(stmtindex++, "" + paramUeberdacht);
-				System.out.println("insertKorrekturmerkmal Statement: " + insertKorrekturmerkmalStmt.toString() + "===");
+				LOG.info("insertKorrekturmerkmal Statement: " + insertKorrekturmerkmalStmt.toString() + "===");
 
 				int anzahlinserts = insertKorrekturmerkmalStmt.executeUpdate();
 				if(anzahlinserts == 1) {
-					System.out.println("insert Korrekturmerkmal Ueberdacht war erfolgreich");
+					LOG.info("insert Korrekturmerkmal Ueberdacht war erfolgreich");
 					anzahlerfolgreich++;
 				} else
 					dbfehlermeldungen.append("* DB Insert Merkmalkorrektur Ueberdacht führte nicht zu einem DB Eintrag\r\n");
 			} catch (SQLException e1) {
-				NVBWLogger.severe("SQL-Insert Fehler, als eine Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
+				LOG.severe("SQL-Insert Fehler, als eine Merkmalkorrektur in die Tabelle eingetragen werden sollte." 
 					+ "Statement war '" + insertKorrekturmerkmalStmt.toString() 
 					+ "' Details folgen ...");
-				NVBWLogger.severe(e1.toString());
-				dbfehlermeldungen.append("* DB Insert Merkmalkorrektur Ueberdacht führte zu einer Exception\r\n");
+				LOG.severe(e1.toString());
+				JSONObject ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+				return;
 			}
 		} else {
-			System.out.println("url-Parameter ueberdacht nicht vorhanden gewesen");
+			LOG.info("url-Parameter ueberdacht nicht vorhanden gewesen");
 		}
 
 		if(		(anzahlversuche == anzahlerfolgreich)
@@ -735,9 +812,14 @@ System.out.println("osmaccess: " + osmaccess);
 				response.setCharacterEncoding("UTF-8");
 				return;
 			} catch (SQLException e) {
-				NVBWLogger.severe("DB Transaktion konnte nicht committed werden");
-				NVBWLogger.severe(e.toString());
-				dbfehlermeldungen.append("* DB Transaktion konnte nicht committed werden\r\n");
+				LOG.severe("DB Transaktion konnte nicht committed werden");
+				LOG.severe(e.toString());
+				JSONObject ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+				return;
 			}
 		} else {
 			try {
@@ -747,14 +829,15 @@ System.out.println("osmaccess: " + osmaccess);
 				response.getWriter().append(dbfehlermeldungen);
 				return;
 			} catch (SQLException e) {
-				NVBWLogger.severe("DB Transaktion konnte nicht rollbacked werden");
-				NVBWLogger.severe(e.toString());
-				dbfehlermeldungen.append("* DB Transaktion konnte nicht rollbacked werden\r\n");
+				LOG.severe("DB Transaktion konnte nicht rollbacked werden");
+				LOG.severe(e.toString());
+				JSONObject ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten Versuch, Daten zu ändern in /fahrradanlage, bitte Administrator informieren: ");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+				return;
 			}
 		}
-		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-		response.setCharacterEncoding("UTF-8");
-		response.getWriter().append(dbfehlermeldungen);
-		return;
 	}
 }

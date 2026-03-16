@@ -1,13 +1,11 @@
 
 import java.io.IOException;
-import java.net.URLDecoder;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.logging.Logger;
 
-import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -17,7 +15,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import de.nvbw.base.Applicationconfiguration;
 import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.DBVerbindung;
 
@@ -29,7 +26,8 @@ import de.nvbw.bfrk.util.DBVerbindung;
 		)
 public class kreise extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-       
+
+	private static final Logger LOG = NVBWLogger.getLogger(notiz.class);
     private static Connection bfrkConn = null;
 
     /**
@@ -37,11 +35,10 @@ public class kreise extends HttpServlet {
      */
     public kreise() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     /**
-     * initialization on servlett startup
+     * initialization on servlet startup
      * - connect to bfrk DB
      */
     @Override
@@ -57,18 +54,35 @@ public class kreise extends HttpServlet {
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				System.out.println("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.severe("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-					response.getWriter().append("FEHLER: keine DB-Verbindung offen");
+					LOG.severe("es konnte keine DB-Verbindung herstellt werden");
+					JSONObject ergebnisJsonObject = new JSONObject();
+					ergebnisJsonObject.put("status", "fehler");
+					ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren");
+					response.getWriter().append(ergebnisJsonObject.toString());
+					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					return;
 				}
 			}
 		} catch (SQLException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei SQLException " + e1.toString());
+			LOG.severe("SQLException aufgetreten, " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		} catch (IOException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei IOException " + e1.toString());
+			LOG.severe("IOException aufgetreten, " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unbekannter Fehler aufgetreten, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
 
@@ -76,10 +90,10 @@ public class kreise extends HttpServlet {
 		String objektart = "Bahnhof";
 
 		if(request.getParameter("oevart") != null) {
-			System.out.println("url-Parameter oevart vorhanden ===" + request.getParameter("oevart"));
+			LOG.info("url-Parameter oevart vorhanden ===" + request.getParameter("oevart"));
 		}
 		if(request.getParameter("oevart") != null) {
-			System.out.println("url-Parameter oevart vorhanden ===" + request.getParameter("oevart") + "===");
+			LOG.info("url-Parameter oevart vorhanden ===" + request.getParameter("oevart") + "===");
 			paramOevart = request.getParameter("oevart").toUpperCase();
 			if(paramOevart.equals("S")) {
 				objektart = "Bahnhof";
@@ -105,7 +119,7 @@ public class kreise extends HttpServlet {
 			int stmtindex = 1;
 			selectKreiseStmt.setString(stmtindex++, paramOevart);
 			selectKreiseStmt.setString(stmtindex++, objektart);
-			System.out.println("Kreise query: " + selectKreiseStmt.toString() + "===");
+			LOG.info("Kreise query: " + selectKreiseStmt.toString() + "===");
 
 			ResultSet selectKreiseRS = selectKreiseStmt.executeQuery();
 
@@ -125,13 +139,18 @@ public class kreise extends HttpServlet {
 				
 				kreiseJsonArray.put(kreiseJsonObject);
 			}
-			NVBWLogger.info("Anzahl Kreise: " + anzahl);
+			LOG.info("Anzahl Kreise: " + anzahl);
 			selectKreiseRS.close();
 			selectKreiseStmt.close();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.out.println("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten, bitte Administrator informieren: "
+					+ e.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
 		}
 		response.getWriter().append(kreiseJsonArray.toString());
 
@@ -141,8 +160,14 @@ public class kreise extends HttpServlet {
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
-		doGet(request, response);
+		LOG.info("Request angekommen in /kreise doPost ...");
+
+		response.setCharacterEncoding("UTF-8");
+		JSONObject ergebnisJsonObject = new JSONObject();
+		ergebnisJsonObject.put("status", "fehler");
+		ergebnisJsonObject.put("fehlertext", "POST Request /kreise ist nicht vorhanden");
+		response.getWriter().append(ergebnisJsonObject.toString());
+		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 	}
 
 }

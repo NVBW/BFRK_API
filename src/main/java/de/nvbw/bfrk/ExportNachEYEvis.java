@@ -26,15 +26,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import de.nvbw.base.NVBWLogger;
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.common.usermodel.HyperlinkType;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CreationHelper;
+import org.apache.poi.ss.usermodel.DataFormat;
+import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -43,10 +48,7 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFHyperlink;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-//import org.onebusaway.csv_entities.schema.DefaultEntitySchemaFactory;
-import org.json.JSONObject;
 
-import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.base.BFRKFeld;
 import de.nvbw.bfrk.base.Excelfeld;
 import de.nvbw.bfrk.base.BFRKFeld.Datentyp;
@@ -56,9 +58,6 @@ import de.nvbw.bfrk.util.ExportNachEYEvisObjektpruefung.Bildquellenart;
 import de.nvbw.bfrk.util.ReaderBase.Objektart;
 import de.nvbw.base.Applicationconfiguration;
 
-import org.apache.poi.ss.usermodel.CreationHelper;
-import org.apache.poi.ss.usermodel.DataFormat;
-import org.apache.poi.ss.usermodel.Font;
 
 /**
  * Erstellung von EYEvis Projektdatei im csv-Format und ggfs. Bereitstellung 
@@ -73,6 +72,7 @@ public class ExportNachEYEvis {
 	
 	public static enum ERHEBUNGSART {EYEvisApp, MentzApp, CSVImport, Ungesetzt};
 
+	private static final Logger LOG = NVBWLogger.getLogger(ExportNachEYEvis.class);
 	static Applicationconfiguration configuration = new Applicationconfiguration();
 	static Connection bfrkConn = null;
 
@@ -92,7 +92,7 @@ public class ExportNachEYEvis {
 			csvOutput.print(outputbuffer.toString());
 			csvOutput.close();
 		} catch (IOException ioe) {
-			NVBWLogger.severe("Fehler bei Ausgabe in Datei " + dateiname);
+			LOG.severe("Fehler bei Ausgabe in Datei " + dateiname);
 		}
 	}
 
@@ -143,15 +143,20 @@ public class ExportNachEYEvis {
 						&& 	(aktivezelle8.getStringCellValue().equals("Objektart"))
 						&&	(aktivezelle9.getStringCellValue().equals("HST_Fahrplananzeigetafel_jn"))) {
 					anzahlkorrekteStrukturen++;
+				} else if(	(aktivezelle1.getStringCellValue().equals("DHID"))
+						&& 	(aktivezelle4.getStringCellValue().equals("lat"))
+						&& 	(aktivezelle8.getStringCellValue().equals("Objektart"))
+						&&	(aktivezelle9.getStringCellValue().equals("BSTG_Foto"))) {
+					anzahlkorrekteStrukturen++;
 				}
 			} else {
-				NVBWLogger.severe("Das notwendige Blatt 'Erfassung' wurde nicht gefunden.");
-				NVBWLogger.warning("unerwarteter Blattname '" + aktsheetname + "', bitte prüfen, ob ok");
+				LOG.severe("Das notwendige Blatt 'Erfassung' wurde nicht gefunden.");
+				LOG.warning("unerwarteter Blattname '" + aktsheetname + "', bitte prüfen, ob ok");
 				return false;
 			}
 		}
 		if(anzahlkorrekteStrukturen < 1) {
-			NVBWLogger.severe("Das notwendige Blatt 'Erfassung' hat nicht die richtige Struktur");
+			LOG.severe("Das notwendige Blatt 'Erfassung' hat nicht die richtige Struktur");
 			return false;
 		}
 
@@ -190,6 +195,47 @@ public class ExportNachEYEvis {
 		
 	}
 
+	private static String getKurzausgabeObjektart(Objektart objektart) {
+		String output = "";
+		try {
+			if((objektart == Objektart.Aufzug) ||
+				(objektart == Objektart.Bahnhof) ||
+				(objektart == Objektart.Bahnsteig) ||
+				(objektart == Objektart.BuR) ||
+				(objektart == Objektart.Engstelle) ||
+				(objektart == Objektart.Haltestelle) ||
+				(objektart == Objektart.Haltesteig) ||
+				(objektart == Objektart.Leihradanlage) ||
+				(objektart == Objektart.Notiz) ||
+				(objektart == Objektart.Parkplatz) ||
+				(objektart == Objektart.Rampe) ||
+				(objektart == Objektart.Rolltreppe) ||
+				(objektart == Objektart.Stationsplan) ||
+				(objektart == Objektart.Toilette) ||
+				(objektart == Objektart.Treppe) ||
+				(objektart == Objektart.Tuer) ||
+				(objektart == Objektart.Weg))
+				output = objektart.toString();
+			else if(objektart == Objektart.Bahnsteigelement)
+				output = "GleisElement";
+			else if(objektart == Objektart.Gleisquerung)
+				output = "GlQuerung";
+			else if(objektart == Objektart.Informationsstelle)
+				output = "Infostelle";
+			else if(objektart == Objektart.Kartenautomat)
+				output = "Automat";
+			else if(objektart == Objektart.SEVHaltesteig)
+				output = "SEV-Steig";
+			else if(objektart == Objektart.Taxistand)
+				output = "Taxi";
+			else if(objektart == Objektart.Verkaufsstelle)
+				output = "Verkaufst";
+		} catch(Exception e) {
+			LOG.warning("in getKurzausgabeObjektart Exception bei objekart-Parsing: " + objektart.toString());
+			output = "Dummy";
+		}
+		return output;
+	}
 
 	/**
 	 * Schreibe die Daten in daten in die Zeile zeilenr (mit 0 beginnend)
@@ -202,13 +248,13 @@ public class ExportNachEYEvis {
 		if(blattMap.containsKey(blatt))
 			sheet = blattMap.get(blatt);
 		else {
-			NVBWLogger.severe("Blatt existiert nicht mit Namen '" + blatt + "', daher wird das Blatt nicht ausgefüllt");
+			LOG.severe("Blatt existiert nicht mit Namen '" + blatt + "', daher wird das Blatt nicht ausgefüllt");
 			return;
 		}
 
 		Row ueberschriftzeile = sheet.getRow(0);
 		if(ueberschriftzeile == null) {
-			NVBWLogger.severe("In Excelvorlage fehlt in Zeile 1 die Überschriftszeile, ABBRUCH");
+			LOG.severe("In Excelvorlage fehlt in Zeile 1 die Überschriftszeile, ABBRUCH");
 			return;
 		}
 
@@ -292,10 +338,10 @@ public class ExportNachEYEvis {
 	                zielzelle.setCellStyle(hlinkstyle);            	
 	        	} else {
 	        		zielzelle.setCellValue(aktfeld.getTextWert());
-	        		NVBWLogger.warning("in Klasse ExportFuerImport, Methode schreibeExcelSpalte unerwarteter Enum-Wert in ExcelFeld ===" + aktfeld.getFeldtyp().name() + "===");
+	        		LOG.warning("in Klasse ExportFuerImport, Methode schreibeExcelSpalte unerwarteter Enum-Wert in ExcelFeld ===" + aktfeld.getFeldtyp().name() + "===");
 	        	}
 			} else {
-				NVBWLogger.warning("Blatt " + blatt + ", Zelle " + zielzelle.getAddress().toString()
+				LOG.warning("Blatt " + blatt + ", Zelle " + zielzelle.getAddress().toString()
 					+ ": hierfür gibt es keinen Zellinhalt");
 			}
 		}
@@ -304,9 +350,9 @@ public class ExportNachEYEvis {
 
 	/**
 	 * Schreibe die Daten in daten in die Spalte spaltenr (mit 0 beginnend)
-	 * @param blatt
-	 * @param spaltenr
-	 * @param daten
+	 * @param
+	 * @param
+	 * @param
 	 */
 
 	public static boolean connectDB() {
@@ -318,15 +364,15 @@ public class ExportNachEYEvis {
 			Class.forName("org.postgresql.Driver");
 		}
 		catch(ClassNotFoundException e) {
-			NVBWLogger.severe("Exception ClassNotFoundException, Details ...");
-			NVBWLogger.severe(e.toString());
+			LOG.severe("Exception ClassNotFoundException, Details ...");
+			LOG.severe(e.toString());
 			return false;
 		}
 		try {
 			bfrkConn = DriverManager.getConnection(bfrkUrl, username, password);
 		} 	catch( SQLException e) {
-			NVBWLogger.severe("SQLException occured, details ...");
-			NVBWLogger.severe(e.toString());
+			LOG.severe("SQLException occured, details ...");
+			LOG.severe(e.toString());
 			return false;
 		}
 		return true;
@@ -337,8 +383,8 @@ public class ExportNachEYEvis {
 		try {
 			bfrkConn.close();
 		} catch (SQLException e) {
-			NVBWLogger.severe("ERROR: konnte DB-Verbindung nicht schliessen");
-			NVBWLogger.severe(e.toString());
+			LOG.severe("ERROR: konnte DB-Verbindung nicht schliessen");
+			LOG.severe(e.toString());
 		}
 	}
 
@@ -385,13 +431,13 @@ public class ExportNachEYEvis {
 			haltestelleSelectStmt.setString(stmtindex++, haltestellenartHaltestelle);
 			haltestelleSelectStmt.setString(stmtindex++, paramDhid);
 			haltestelleSelectStmt.setString(stmtindex++, oevart);
-			NVBWLogger.info("SQL-select Statement zum holen Haltestellen '"
+			LOG.info("SQL-select Statement zum holen Haltestellen '"
 				+  haltestelleSelectStmt.toString() + "'");
 	
 
 			ResultSet haltestelleSelectRs = haltestelleSelectStmt.executeQuery();
 			int bruttoanzahl = 0;
-NVBWLogger.info("in holhaltestellen for DB-Datesatzschleife ...");
+LOG.info("in holhaltestellen for DB-Datesatzschleife ...");
 			while( haltestelleSelectRs.next() ) {
 				bruttoanzahl++;
 				Map<Name, BFRKFeld> hstdatensatz = new HashMap<>();
@@ -410,7 +456,7 @@ NVBWLogger.info("in holhaltestellen for DB-Datesatzschleife ...");
 				String dateiname = haltestelleSelectRs.getString("dateiname");
 				String datenlieferant = haltestelleSelectRs.getString("datenlieferant");
 				String status = haltestelleSelectRs.getString("status");
-NVBWLogger.info("Objekt-Id: " + dbid + ", DHID: " + dhid + ", Objektart: " + objektart.toString());
+LOG.info("Objekt-Id: " + dbid + ", DHID: " + dhid + ", Objektart: " + objektart.toString());
 				String ds100 = haltestelleSelectRs.getString("ds100");
 				int dbkategorie = haltestelleSelectRs.getInt("dbkategorie");
 				String bahnhofname = haltestelleSelectRs.getString("bahnhofname");
@@ -484,7 +530,7 @@ NVBWLogger.info("Objekt-Id: " + dbid + ", DHID: " + dhid + ", Objektart: " + obj
 
 				if(dhidListe.contains(dhid)) {
 					datensatzFiltern = true;
-					NVBWLogger.warning("Doppelte DHID gefunden, wird ignoriert. Dhid: " + dhid + ", DB-Id: " + dbid);
+					LOG.warning("Doppelte DHID gefunden, wird ignoriert. Dhid: " + dhid + ", DB-Id: " + dbid);
 				}
 				
 				if(!datensatzFiltern) {
@@ -492,17 +538,17 @@ NVBWLogger.info("Objekt-Id: " + dbid + ", DHID: " + dhid + ", Objektart: " + obj
 					dhidListe.add(dhid);
 				}
 			}
-NVBWLogger.info("in holhaltestellen nach DB-Datesatzschleife");
+LOG.info("in holhaltestellen nach DB-Datesatzschleife");
 			haltestelleSelectRs.close();
 			haltestelleSelectStmt.close();
 
 			Date endquery = new Date();
-			NVBWLogger.info("Anzahl Brutto-Datensätze: " + bruttoanzahl + ",  netto nach filtern: " + hstdatensaetze.size());
-			NVBWLogger.info("Dauer holHaltstelle Query in sek: "
+			LOG.info("Anzahl Brutto-Datensätze: " + bruttoanzahl + ",  netto nach filtern: " + hstdatensaetze.size());
+			LOG.info("Dauer holHaltstelle Query in sek: "
 				+ (endquery.getTime() - startquery.getTime())/1000);
-			NVBWLogger.info("DB-Query war ===" + haltestelleSelectStmt.toString() + "===");
+			LOG.info("DB-Query war ===" + haltestelleSelectStmt.toString() + "===");
 		} catch (SQLException e1) {
-			NVBWLogger.severe(e1.toString());
+			LOG.severe(e1.toString());
 		}
 	
 		return hstdatensaetze;
@@ -526,7 +572,8 @@ NVBWLogger.info("in holhaltestellen nach DB-Datesatzschleife");
 		Map<Long, Double> latMap = new HashMap<>();
 		Map<Long, Double> osmlonMap = new HashMap<>();
 		Map<Long, Double> osmlatMap = new HashMap<>();
-		
+		Map<Long, Boolean> pseudoflagMap = new HashMap<>();
+
 
 		
 		
@@ -534,7 +581,7 @@ NVBWLogger.info("in holhaltestellen nach DB-Datesatzschleife");
 			+ "o.objektart, o.dhid, o.name AS objektname, "
 			+ "o.steig AS objektsteig, o.beschreibung, "
 			+ "ST_X(o.koordinate) AS lon, ST_Y(o.koordinate) AS lat, "
-			+ "infraidtemp, osmid, "
+			+ "infraidtemp, osmid, pseudoflag, "
 			+ "ST_X(osm.koordinate) AS osmlon, ST_Y(osm.koordinate) AS osmlat "
 			+ "FROM objekt AS o LEFT JOIN osmobjektbezug AS osm ON "
 			+ "o.id = osm.objekt_id WHERE "
@@ -546,36 +593,49 @@ NVBWLogger.info("in holhaltestellen nach DB-Datesatzschleife");
 			int stmtindex = 1;
 			objektSelectStmt.setLong(stmtindex++, dbid);
 			objektSelectStmt.setLong(stmtindex++, dbid);
-			NVBWLogger.info("SQL-select Statement zum holen Haltestellen-Objekte aus Objekt-Tabelle '"
+			LOG.info("SQL-select Statement zum holen Haltestellen-Objekte aus Objekt-Tabelle '"
 				+  objektSelectStmt.toString() + "'");
 
+			long objekt_id = 0;
+			Objektart objektart = Objektart.unbekannt;
+			String dhid = "";
+			String beschreibung = "";
+			String infraidtemp = "";
+			String osmid = "";
+			String objektname = "";
+			double lon = 0;
+			double lat = 0;
+			double osmlon = 0;
+			double osmlat = 0;
+			String steig = "";
+			Boolean pseudoflag = false;
 			ResultSet objektSelectRs = objektSelectStmt.executeQuery();
 			while( objektSelectRs.next() ) {
 				
-				Long objekt_id = objektSelectRs.getLong("objekt_id");
-				Objektart objektart = null;
+				objekt_id = objektSelectRs.getLong("objekt_id");
+				objektart = null;
 				try {
 					objektart = Objektart.valueOf(objektSelectRs.getString("objektart"));
 				} catch(Exception e) {
-					NVBWLogger.severe("Die Objektart in der BFRK-DB "
+					LOG.severe("Die Objektart in der BFRK-DB "
 						+ objektSelectRs.getString("objektart")
 						+ " kann nicht in die Programm-Objektart überführt werden.");
 				}
-				String dhid = objektSelectRs.getString("dhid");
-				String infraidtemp = objektSelectRs.getString("infraidtemp");
-				String steig = objektSelectRs.getString("objektsteig");
-				String beschreibung = objektSelectRs.getString("beschreibung");
-				String osmid = objektSelectRs.getString("osmid");
-				String objektname = objektSelectRs.getString("objektname");
-				double lon = objektSelectRs.getDouble("lon");
-				double lat = objektSelectRs.getDouble("lat");
-				double osmlon = objektSelectRs.getDouble("osmlon");
-				double osmlat = objektSelectRs.getDouble("osmlat");
+				dhid = objektSelectRs.getString("dhid");
+				infraidtemp = objektSelectRs.getString("infraidtemp");
+				steig = objektSelectRs.getString("objektsteig");
+				beschreibung = objektSelectRs.getString("beschreibung");
+				osmid = objektSelectRs.getString("osmid");
+				objektname = objektSelectRs.getString("objektname");
+				lon = objektSelectRs.getDouble("lon");
+				lat = objektSelectRs.getDouble("lat");
+				osmlon = objektSelectRs.getDouble("osmlon");
+				osmlat = objektSelectRs.getDouble("osmlat");
+				pseudoflag = objektSelectRs.getBoolean("pseudoflag");
 
 				
-				
 				if(osmid != null) {
-					if(osmid.indexOf(",") != -1)
+					if(osmid.contains(","))
 						osmid = osmid.replace(",", "|");
 					osmidMap.put(objekt_id,  osmid);
 				}
@@ -590,13 +650,14 @@ NVBWLogger.info("in holhaltestellen nach DB-Datesatzschleife");
 				latMap.put(objekt_id, lat);
 				osmlonMap.put(objekt_id, osmlon);
 				osmlatMap.put(objekt_id, osmlat);
+				pseudoflagMap.put(objekt_id, pseudoflag);
 			}
 			objektSelectRs.close();
 			objektSelectStmt.close();
 	
 		} catch (SQLException e1) {
-			NVBWLogger.severe("Fehler bei holMerkmale, Objekt-Query: " + objektSelectStmt.toString());
-			NVBWLogger.severe(e1.toString());
+			LOG.severe("Fehler bei holMerkmale, Objekt-Query: " + objektSelectStmt.toString());
+			LOG.severe(e1.toString());
 		}
 		
 		String merkmaleSelectSql = "SELECT m.id AS merkmal_id, "
@@ -617,24 +678,37 @@ NVBWLogger.info("in holhaltestellen nach DB-Datesatzschleife");
 
 				int stmtindex = 1;
 				merkmaleSelectStmt.setLong(stmtindex++, objekt_id);
-				NVBWLogger.info("SQL-select Statement zum holen Haltestellen-Merkmale '"
+				LOG.info("SQL-select Statement zum holen Haltestellen-Merkmale '"
 					+  merkmaleSelectStmt.toString() + "'");
-		
-	
+
+
+				Objektart objektart = Objektart.unbekannt;
+				String dhid = "";
+				String objektname = "";
+				String beschreibung = "";
+				String infraidtemp = "";
+				String osmid = "";
+				double lon = 0;
+				double lat = 0;
+				double osmlon = 0;
+				double osmlat = 0;
+				String steig = "";
+				boolean pseudoflag = false;
 				ResultSet merkmaleSelectRs = merkmaleSelectStmt.executeQuery();
 				while( merkmaleSelectRs.next() ) {
 	
-					Objektart objektart = objektartMap.get(objekt_id);
-					String dhid = dhidMap.get(objekt_id);
-					String objektname = nameMap.get(objekt_id);
-					String infraidtemp = infraidtempMap.get(objekt_id);
-					String steig = steigMap.get(objekt_id);
-					String beschreibung = beschreibungMap.get(objekt_id);
-					String osmid = osmidMap.get(objekt_id);
-					double lon = lonMap.get(objekt_id);
-					double lat = latMap.get(objekt_id);
-					double osmlon = osmlonMap.get(objekt_id);
-					double osmlat = osmlatMap.get(objekt_id);
+					objektart = objektartMap.get(objekt_id);
+					dhid = dhidMap.get(objekt_id);
+					objektname = nameMap.get(objekt_id);
+					infraidtemp = infraidtempMap.get(objekt_id);
+					steig = steigMap.get(objekt_id);
+					beschreibung = beschreibungMap.get(objekt_id);
+					osmid = osmidMap.get(objekt_id);
+					lon = lonMap.get(objekt_id);
+					lat = latMap.get(objekt_id);
+					osmlon = osmlonMap.get(objekt_id);
+					osmlat = osmlatMap.get(objekt_id);
+					pseudoflag = pseudoflagMap.get(objekt_id);
 
 					String feldname = merkmaleSelectRs.getString("name");
 					String feldwert = merkmaleSelectRs.getString("wert");
@@ -703,8 +777,11 @@ NVBWLogger.info("in holhaltestellen nach DB-Datesatzschleife");
 							merkmalliste.put(BFRKFeld.Name.valueOf(feld.getFeldname()), feld);
 						}
 
+						BFRKFeld feld = new BFRKFeld(BFRKFeld.Name.OBJ_Pseudoobjekt.typ(), BFRKFeld.Name.OBJ_Pseudoobjekt, "" + pseudoflag);
+						merkmalliste.put(BFRKFeld.Name.valueOf(feld.getFeldname()), feld);
+
 						if(osmid != null) {
-							BFRKFeld feld = new BFRKFeld(BFRKFeld.Name.ZUSATZ_OSM_Id.typ(), BFRKFeld.Name.ZUSATZ_OSM_Id, osmid);
+							feld = new BFRKFeld(BFRKFeld.Name.ZUSATZ_OSM_Id.typ(), BFRKFeld.Name.ZUSATZ_OSM_Id, osmid);
 							merkmalliste.put(BFRKFeld.Name.valueOf(feld.getFeldname()), feld);
 
 							feld = new BFRKFeld(BFRKFeld.Name.ZUSATZ_OSM_Lon.typ(), 
@@ -717,7 +794,7 @@ NVBWLogger.info("in holhaltestellen nach DB-Datesatzschleife");
 						}
 
 						if(bildname != null) {
-							BFRKFeld feld = new BFRKFeld(BFRKFeld.Name.ZUSATZ_Bild_Url.typ(), BFRKFeld.Name.ZUSATZ_Bild_Url, osmid);
+							feld = new BFRKFeld(BFRKFeld.Name.ZUSATZ_Bild_Url.typ(), BFRKFeld.Name.ZUSATZ_Bild_Url, osmid);
 							merkmalliste.put(BFRKFeld.Name.valueOf(feld.getFeldname()), feld);
 
 							feld = new BFRKFeld(BFRKFeld.Name.ZUSATZ_Bild_Lon.typ(), 
@@ -734,7 +811,7 @@ NVBWLogger.info("in holhaltestellen nach DB-Datesatzschleife");
 						System.out.println("unbekannter Feldname aus DB ===" + feldname + "===");
 						System.out.println(err.toString());
 	
-						NVBWLogger.warning("DHID\t" + dhid + "\tObjektart\t" + objektart + "\tMerkmal-Name\t" + feldname
+						LOG.warning("DHID\t" + dhid + "\tObjektart\t" + objektart + "\tMerkmal-Name\t" + feldname
 							+ "\tFeldwert\t" + feldwert + "\tkann nicht in BFRKFeld-Element überführt werden");
 					}
 				}
@@ -743,9 +820,9 @@ NVBWLogger.info("in holhaltestellen nach DB-Datesatzschleife");
 			merkmaleSelectStmt.close();
 
 			Date holEnde = new Date();
-			NVBWLogger.info("Dauer holMerkmale in sek: " + (holEnde.getTime() - holstart.getTime())/1000.0);
+			LOG.info("Dauer holMerkmale in sek: " + (holEnde.getTime() - holstart.getTime())/1000.0);
 		} catch (SQLException e1) {
-			NVBWLogger.severe(e1.toString());
+			LOG.severe(e1.toString());
 		}
 
 		return objektliste;
@@ -769,14 +846,14 @@ NVBWLogger.info("in holhaltestellen nach DB-Datesatzschleife");
 			notizobjektSelectStmt.setString(stmtindex++, kreisschluessel);
 			notizobjektSelectStmt.setString(stmtindex++, dhid);
 			notizobjektSelectStmt.setString(stmtindex, objektart.toString());
-			NVBWLogger.finer("SQL-select Statement zum holen DIVA-Notizobjekte '"
+			LOG.finer("SQL-select Statement zum holen DIVA-Notizobjekte '"
 				+  notizobjektSelectStmt.toString() + "'");
 	
 
 			Date resultstart = new Date();
 			ResultSet notizobjektSelectRs = notizobjektSelectStmt.executeQuery();
 			Date resultfinish = new Date();
-			NVBWLogger.finest("holnotizen: DB-Query Dauer in msek: " + (resultfinish.getTime() - resultstart.getTime()));
+			LOG.finest("holnotizen: DB-Query Dauer in msek: " + (resultfinish.getTime() - resultstart.getTime()));
 
 			
 			while( notizobjektSelectRs.next() ) {
@@ -817,7 +894,7 @@ NVBWLogger.info("in holhaltestellen nach DB-Datesatzschleife");
 			notizobjektSelectStmt.close();
 		
 		} catch (SQLException e1) {
-			NVBWLogger.severe(e1.toString());
+			LOG.severe(e1.toString());
 		}
 		return objekte;
 	}
@@ -874,12 +951,12 @@ wunschidprefix = objektid;
 			else if(objektart == Objektart.Weg)
 				wunschidprefix = "Weg";
 			else {
-				NVBWLogger.severe("Für Objektart wurde noch kein Kürzel definiert: " + objektart.name());
+				LOG.severe("Für Objektart wurde noch kein Kürzel definiert: " + objektart.name());
 				return null;
 			}
 		}
 		if(wunschidprefix.equals("")) {
-			NVBWLogger.severe("Für Objektart wurde noch kein Kürzel definiert: " + objektart.name());
+			LOG.severe("Für Objektart wurde noch kein Kürzel definiert: " + objektart.name());
 			return null;
 		}
 		
@@ -913,20 +990,16 @@ wunschidprefix = objektid;
 		String paramAusgabedateiPrefix = "";
 		boolean paramBilderkopieren = false;
 		String paramBilderzielverzeichnis = "";
-		ERHEBUNGSART paramErhebungsart = ERHEBUNGSART.Ungesetzt;
 		String sheetname = "Erfassung";
 		List<String> objektIdListe = new ArrayList<>();
 		List<String> paramLinienHaltestellenListe = new ArrayList<>();
 		List<Objektart> paramObjektartenListe = new ArrayList<>();
 		Map<Long, Objektart> paramObjektIDListe = new HashMap<>();
 
-		NVBWLogger.init("/home/NVBWAdmin/tomcat-deployment/bfrk_api_home/eyevisprojektdaten/ExportNachEYEvis.log", configuration.logging_console_level, configuration.logging_file_level);
-
 		if((args.length >= 1) && (args[0].equals("-h"))) {
 			System.out.println("-workflowstatus Lieferant_Final|%: Default Lieferant_Final");
 			System.out.println("-oevart S|O - wenn beides, dann nicht angeben. Default beides");
 			System.out.println("-kreisschluessel 08111. Default alle Daten");
-			System.out.println("-erhebungsart eyevis|mentz|fremd - welche App wurde bei der Erfassung verwendet");
 			System.out.println("-eyevisvorlage xy - Name der Exceldatei, die aus einem EYEvis-Projektexport stammt");
 			System.out.println("-bilderkopieren ja|nein - Sollen die Bilder in einen Zielordner kopiert werden (Default. nein)");
 			System.out.println("-bilderzielverzeichnis - Angabe eines Verzeichnisses, in das Bilder hin kopiert werden sollen, wenn auch -bilderkopieren = ja gesetzt wurde");
@@ -941,10 +1014,10 @@ wunschidprefix = objektid;
 		if(args.length >= 1) {
 			int args_ok_count = 0;
 			for(int argsi=0;argsi<args.length;argsi+=2) {
-				NVBWLogger.info(" args pair analysing #: "+argsi+"  ==="+args[argsi]+"===");
+				LOG.info(" args pair analysing #: "+argsi+"  ==="+args[argsi]+"===");
 				if(args.length > argsi+1)
-					NVBWLogger.info("  args #+1: "+(argsi+1)+"   ==="+args[argsi+1]+"===");
-				NVBWLogger.info("");
+					LOG.info("  args #+1: "+(argsi+1)+"   ==="+args[argsi+1]+"===");
+				LOG.info("");
 				if(args[argsi].equals("-workflowstatus")) {
 					paramStatus = args[argsi+1];
 					args_ok_count += 2;
@@ -953,16 +1026,6 @@ wunschidprefix = objektid;
 					args_ok_count += 2;
 				} else if(args[argsi].equals("-rootdir")) {
 					paramRootdir = args[argsi+1];
-					args_ok_count += 2;
-				} else if(args[argsi].equals("-erhebungsart")) {
-					if(args[argsi+1].toLowerCase().equals("mentz"))
-						paramErhebungsart = ERHEBUNGSART.MentzApp;
-					else if(args[argsi+1].toLowerCase().equals("eyevis"))
-						paramErhebungsart = ERHEBUNGSART.EYEvisApp;
-					else {
-						NVBWLogger.severe("commandline Argument -erhebungsart muß entweder mentz|eyevis sein, ABBRUCH.");
-						return -2;
-					}
 					args_ok_count += 2;
 				} else if(args[argsi].equals("-dhids")) {
 					if(args[argsi+1] != null && !args[argsi+1].equals("")) {
@@ -994,7 +1057,7 @@ wunschidprefix = objektid;
 									paramObjektartenListe.add(aktobjektart);
 								} catch(Exception e) {
 									fehlervorhanden = true;
-									NVBWLogger.severe("Die Objektart ist ungültig: " + matcher.group(1));
+									LOG.severe("Die Objektart ist ungültig: " + matcher.group(1));
 								}
 							}
 							if((matcher.groupCount() >= 2) && (matcher.group(2) != null)) {
@@ -1026,7 +1089,7 @@ wunschidprefix = objektid;
 						}
 
 						if(fehlervorhanden) {
-							NVBWLogger.severe("ungültige Objektarten, PROGRAMM WIRD ANGEHALTEN. Bitte neu aufrufen mit korrekten Werten");
+							LOG.severe("ungültige Objektarten, PROGRAMM WIRD ANGEHALTEN. Bitte neu aufrufen mit korrekten Werten");
 							return -3;
 						}
 					}
@@ -1047,13 +1110,13 @@ wunschidprefix = objektid;
 					paramAusgabedateiPrefix = args[argsi+1];
 					args_ok_count += 2;
 				} else {
-					NVBWLogger.info("Unbekannter Programmparameter ===" + args[argsi] + "===");
+					LOG.info("Unbekannter Programmparameter ===" + args[argsi] + "===");
 					System.out.println("Unbekannter Programmparameter ===" + args[argsi] + "===");
 					return -4;
 				}
 			}
 			if(args_ok_count != args.length) {
-				NVBWLogger.info("ERROR: not all programm parameters were valid, STOP");
+				LOG.info("ERROR: not all programm parameters were valid, STOP");
 				System.out.println("ERROR: not all programm parameters were valid, STOP");
 				return -5;
 			}
@@ -1061,7 +1124,7 @@ wunschidprefix = objektid;
 
 		if(paramObjektartenListe.size() > 0) {
 			if(paramLinienHaltestellenListe.size() > 1) {
-				NVBWLogger.severe("Es wurden zu mindestens einer Objektarten Objekt-Ids angegeben, "
+				LOG.severe("Es wurden zu mindestens einer Objektarten Objekt-Ids angegeben, "
 					+ "dann darf nur eine einzige DHID, also keine Liste von DHID angegeben werden, PROGRAMMABBRUCH");
 				return -6;
 			}
@@ -1069,39 +1132,34 @@ wunschidprefix = objektid;
 		
 				
 		if(!connectDB()) {
-			NVBWLogger.severe("es konnte keine DB-Verbindung hergestellt werden, PROGRAMMABBRUCH");
+			LOG.severe("es konnte keine DB-Verbindung hergestellt werden, PROGRAMMABBRUCH");
 			return -7;
 		}
 
-		if(paramErhebungsart == ERHEBUNGSART.Ungesetzt) {
-			NVBWLogger.severe("Der Kommandozeilenparameter -erhebungsart muß gesetzt werden, PRGORAMMABBRUCH");
-			return -8;
-		}
-
 		if(paramBilderkopieren && paramBilderzielverzeichnis.isEmpty()) {
-			NVBWLogger.severe("Der Kommandozeilenparameter -bilderzielverzeichnis muß gesetzt werden, "
+			LOG.severe("Der Kommandozeilenparameter -bilderzielverzeichnis muß gesetzt werden, "
 				+ "weil Kommandozeilenparameter -bilderkopieren = JA gesetzt ist, PRGORAMMABBRUCH");
 			return -9;
 		}
 
 		if(paramLinienHaltestellenListe.size() == 0) {
-			NVBWLogger.severe("Der Kommandozeilenparameter -dhids muß gesetzt werden, "
+			LOG.severe("Der Kommandozeilenparameter -dhids muß gesetzt werden, "
 				+ "PRGORAMMABBRUCH");
 			return -10;
 		}
 
 		Date programmstart = new Date();
-		NVBWLogger.info("Programmstart um: " + datetime_de_formatter.format(programmstart));
+		LOG.info("Programmstart um: " + datetime_de_formatter.format(programmstart));
 
 		if(paramEYEvisVorlage.isEmpty()) {
-			NVBWLogger.severe("Der Programmparameter -eyevisvorlage fehlt und ist Pflichtangabe.  PRORGRAMMABBRUCH");
+			LOG.severe("Der Programmparameter -eyevisvorlage fehlt und ist Pflichtangabe.  PRORGRAMMABBRUCH");
 			return -11;
 		}
 
 		String quellexceldatei = paramRootdir + File.separator + paramEYEvisVorlage + ".xlsx";
 		File quellexcelhandle = new File(quellexceldatei);
 		if((quellexcelhandle == null) || !quellexcelhandle.exists()) {
-			NVBWLogger.severe("Die Exceldatei " + quellexceldatei + " konnte nicht geöffnet werden, PROGORAMMABBRUCH");
+			LOG.severe("Die Exceldatei " + quellexceldatei + " konnte nicht geöffnet werden, PROGORAMMABBRUCH");
 			return -21;
 		}
 
@@ -1112,7 +1170,7 @@ wunschidprefix = objektid;
 		eyevisCSVOutput.append("DHID;Gemeinde;Ortsteil;Name;Objekt;Beschreibung;lat;lon\r\n");
 
 		if(!openExceldatei(quellexceldatei)) {
-			NVBWLogger.severe("Die Exceldatei " + quellexceldatei + " konnte nicht geöffnet werden, PROGORAMMABBRUCH");
+			LOG.severe("Die Exceldatei " + quellexceldatei + " konnte nicht geöffnet werden, PROGORAMMABBRUCH");
 			return -12;
 		}
 		naechsteZeilennrMap.put(sheetname, 1);
@@ -1129,7 +1187,7 @@ wunschidprefix = objektid;
 			boolean haltestellenobjektVorhanden = false;
 			int lfdnr = 0;
 			
-NVBWLogger.info("Vor Schleife über die Haltestellen-Objekte ...");
+LOG.info("Vor Schleife über die Haltestellen-Objekte ...");
 
 				// Schleife über die Haltestellen-Objekte
 			for(Map.Entry<Long, Map<Name, BFRKFeld>> hstentry: hstdatensaetze.entrySet()) {
@@ -1140,12 +1198,12 @@ NVBWLogger.info("Vor Schleife über die Haltestellen-Objekte ...");
 				Map<Name, BFRKFeld> hstMerkmale = hstentry.getValue();
 	
 				hst_dhid = hstMerkmale.get(BFRKFeld.Name.HST_DHID).getTextWert();
-NVBWLogger.info("Objekt-Id: " + hstdbnr + ", DHID: " + hst_dhid);
+LOG.info("Objekt-Id: " + hstdbnr + ", DHID: " + hst_dhid);
 if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
-	NVBWLogger.info(", Objektart: " + hstMerkmale.get(BFRKFeld.Name.Objektart).getTextWert());
+	LOG.info(", Objektart: " + hstMerkmale.get(BFRKFeld.Name.Objektart).getTextWert());
 				lfdnr++;
 				if((lfdnr % 100) == 0)
-					NVBWLogger.info("Anzahl Haltestellen bisher: " + lfdnr);
+					LOG.info("Anzahl Haltestellen bisher: " + lfdnr);
 	
 				
 								
@@ -1153,14 +1211,14 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 				ExportNachEYEvisObjektpruefung exportNachEYEvisPruefung = null;
 				try {
 					exportNachEYEvisPruefung = new ExportNachEYEvisObjektpruefung(
-						paramErhebungsart, paramBilderkopieren, 
+						paramBilderkopieren,
 						Bildquellenart.downloadprivateundpublic, workbook);
 					exportNachEYEvisPruefung.setBildDownloadverzeichnis(paramBilderzielverzeichnis + File.separator + "temp");
 					exportNachEYEvisPruefung.setBilderZielverzeichnis(paramBilderzielverzeichnis);
 					exportNachEYEvisPruefung.setEYEvisVorlage(paramEYEvisVorlage);
 				} catch (Throwable e1) {
-					NVBWLogger.severe("Abbruch in Erhebungspruefung, weil der Bildbestand nicht verfügbar ist");
-					NVBWLogger.severe(e1.toString());
+					LOG.severe("Abbruch in Erhebungspruefung, weil der Bildbestand nicht verfügbar ist");
+					LOG.severe(e1.toString());
 					return -13;
 				}
 				
@@ -1169,13 +1227,13 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 				Map<Objektart, Map<Long, Map<Name, BFRKFeld>>> objektliste = holMerkmale(hstdbnr);
 	
 				
-					// Schleife über die Objekte (Steig, BuR, PuR, etc.) zur aktuellen Haltestelle
+					// Schleife über die ObjektARTEN (Steig, BuR, PuR, etc.) zur aktuellen Haltestelle
 				for(Map.Entry<Objektart, Map<Long, Map<Name, BFRKFeld>>> objektlistentry: objektliste.entrySet()) {
 					Objektart objektart = objektlistentry.getKey();
 					Map<Long, Map<Name, BFRKFeld>> objekte = objektlistentry.getValue();
 
 
-						// Schleife über alle Objekte des Bahnhofs / der Haltestelle
+						// Schleife über alle Objekte EINER OBJEKTART des Bahnhofs / der Haltestelle
 					for(Map.Entry<Long, Map<Name, BFRKFeld>> objektentry: objekte.entrySet()) {
 						Long objektdbid = objektentry.getKey();
 						Map<Name, BFRKFeld> objekt = objektentry.getValue();
@@ -1189,7 +1247,7 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 									// und wenn die aktuelle ObjektID aus der DB NICHT in der Liste der aktuellen Objektart vorkommt
 									// dann diesen Datensatz ignorieren
 								if(!paramObjektIDListe.containsKey(objektdbid)) {
-									NVBWLogger.info("konkretes Objekt mit DB-ID " + objektdbid + " wird ignoriert, weil es für diese Objektart eine ObjektID-Liste mitgegeben wurde, die aktuelle ID aber nicht dabei war");
+									LOG.info("konkretes Objekt mit DB-ID " + objektdbid + " wird ignoriert, weil es für diese Objektart eine ObjektID-Liste mitgegeben wurde, die aktuelle ID aber nicht dabei war");
 									continue;
 								} else {
 									paramObjektIDListe.remove(objektdbid, objektart);
@@ -1206,13 +1264,17 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 								if(		(objektart != Objektart.Bahnhof)
 									&&	(objektart != Objektart.Haltestelle)
 									&& 	!paramObjektartenListe.contains(objektart)) {
-									NVBWLogger.info("Objektart wird ignoriert, wird nicht gebraucht: " + objektart.name());
+									LOG.info("Objektart wird ignoriert, wird nicht gebraucht: " + objektart.name());
 									continue;
 								}
 							}
 						}
 
 						Map<String, Excelfeld> eyevisWerte = new HashMap<>();
+						boolean pseudoobjekt = false;
+						if(objekt.containsKey(Name.OBJ_Pseudoobjekt) &&
+								objekt.get(Name.OBJ_Pseudoobjekt).getBooleanWert())
+							pseudoobjekt = true;
 
 						if(objektart == Objektart.Bahnhof) {
 							eyevisWerte = exportNachEYEvisPruefung.generateBahnhof(hstMerkmale, objekt);
@@ -1224,10 +1286,6 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 						}
 
 						if(objektart == Objektart.Haltestelle) {
-NVBWLogger.info("bei Bearbeitung Haltstelle - Objekt-Id: " + hstdbnr + ", DHID: " + hst_dhid);
-if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
-	NVBWLogger.info(", Objektart: " + hstMerkmale.get(BFRKFeld.Name.Objektart).getTextWert());
-
 							eyevisWerte = exportNachEYEvisPruefung.generateHaltestelle(hstMerkmale, objekt);
 							haltestellenobjektVorhanden = true;
 						}
@@ -1304,53 +1362,56 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 							eyevisWerte = exportNachEYEvisPruefung.generateWeg(hstMerkmale, objekt);
 						}
 
-
+							// wenn csv-Felder vorhanden sind, werden einige SOLLFELDER noch angepasst
 						if(		(eyevisWerte != null) 
 							&& 	(eyevisWerte.size() > 0)) {
 
 							if(eyevisWerte.containsKey("Name"))
 								hst_name = eyevisWerte.get("Name").getTextWert();
-							
+
+								// Feld Objekt eindeutig machen und ggfs. längenmäßig beschränken
 							String objektid = "";
 							if(eyevisWerte.containsKey("Objekt"))
 								objektid = eyevisWerte.get("Objekt").getTextWert();
-							if(		(objektid == null)
-								||	objektid.equals("")) {
+							if((objektid == null) || objektid.isEmpty()) {
 								objektid = generateEindeutigeObjektId(objektid, objektart,objektIdListe);
 								if(objektid == null) {
-									NVBWLogger.severe("es konnte keine eindeutige Objektid erzeugt werden für Objektart " 
+									LOG.severe("es konnte keine eindeutige Objektid erzeugt werden für Objektart " 
 										+ objektart.name() + " und die vorhandene objektidListe: " 
 										+ objektIdListe.toString());
 									continue;
 								}
 								if(!objektid.isEmpty() && objektid.length() > EYEvisObjektidMaxlength) {
-									NVBWLogger.info("Objekt-Inhalt war länger als " + EYEvisObjektidMaxlength + " Zeichen ===" + objektid + "===");
+									LOG.info("Objekt-Inhalt war länger als " + EYEvisObjektidMaxlength + " Zeichen ===" + objektid + "===");
 									objektid = objektid.replace(" / ", "/");
 									if(objektid.length() > EYEvisObjektidMaxlength)
 										objektid = objektid.substring(0,EYEvisObjektidMaxlength - 1);
-									NVBWLogger.info("Objekt-Inhalt wurde gekürzt auf " + EYEvisObjektidMaxlength 
+									LOG.info("Objekt-Inhalt wurde gekürzt auf " + EYEvisObjektidMaxlength 
 										+ " Zeichen ===" + objektid + "=== (Zeile 1416)");
 								}
 								Excelfeld objektfeld = eyevisWerte.get("Objekt");
-								objektfeld.setInhalt(objektid);
-								eyevisWerte.put("Objekt", objektfeld);
-								objektIdListe.add(objektid);
+								// Wenn in DB Feld "steig" in Tabelle Objekt nicht gefüllt ist, kommt hier null vor
+								if(objektfeld != null) {
+										objektfeld.setInhalt(objektid);
+										eyevisWerte.put("Objekt", objektfeld);
+										objektIdListe.add(objektid);
+								}
 							} else {
 								if(objektIdListe.contains(objektid)) {
 									objektid = generateEindeutigeObjektId(objektid, objektart,objektIdListe);
 									if(objektid == null) {
-										NVBWLogger.severe("es konnte keine eindeutige Objektid erzeugt werden für Objektart " 
+										LOG.severe("es konnte keine eindeutige Objektid erzeugt werden für Objektart " 
 											+ objektart.name() + " und die vorhandene objektidListe: " 
 											+ objektIdListe.toString());
 										continue;
 									}
 									if(!objektid.isEmpty() && objektid.length() > EYEvisObjektidMaxlength) {
-										NVBWLogger.info("Objekt-Inhalt war länger als " + EYEvisObjektidMaxlength 
+										LOG.info("Objekt-Inhalt war länger als " + EYEvisObjektidMaxlength 
 											+ " Zeichen ===" + objektid + "===");
 										objektid = objektid.replace(" / ", "/");
 										if(objektid.length() > EYEvisObjektidMaxlength)
 											objektid = objektid.substring(0,EYEvisObjektidMaxlength - 1);
-										NVBWLogger.info("Objekt-Inhalt wurde gekürzt auf " + EYEvisObjektidMaxlength
+										LOG.info("Objekt-Inhalt wurde gekürzt auf " + EYEvisObjektidMaxlength
 											+ " Zeichen ===" + objektid + "=== (Zeile 1435)");
 									}
 									Excelfeld objektfeld = eyevisWerte.get("Objekt");
@@ -1359,12 +1420,12 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 									objektIdListe.add(objektid);
 								} else {
 									if(!objektid.isEmpty() && objektid.length() > EYEvisObjektidMaxlength) {
-										NVBWLogger.info("Objekt-Inhalt war länger als " + EYEvisObjektidMaxlength
+										LOG.info("Objekt-Inhalt war länger als " + EYEvisObjektidMaxlength
 											+ " Zeichen ===" + objektid + "===");
 										objektid = objektid.replace(" / ", "/");
 										if(objektid.length() > EYEvisObjektidMaxlength)
 											objektid = objektid.substring(0,EYEvisObjektidMaxlength - 1);
-										NVBWLogger.info("Objekt-Inhalt wurde gekürzt auf " + EYEvisObjektidMaxlength 
+										LOG.info("Objekt-Inhalt wurde gekürzt auf " + EYEvisObjektidMaxlength 
 											+ " Zeichen ===" + objektid + "=== (Zeile 1448)");
 									}
 									objektIdListe.add(objektid);
@@ -1372,9 +1433,42 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 									objektfeld.setInhalt(objektid);
 									eyevisWerte.put("Objekt", objektfeld);
 								}
+							} // Ende Bearbeitung Feld Objekt
+
+							String beschreibung = "";
+							if(eyevisWerte.containsKey("Beschreibung")) {
+								String text = "";
+								if(pseudoobjekt) {
+									text = "PSEUDO-" + getKurzausgabeObjektart(objektart) + ": ";
+								}
+								text += eyevisWerte.get("Beschreibung").getTextWert();
+
+								if(text.length() > EYEvisBeschreibungMaxlength) {
+									text = text.replace(" / ", "/");
+									if(text.length() > EYEvisBeschreibungMaxlength)
+										text = text.substring(0,EYEvisBeschreibungMaxlength - 1);
+								}
+								beschreibung = text;
+								Excelfeld objektfeld = eyevisWerte.get("Beschreibung");
+								if(objektfeld == null) {
+									objektfeld = new Excelfeld(Excelfeld.Datentyp.Text, beschreibung);
+								}
+								objektfeld.setInhalt(beschreibung);
+								eyevisWerte.put("Beschreibung", objektfeld);
+							} else {
+								LOG.info("Beschreibung ist leer");
+								if(pseudoobjekt) {
+									beschreibung = "";
+									beschreibung = "PSEUDO-" + getKurzausgabeObjektart(objektart);
+									Excelfeld objektfeld = new Excelfeld(Excelfeld.Datentyp.Text, beschreibung);
+									LOG.info("Beschreibungsfeld wurde für Pseudoobjekt gefüllt: " + beschreibung);
+									objektfeld.setInhalt(beschreibung);
+									eyevisWerte.put("Beschreibung", objektfeld);
+								}
 							}
 
 
+							// rausschreiben des kompletten Excel-Datensatzes
 							schreibeExcelZeile(sheetname, naechsteZeilennrMap.get(sheetname), eyevisWerte);
 							naechsteZeilennrMap.put(sheetname, 1 + naechsteZeilennrMap.get(sheetname));
 
@@ -1401,20 +1495,19 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 							if(eyevisWerte.containsKey("Objekt")) {
 								String text = eyevisWerte.get("Objekt").getTextWert();
 								if(!text.isEmpty() && text.length() > EYEvisObjektidMaxlength) {
-									NVBWLogger.info("Objekt-Inhalt war länger als " + EYEvisObjektidMaxlength
+									LOG.info("Objekt-Inhalt war länger als " + EYEvisObjektidMaxlength
 										+ " Zeichen ===" + text + "===");
 									text = text.replace(" / ", "/");
 									if(text.length() > EYEvisObjektidMaxlength)
 									text = text.substring(0,EYEvisObjektidMaxlength - 1);
-									NVBWLogger.info("Objekt-Inhalt wurde gekürzt auf " + EYEvisObjektidMaxlength
+									LOG.info("Objekt-Inhalt wurde gekürzt auf " + EYEvisObjektidMaxlength
 										+ " Zeichen ===" + text + "=== (Zeile 1478)");
 								}
 								eyevisCSVOutput.append(text);
 							}
 							eyevisCSVOutput.append(";");
-							if(eyevisWerte.containsKey("Beschreibung")) {
-								String text = eyevisWerte.get("Beschreibung").getTextWert();
-								eyevisCSVOutput.append(text);
+							if(!beschreibung.isEmpty()) {
+								eyevisCSVOutput.append(beschreibung);
 							}
 							eyevisCSVOutput.append(";");
 							if(eyevisWerte.containsKey("lat"))
@@ -1423,17 +1516,17 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 							if(eyevisWerte.containsKey("lon"))
 								eyevisCSVOutput.append(eyevisWerte.get("lon").getTextWert());
 							eyevisCSVOutput.append("\r\n");
-						}
+						} // Ende wenn csv-Felder vorhanden sind, werden diese noch angepasst
 					}	// Ende Schleife über alle Objekte des Bahnhofs / der Haltestelle					
 				}	// Schleife über die Objekte (Steig, BuR, PuR, etc.) zur aktuellen Haltestelle
 
 					// wenn es zum aktuellen (nicht-Hauptobjekt) kein Hauptobjekt (Haltestelle oder Bahnhof) gibt,
 					// dann hier vorab ein Hauptobjekt erstellen und in Excel speichern
 				if(!haltestellenobjektVorhanden) {
-					NVBWLogger.info("Es gab kein Hauptobjekt für die DHID: " + hst_dhid 
+					LOG.info("Es gab kein Hauptobjekt für die DHID: " + hst_dhid 
 						+ ", daher wird jetzt noch ein Not-Hauptobjekt erstellt");
 					if(hstMerkmale != null)
-						NVBWLogger.info("hstMerkmale-Properties: " + hstMerkmale.toString());
+						LOG.info("hstMerkmale-Properties: " + hstMerkmale.toString());
 					Map<String, Excelfeld> hstExcelwerte = new HashMap<>();
 	
 					StringBuffer hstcsvzeile = new StringBuffer();
@@ -1566,12 +1659,12 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 				+ paramAusgabedateiPrefix + "_auftragsausgabe.txt";
 		writetoFile(metaoutput, metaDateiname, StandardCharsets.ISO_8859_1);
 
-		NVBWLogger.info("Verschieben der csv-Projektdatei und der zip-Datei in den public-Zielbereich ...");
+		LOG.info("Verschieben der csv-Projektdatei und der zip-Datei in den public-Zielbereich ...");
 		dateihandle = new File(eyevisCSVDateiname);
 		dateihandle.renameTo(new File(publiceyevisCSVDateiname));
-		NVBWLogger.info("csv-Datei wurde gerade umgenannt, von ...");
-		NVBWLogger.info(" von " + eyevisCSVDateiname);
-		NVBWLogger.info(" nach" + publiceyevisCSVDateiname);
+		LOG.info("csv-Datei wurde gerade umgenannt, von ...");
+		LOG.info(" von " + eyevisCSVDateiname);
+		LOG.info(" nach" + publiceyevisCSVDateiname);
 		try {
 			Set<PosixFilePermission> perms = new HashSet<>();
 			perms.add(PosixFilePermission.OWNER_READ);
@@ -1587,9 +1680,9 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 		
 		dateihandle = new File(eyeviszipdateiname);
 		dateihandle.renameTo(new File(publiceyevisZipDateiname));
-		NVBWLogger.info("zip-Datei wurde gerade umgenannt, von ...");
-		NVBWLogger.info(" von " + eyeviszipdateiname);
-		NVBWLogger.info(" nach" + publiceyevisZipDateiname);
+		LOG.info("zip-Datei wurde gerade umgenannt, von ...");
+		LOG.info(" von " + eyeviszipdateiname);
+		LOG.info(" nach" + publiceyevisZipDateiname);
 		try {
 			Set<PosixFilePermission> perms = new HashSet<>();
 			perms.add(PosixFilePermission.OWNER_READ);
@@ -1602,20 +1695,20 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 			System.out.println(ioe.toString());
 		}
 
-		NVBWLogger.info("Verschieben der csv-Projektdatei und der zip-Datei in den public-Zielbereich erledigt");
+		LOG.info("Verschieben der csv-Projektdatei und der zip-Datei in den public-Zielbereich erledigt");
 
 		if(paramObjektIDListe.size() > 0) {
-			NVBWLogger.severe("ACHTUNG: es wurden eine oder mehrere ObjektIds angegeben, die nicht verarbeitet wurden, "
+			LOG.severe("ACHTUNG: es wurden eine oder mehrere ObjektIds angegeben, die nicht verarbeitet wurden, "
 				+ "das ist relativ sicher ein Fehler, bitte die folgenden ObjektIds nochmal überprüfen");
 			for(Map.Entry<Long, Objektart> paramObjektIDListeEntry: paramObjektIDListe.entrySet()) {
 				long aktobjektid = paramObjektIDListeEntry.getKey();
 				Objektart aktobjektart = paramObjektIDListeEntry.getValue();
-				NVBWLogger.severe("Objektart " + aktobjektart + ": " + aktobjektid);
+				LOG.severe("Objektart " + aktobjektart + ": " + aktobjektid);
 			}
 		}
 		
 		Date programmende = new Date();
-		NVBWLogger.info("Programmende um " + datetime_de_formatter.format(programmende) 
+		LOG.info("Programmende um " + datetime_de_formatter.format(programmende) 
 			+ ",   Dauer " + (programmende.getTime() - programmstart.getTime())/1000 + " sek");
 
 		return 0;
@@ -1625,7 +1718,7 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 	public static void main(String[] args) {
 
 		int returncode = ExportNachEYEvis.execute(args);
-		NVBWLogger.info("ExportNachEYEvis.execute ===" + returncode + "===");
+		LOG.info("ExportNachEYEvis.execute ===" + returncode + "===");
 	}
 
 
@@ -1638,7 +1731,7 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 		File verzeichnishandle = new File(paramBilderzielverzeichnis);
 		File[] files = verzeichnishandle.listFiles();
 
-		NVBWLogger.info("Start Zippen in Archiv " + eyeviszipdateiname + ", brutto " + files.length + " Dateien ...");
+		LOG.info("Start Zippen in Archiv " + eyeviszipdateiname + ", brutto " + files.length + " Dateien ...");
 
 		for (File file : files) {
 	        if (file.isDirectory()) {
@@ -1662,6 +1755,6 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 	    zipOut.close();
 	    fos.close();
 
-		NVBWLogger.info("Ende Zippen in Archiv " + eyeviszipdateiname);
+		LOG.info("Ende Zippen in Archiv " + eyeviszipdateiname);
 	}
 }

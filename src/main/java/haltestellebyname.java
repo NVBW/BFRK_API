@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -12,10 +13,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import de.nvbw.base.NVBWLogger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.DBVerbindung;
 
 /**
@@ -26,7 +27,8 @@ import de.nvbw.bfrk.util.DBVerbindung;
 		)
 public class haltestellebyname extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-       
+
+	private static final Logger LOG = NVBWLogger.getLogger(stopmodell.class);
     private static Connection bfrkConn = null;
 
     public static int SC_NOTFOUND = 404;
@@ -36,7 +38,6 @@ public class haltestellebyname extends HttpServlet {
      */
     public haltestellebyname() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     /**
@@ -56,18 +57,35 @@ public class haltestellebyname extends HttpServlet {
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				System.out.println("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.severe("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-					response.getWriter().append("FEHLER: keine DB-Verbindung offen");
+					LOG.severe("es konnte keine DB-Verbindung herstellt werden");
+					JSONObject ergebnisJsonObject = new JSONObject();
+					ergebnisJsonObject.put("status", "fehler");
+					ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren");
+					response.getWriter().append(ergebnisJsonObject.toString());
+					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					return;
 				}
 			}
 		} catch (SQLException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei SQLException " + e1.toString());
+			LOG.severe("SQLException aufgetreten, " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		} catch (IOException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei IOException " + e1.toString());
+			LOG.severe("IOException aufgetreten, " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unbekannter Fehler aufgetreten, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
 		
@@ -76,12 +94,12 @@ public class haltestellebyname extends HttpServlet {
 		for(Map.Entry<String, String[]> paramentry: alleparameter.entrySet()) {
 			String paramkey = paramentry.getKey();
 			String[] paramvalues = paramentry.getValue();
-			System.out.println("param  [" + paramkey + "] ===" + paramvalues.toString() + "===");
+			LOG.info("param  [" + paramkey + "] ===" + paramvalues.toString() + "===");
 		}
 		*/
-		//System.out.println("Request-Uri ===" + request.getRequestURI());
-		//System.out.println("Request-Url ===" + request.getRequestURL().toString());
-		//System.out.println("Query-String ===" + request.getQueryString() + "===");
+		//LOG.info("Request-Uri ===" + request.getRequestURI());
+		//LOG.info("Request-Url ===" + request.getRequestURL().toString());
+		//LOG.info("Query-String ===" + request.getQueryString() + "===");
 		
 		String paramKreisid= "%";
 		String paramObjektart1 = "Bahnhof";
@@ -89,12 +107,12 @@ public class haltestellebyname extends HttpServlet {
 		String paramName = "%";
 
 		if(request.getParameter("kreisid") != null) {
-			System.out.println("url-Parameter kreisid vorhanden ===" + request.getParameter("kreisid"));
+			LOG.info("url-Parameter kreisid vorhanden ===" + request.getParameter("kreisid"));
 			paramKreisid = URLDecoder.decode(request.getParameter("kreisid"),"UTF-8");
 		}
 
 		if(request.getParameter("oevart") != null) {
-			System.out.println("url-Parameter oevart vorhanden ===" + request.getParameter("oevart") + "===");
+			LOG.info("url-Parameter oevart vorhanden ===" + request.getParameter("oevart") + "===");
 			String tempOevart = request.getParameter("oevart");
 			if(tempOevart.equals("S")) {
 				paramObjektart1 = "Bahnhof";
@@ -109,7 +127,7 @@ public class haltestellebyname extends HttpServlet {
 		}
 
 		if(request.getParameter("name") != null) {
-			System.out.println("url-Parameter name vorhanden ===" + request.getParameter("name"));
+			LOG.info("url-Parameter name vorhanden ===" + request.getParameter("name"));
 			paramName = URLDecoder.decode(request.getParameter("name"),"UTF-8");
 			paramName = paramName.replace("*", "%");
 		}
@@ -134,7 +152,7 @@ public class haltestellebyname extends HttpServlet {
 			selectHaltestelleStmt.setString(stmtindex++, paramObjektart1);
 			selectHaltestelleStmt.setString(stmtindex++, paramObjektart2);
 			selectHaltestelleStmt.setString(stmtindex++, paramKreisid);
-			System.out.println("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
+			LOG.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
 
 			ResultSet selectHaltestelleRS = selectHaltestelleStmt.executeQuery();
 
@@ -166,7 +184,7 @@ public class haltestellebyname extends HttpServlet {
 				
 				haltestellenJsonArray.put(haltestelleJsonObject);
 			}
-			NVBWLogger.info("Anzahl Haltestellen: " + anzahldatensaetze);
+			LOG.info("Anzahl Haltestellen: " + anzahldatensaetze);
 			selectHaltestelleRS.close();
 			selectHaltestelleStmt.close();
 
@@ -175,9 +193,14 @@ public class haltestellebyname extends HttpServlet {
 				return;
 			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.out.println("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten, bitte Administrator informieren: "
+					+ e.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
 		}
 		response.getWriter().append(haltestellenJsonArray.toString());
 
@@ -187,8 +210,14 @@ public class haltestellebyname extends HttpServlet {
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
-		doGet(request, response);
+		LOG.info("Request angekommen in /haltestellebyname doPost ...");
+
+		response.setCharacterEncoding("UTF-8");
+		JSONObject ergebnisJsonObject = new JSONObject();
+		ergebnisJsonObject.put("status", "fehler");
+		ergebnisJsonObject.put("fehlertext", "POST Request /haltestellebyname ist nicht vorhanden");
+		response.getWriter().append(ergebnisJsonObject.toString());
+		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 	}
 
 }
