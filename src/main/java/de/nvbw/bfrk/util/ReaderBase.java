@@ -26,6 +26,7 @@ import org.apache.commons.imaging.formats.jpeg.JpegImageMetadata;
 import de.nvbw.bfrk.base.BFRKFeld;
 import de.nvbw.base.Applicationconfiguration;
 import org.apache.commons.imaging.formats.tiff.TiffImageMetadata;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class ReaderBase {
 	public static enum Datentyp {Boolean, Numeric, String}
@@ -108,7 +109,7 @@ public class ReaderBase {
 		Matcher matcher = pattern.matcher(dhid);
 		if (matcher.find() ) {
 			for(int index = 1; index <= matcher.groupCount(); index++)
-				System.out.println("index: " + index + " ===" + matcher.group(index) + "===");
+				LOG.fine("index: " + index + " ===" + matcher.group(index) + "===");
 			if ( matcher.groupCount() == 3 ) {
 				return DHID_Typ.Haltestelle;
 			} else if(( matcher.groupCount() >= 5 ) && matcher.group(5).isEmpty()) {
@@ -122,12 +123,12 @@ public class ReaderBase {
 			matcher = pattern.matcher(dhid);
 			if (matcher.find() ) {
 				for(int index = 1; index <= matcher.groupCount(); index++)
-					System.out.println("index: " + index + " ===" + matcher.group(index) + "===");
+					LOG.fine("index: " + index + " ===" + matcher.group(index) + "===");
 				if ( matcher.groupCount() == 3 ) {
 					return DHID_Typ.Haltestelle;
-				} else if(( matcher.groupCount() >= 5 ) && matcher.group(5).equals("")) {
+				} else if(( matcher.groupCount() >= 5 ) && matcher.group(5).isEmpty()) {
 					return DHID_Typ.Bereich;
-				} else if(( matcher.groupCount() >= 6 ) && matcher.group(6).equals("")) {
+				} else if(( matcher.groupCount() >= 6 ) && matcher.group(6).isEmpty()) {
 					return DHID_Typ.Haltesteig;
 				} else
 					return DHID_Typ.ungueltig;
@@ -376,7 +377,7 @@ public class ReaderBase {
 		String dateiextension = file.getName().substring(file.getName().lastIndexOf(".") + 1);
 		if(dateiextension.isEmpty())
 			return null;
-	    if(!dateiextension.toLowerCase().equals("jpg")) {
+	    if(!dateiextension.equalsIgnoreCase("jpg")) {
 	    	LOG.info("in getBildEXIFItem, unerwartete Dateiextension aufgetreten, Datei wird ignoriert, "
 	    		+ file.getName() + ", Dateiextension: " + dateiextension);
 	    	return "";
@@ -393,7 +394,7 @@ public class ReaderBase {
 	
 	    if (metadata instanceof JpegImageMetadata) {
 	        final JpegImageMetadata jpegMetadata = (JpegImageMetadata) metadata;
-	
+
 	        // Jpeg EXIF metadata is stored in a TIFF-based directory structure
 	        // and is identified with TIFF tags.
 	        // Here we look for the "x resolution" tag, but
@@ -405,15 +406,14 @@ public class ReaderBase {
 	        final TiffImageMetadata exifMetadata = jpegMetadata.getExif();
 	        if (null != exifMetadata) {
 	            final List<ImageMetadata.ImageMetadataItem> itemsList = (List<ImageMetadataItem>) exifMetadata.getItems();
-	            for(int itemindex = 0; itemindex < itemsList.size(); itemindex++) {
-	            	String aktitem = itemsList.get(itemindex).toString();
-	            	//System.out.println("Item # " + itemindex + " ===" + aktitem + "===");
-	            	if(aktitem.startsWith(tag + ":")) {
-	            		int valuestartpos = aktitem.indexOf("'");
-	            		String value = aktitem.substring(valuestartpos + 1, aktitem.indexOf("'",valuestartpos + 1));
-	            			return value;
-	            	}
-	            }
+                for (ImageMetadataItem imageMetadataItem : itemsList) {
+                    String aktitem = imageMetadataItem.toString();
+                    //System.out.println("Item # " + itemindex + " ===" + aktitem + "===");
+                    if (aktitem.startsWith(tag + ":")) {
+                        int valuestartpos = aktitem.indexOf("'");
+                        return aktitem.substring(valuestartpos + 1, aktitem.indexOf("'", valuestartpos + 1));
+                    }
+                }
 	        }
 	    }
 	    return null;
@@ -482,13 +482,13 @@ public class ReaderBase {
 			return;
 		}
 		List<String> dublettenListe = new ArrayList<>();
-		StringBuffer neuerwertBuffer = new StringBuffer();
+		StringBuilder neuerwertBuffer = new StringBuilder();
 		if(		(vorhandenerWert != null) 
 			&&	!vorhandenerWert.isEmpty()) {
-			if(vorhandenerWert.indexOf("|") == -1) {
+			if(!vorhandenerWert.contains("|")) {
 				neuerwertBuffer.append(vorhandenerWert);
 				if(!vorhandenerWert.equals(feldwert)) {
-					if(neuerwertBuffer.length() > 0)
+					if(!neuerwertBuffer.isEmpty())
 						neuerwertBuffer.append("|");
 					neuerwertBuffer.append(feldwert);
 				} else {
@@ -502,13 +502,13 @@ public class ReaderBase {
 						LOG.info("Bei Merkmal wird vorhandene Dublette gefiltert ===" + aktwert + "===");
 						continue;
 					}
-					if(neuerwertBuffer.length() > 0)
+					if(!neuerwertBuffer.isEmpty())
 						neuerwertBuffer.append("|");
 					neuerwertBuffer.append(aktwert);
 					dublettenListe.add(aktwert);
 				}
 				if(!dublettenListe.contains(feldwert)) {
-					if(neuerwertBuffer.length() > 0)
+					if(!neuerwertBuffer.isEmpty())
 						neuerwertBuffer.append("|");
 					neuerwertBuffer.append(feldwert);
 				} else {
@@ -861,7 +861,7 @@ public class ReaderBase {
 			LOG.severe("SQL-Insert zum ergänzen Objekt (Art: " + objektart + " in Tabelle objekt" + "\t"
 				+ "Statement war '" + insertHauptobjektStmt.toString() 
 				+ "' Details folgen ...");
-			LOG.severe(e1.toString());
+			LOG.severe(ExceptionUtils.getStackTrace(e1));
 		}
 		return -1;
 	}
@@ -902,11 +902,11 @@ public class ReaderBase {
 			ResultSet insertHauptobjektRs = insertHauptobjektStmt.executeQuery();
 			if (insertHauptobjektRs.next()) {
 
-				if((korrekturosmid != null) && !korrekturosmid.equals(""))
+				if((korrekturosmid != null) && !korrekturosmid.isEmpty())
 					ReaderBase.storeKorrektur(haltestelleDBId, BFRKFeld.Name.KorrekturOsmId, korrekturosmid);
 				if(osmImportdatum != null)
 					ReaderBase.storeKorrektur(haltestelleDBId, BFRKFeld.Name.KorrekturImportdatum, date_de_formatter.format(osmImportdatum));
-				if((osmImportperson != null) && !osmImportperson.equals(""))
+				if((osmImportperson != null) && !osmImportperson.isEmpty())
 					ReaderBase.storeKorrektur(haltestelleDBId, BFRKFeld.Name.KorrekturImportperson, osmImportperson);
 
 				return insertHauptobjektRs.getLong("id");
@@ -915,7 +915,7 @@ public class ReaderBase {
 			LOG.severe("SQL-Insert zum ergänzen Objekt (Art: " + objektart + " in Tabelle objekt" + "\t"
 				+ "Statement war '" + insertHauptobjektStmt.toString() 
 				+ "' Details folgen ...");
-			LOG.severe(e1.toString());
+			LOG.severe(ExceptionUtils.getStackTrace(e1));
 		}
 		return -1;
 	}
@@ -1215,11 +1215,11 @@ public class ReaderBase {
 		String ortsteil, double lon, double lat) {
 
 		if(sollFelderkoennenbeliebigsein) {
-			if(name.equals(""))
+			if(name.isEmpty())
 				name = "%";
-			if(gemeinde.equals(""))
+			if(gemeinde.isEmpty())
 				gemeinde = "%";
-			if(ortsteil.equals(""))
+			if(ortsteil.isEmpty())
 				ortsteil = "%";
 		}
 
