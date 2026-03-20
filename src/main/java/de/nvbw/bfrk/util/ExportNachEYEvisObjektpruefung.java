@@ -4270,12 +4270,14 @@ public class ExportNachEYEvisObjektpruefung {
 		felder.put("lat", new Excelfeld(Datentyp.Text, lat, okFarbstyle));
 		felder.put("lon", new Excelfeld(Datentyp.Text, lon, okFarbstyle));
 
-		String latlonEYEvisText = generateEYEvisLatLon(
-			objektDaten.get(BFRKFeld.Name.OBJ_Stationsplan_Lon).getZahlWert(),
-			objektDaten.get(BFRKFeld.Name.OBJ_Stationsplan_Lat).getZahlWert());
-		felder.put("OBJ_Stationsplan_Pos", new Excelfeld(Datentyp.Text, 
-			latlonEYEvisText, okFarbstyle));
-
+		if(objektDaten.containsKey(BFRKFeld.Name.OBJ_Stationsplan_Lon) &&
+				objektDaten.containsKey(BFRKFeld.Name.OBJ_Stationsplan_Lat)) {
+			String latlonEYEvisText = generateEYEvisLatLon(
+					objektDaten.get(BFRKFeld.Name.OBJ_Stationsplan_Lon).getZahlWert(),
+					objektDaten.get(BFRKFeld.Name.OBJ_Stationsplan_Lat).getZahlWert());
+			felder.put("OBJ_Stationsplan_Pos", new Excelfeld(Datentyp.Text,
+					latlonEYEvisText, okFarbstyle));
+		}
 		
 		if(haltestelleDaten.containsKey(BFRKFeld.Name.HST_Gemeinde)) {
 			felder.put("Gemeinde", new Excelfeld(Datentyp.Text, 
