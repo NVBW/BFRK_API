@@ -214,7 +214,7 @@ public class stopmodell extends HttpServlet {
 			return;
 		}
 
-		LOG.info("nach Select auf objektmodell gefundende Version: " + dbrelease + "/" + dbmayorversion + "/" + dbminorversion);
+		LOG.info("nach Select auf objektmodell gefundene Version: " + dbrelease + "/" + dbmayorversion + "/" + dbminorversion);
 
 		release = dbrelease;
 		mayorversion = dbmayorversion;
@@ -600,11 +600,10 @@ public class stopmodell extends HttpServlet {
 		int release = 0;
 		int mayorversion = 0;
 		int minorversion = 0;
-		
 
 		JSONObject contentJson = null;
-    	JSONObject metadatenJson = null;
-    	JSONObject metagraphJson = null;
+		JSONObject metadatenJson = null;
+		JSONObject metagraphJson = null;
 
 		contentJson = new JSONObject(stringBuilder.toString());
 
@@ -612,21 +611,40 @@ public class stopmodell extends HttpServlet {
 
 		if(metadatenJson.has("dhid"))
 			dhid = metadatenJson.getString("dhid");
+
+		String selectneuestesModellSql = "SELECT release, mayorversion, minorversion FROM objektmodell "
+				+ "WHERE dhid = ? "
+				+ "ORDER BY release DESC, mayorversion DESC, minorversion DESC LIMIT 1;";
+		try {
+			PreparedStatement selectneuestesModellStmt = bfrkConn.prepareStatement(selectneuestesModellSql);
+			selectneuestesModellStmt.setString(1, dhid);
+			ResultSet selectneuestesModellRS = selectneuestesModellStmt.executeQuery();
+
+			if(selectneuestesModellRS.next()) {
+				release = selectneuestesModellRS.getInt("release");
+				mayorversion = selectneuestesModellRS.getInt("mayorversion");
+				minorversion = selectneuestesModellRS.getInt("minorversion");
+				LOG.info("in DB vorhandene Version des Graphen für DHID: " + dhid +
+						", Version: " + release + "/" + mayorversion + "/" + minorversion);
+				minorversion++;
+				LOG.info("minorversion inkrementiert fürs aktuelle Graph speichern: " + minorversion);
+			}
+		} catch (SQLException e) {
+			LOG.severe("SQLException::: " + e.toString());
+			String fehlertext = "DB-Fehler aufgetreten, bitte den Administrator benachrichtigen";
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", fehlertext);
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
+		}
+
 		if(metadatenJson.has("graph")) {
 			metagraphJson = (JSONObject) metadatenJson.get("graph");
 
-			if(metagraphJson.has("release"))
-				release = metagraphJson.getInt("release");
-			if(metagraphJson.has("mayorversion"))
-				mayorversion = metagraphJson.getInt("mayorversion");
-			if(metagraphJson.has("minorversion")) {
-				minorversion = metagraphJson.getInt("minorversion");
-				LOG.info("im empfangenen Graph minorversion gefunden: " + minorversion);
-				minorversion++;
-				metagraphJson.put("minorversion", minorversion);
-				LOG.info("im empfangenen Graph inkrementierte minorversion gesetzt: " +
-						metagraphJson.getInt("minorversion"));
-			}
+			metagraphJson.put("release", release);
+			metagraphJson.put("mayorversion", mayorversion);
+			metagraphJson.put("minorversion", minorversion);
 			if(metagraphJson.has("kommentar"))
 				kommentar = metagraphJson.getString("kommentar");
 				// Bearbeiter aus Token-Analyse ermittelt und in Graphen integrieren
@@ -649,15 +667,11 @@ public class stopmodell extends HttpServlet {
 		LOG.info("mayorversion: " + mayorversion);
 		LOG.info("minorversion: " + minorversion);
 
-		String selectModellSql = "SELECT release, mayorversion, minorversion FROM objektmodell "
-			+ "WHERE dhid = ? "
-			+ "ORDER BY release DESC, mayorversion DESC, minorversion DESC LIMIT 1;";
 
 		String insertModellSql = "INSERT INTO objektmodell (dhid, release, mayorversion, minorversion, "
 			+ "benutzer, kommentar, content) VALUES(?, ?, ?, ?, ?, ?, ?::jsonb);";
 
-		
-		PreparedStatement selectModellStmt;
+
 		PreparedStatement insertModellStmt;
 		try {
 			insertModellStmt = bfrkConn.prepareStatement(insertModellSql);
