@@ -56,6 +56,20 @@ public class pseudoobjekt extends HttpServlet {
                 merkmaleMap.put(BFRKFeld.Name.OBJ_Aufzug_Grundflaechenlaenge_cm_D2093, "198.765");
                 merkmaleMap.put(BFRKFeld.Name.OBJ_Aufzug_Grundflaechenbreite_cm_D2094, "98.765");
             }
+			case "BuR" -> {
+				merkmaleMap.put(BFRKFeld.Name.OBJ_BuR_Vorhanden, "true");
+				merkmaleMap.put(BFRKFeld.Name.OBJ_BuR_Notiz, verbindungsinformation);
+			}
+			case "Gleisquerung" -> {
+				merkmaleMap.put(BFRKFeld.Name.OBJ_Gleisquerung_Vorhanden_D2040, "true");
+				merkmaleMap.put(BFRKFeld.Name.OBJ_Gleisquerung_Verbindungsfunktion, verbindungsinformation);
+				merkmaleMap.put(BFRKFeld.Name.OBJ_Gleisquerung_Breite_cm, "98.765");
+			}
+			case "Parkplatz" -> {
+				merkmaleMap.put(BFRKFeld.Name.OBJ_Parkplatz_Art_D1051, "unbekannt");
+				merkmaleMap.put(BFRKFeld.Name.OBJ_Parkplatz_Lon, "" + lon);
+				merkmaleMap.put(BFRKFeld.Name.OBJ_Parkplatz_Lat, "" + lat);
+			}
             case "Rampe" -> {
                 merkmaleMap.put(BFRKFeld.Name.OBJ_Rampe_Vorhanden_D2120, "true");
                 merkmaleMap.put(BFRKFeld.Name.OBJ_Rampe_Verbindungsfunktion_D2121, verbindungsinformation);
@@ -68,6 +82,10 @@ public class pseudoobjekt extends HttpServlet {
                 merkmaleMap.put(BFRKFeld.Name.OBJ_Rolltreppe_Vorhanden_D2130, "true");
                 merkmaleMap.put(BFRKFeld.Name.OBJ_Rolltreppe_Verbindungsfunktion_D2131, verbindungsinformation);
             }
+			case "Taxistand" -> {
+				merkmaleMap.put(BFRKFeld.Name.OBJ_Taxistand_Lon, "" + lon);
+				merkmaleMap.put(BFRKFeld.Name.OBJ_Taxistand_Lat, "" + lat);
+			}
             case "Treppe" -> {
                 merkmaleMap.put(BFRKFeld.Name.OBJ_Treppe_Vorhanden_D2110, "true");
                 merkmaleMap.put(BFRKFeld.Name.OBJ_Treppe_Verbindungsfunktion_D2111, verbindungsinformation);
@@ -82,19 +100,6 @@ public class pseudoobjekt extends HttpServlet {
                 merkmaleMap.put(BFRKFeld.Name.OBJ_Weg_Neigung_prozent, "1.987");
                 merkmaleMap.put(BFRKFeld.Name.OBJ_Weg_Querneigung_prozent, "1.987");
             }
-            case "BuR" -> {
-                merkmaleMap.put(BFRKFeld.Name.OBJ_BuR_Vorhanden, "true");
-                merkmaleMap.put(BFRKFeld.Name.OBJ_BuR_Notiz, verbindungsinformation);
-            }
-            case "Parkplatz" -> {
-				merkmaleMap.put(BFRKFeld.Name.OBJ_Parkplatz_Art_D1051, "unbekannt");
-				merkmaleMap.put(BFRKFeld.Name.OBJ_Parkplatz_Lon, "" + lon);
-				merkmaleMap.put(BFRKFeld.Name.OBJ_Parkplatz_Lat, "" + lat);
-			}
-			case "Taxistand" -> {
-				merkmaleMap.put(BFRKFeld.Name.OBJ_Taxistand_Lon, "" + lon);
-				merkmaleMap.put(BFRKFeld.Name.OBJ_Taxistand_Lat, "" + lat);
-			}
             default -> {
                 LOG.warning("ungültige Objektart für Pseudoobjekt mit Objekt-Id: " + objektid
                         + ", falsche Objektart: " + objektart);
@@ -426,7 +431,8 @@ public class pseudoobjekt extends HttpServlet {
 						&&	!paramobjektart.equals("Treppe")
 						&&	!paramobjektart.equals("Weg")
 						&&	!paramobjektart.equals("BuR")
-						&&	!paramobjektart.equals("Parkplatz")) {
+						&&	!paramobjektart.equals("Parkplatz")
+						&&	!paramobjektart.equals("Gleisquerung")) {
 						String fehlertext = "Parameter objektart hat keinen gültigen Wert, sondern '" + paramobjektart + "'";
 						ergebnisJsonObject = new JSONObject();
 						ergebnisJsonObject.put("status", "fehler");
