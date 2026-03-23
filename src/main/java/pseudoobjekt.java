@@ -407,9 +407,9 @@ public class pseudoobjekt extends HttpServlet {
 			if(request.getParameter("osmid") != null) {
 				LOG.info("url-Parameter osmid vorhanden ===" + request.getParameter("osmid") + "===");
 				paramosmid = request.getParameter("osmid");
-				paramosmid = paramosmid.replace("Node ", "n");
-				paramosmid = paramosmid.replace("Way ", "w");
-				paramosmid = paramosmid.replace("Relation ", "r");
+				paramosmid = paramosmid.toLowerCase().replace("node ", "n");
+				paramosmid = paramosmid.toLowerCase().replace("way ", "w");
+				paramosmid = paramosmid.toLowerCase().replace("relation ", "r");
 				LOG.info("osmid normiert ===" + paramosmid + "===");
 			}
 
@@ -552,13 +552,10 @@ public class pseudoobjekt extends HttpServlet {
 				insertPseudoObjektRs.close();
 				insertPseudoObjektStmt.close();
 
-			    if(ObjektmerkmaleInDBSpeichern(pseudoObjektID, paramobjektart, paramverbindungsinformation,
+			    if(!ObjektmerkmaleInDBSpeichern(pseudoObjektID, paramobjektart, paramverbindungsinformation,
 						paramlon, paramlat)) {
-					ergebnisJsonObject.put("objektid", pseudoObjektID);
-					response.getWriter().append(ergebnisJsonObject.toString());
-					response.setStatus(HttpServletResponse.SC_OK);
-					return;
-			    } else {
+					insertPseudoObjektRs.close();
+					insertPseudoObjektStmt.close();
 			    	String fehlertext = "DB-Speicherungsfehler aufgetreten, bitte den Administrator benachrichtigen";
 					ergebnisJsonObject = new JSONObject();
 					ergebnisJsonObject.put("status", "fehler");
@@ -567,19 +564,22 @@ public class pseudoobjekt extends HttpServlet {
 					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					return;
 			    }
+			} else {
+				insertPseudoObjektRs.close();
+				insertPseudoObjektStmt.close();
+				String fehlertext = "SQL-Speicherungsfehler: es wurde nach dem DB-INSERT kein Ergebnisdatensatz gefunden, "
+						+ "vermutlich also nicht gespeichert. Bitte den Programmierer informieren.";
+				LOG.severe(fehlertext);
+				ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", fehlertext);
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+				return;
 			}
 			insertPseudoObjektRs.close();
 			insertPseudoObjektStmt.close();
 
-			String fehlertext = "SQL-Speicherungsfehler: es wurde nach dem DB-INSERT kein Ergebnisdatensatz gefunden, "
-				+ "vermutlich also nicht gespeichert. Bitte den Programmierer informieren.";
-			LOG.severe(fehlertext);
-			ergebnisJsonObject = new JSONObject();
-			ergebnisJsonObject.put("status", "fehler");
-			ergebnisJsonObject.put("fehlertext", fehlertext);
-			response.getWriter().append(ergebnisJsonObject.toString());
-			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-			return;
 		} catch (SQLException e) {
 			LOG.severe("SQLException::: " + e.toString());
 			String fehlertext = "DB-Fehler aufgetreten, bitte den Administrator benachrichtigen";
@@ -590,8 +590,11 @@ public class pseudoobjekt extends HttpServlet {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
 
-		if((paramosmid == null) || paramosmid.isEmpty()) {
+		if(paramosmid.isEmpty()) {
 			LOG.info("paramosmid ist leer, also Ende mit Verarbeitung");
+			ergebnisJsonObject.put("objektid", pseudoObjektID);
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_OK);
 			return;
 		}
 		LOG.info("paramosmid ist gefüllt, daher jetzt speichern des OSM-Bezugs...");
