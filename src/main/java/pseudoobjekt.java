@@ -349,16 +349,8 @@ public class pseudoobjekt extends HttpServlet {
 				}
 				if(paramoevart.equals("S")) {
 					parentobjektart = "Bahnhof";
-				} else if(paramoevart.equals("O")) {
-					parentobjektart = "Haltestelle";
 				} else {
-					String fehlertext = "Parameter oevart hat ungültigen Wert, nämlich '" + paramoevart + "'";
-					ergebnisJsonObject = new JSONObject();
-					ergebnisJsonObject.put("status", "fehler");
-					ergebnisJsonObject.put("fehlertext", fehlertext);
-					response.getWriter().append(ergebnisJsonObject.toString());
-					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-					return;
+					parentobjektart = "Haltestelle";
 				}
 			} else {
 				String fehlertext = "Parameter oevart ist nicht angegeben";
@@ -371,7 +363,8 @@ public class pseudoobjekt extends HttpServlet {
 			}
 
 			if(request.getParameter("verbindungsinformation") != null) {
-				LOG.info("url-Parameter verbindungsinformation vorhanden ===" + request.getParameter("verbindungsinformation"));
+				LOG.info("url-Parameter verbindungsinformation vorhanden ===" +
+						request.getParameter("verbindungsinformation") + "===");
 				paramverbindungsinformation = request.getParameter("verbindungsinformation");
 			} else {
 				String fehlertext = "Parameter verbindungsinformation ist nicht angegeben";
@@ -383,7 +376,7 @@ public class pseudoobjekt extends HttpServlet {
 				return;
 			}
 			if(request.getParameter("lon") != null) {
-				LOG.info("url-Parameter lon vorhanden ===" + request.getParameter("lon"));
+				LOG.info("url-Parameter lon vorhanden ===" + request.getParameter("lon") + "===");
 				paramlon = Double.parseDouble(request.getParameter("lon"));
 			} else {
 				String fehlertext = "Parameter lon ist nicht angegeben";
@@ -395,7 +388,7 @@ public class pseudoobjekt extends HttpServlet {
 				return;
 			}
 			if(request.getParameter("lat") != null) {
-				LOG.info("url-Parameter lat vorhanden ===" + request.getParameter("lat"));
+				LOG.info("url-Parameter lat vorhanden ===" + request.getParameter("lat") + "===");
 				paramlat = Double.parseDouble(request.getParameter("lat"));
 			} else {
 				String fehlertext = "Parameter lat ist nicht angegeben";
@@ -407,11 +400,16 @@ public class pseudoobjekt extends HttpServlet {
 				return;
 			}
 			if(request.getParameter("osmid") != null) {
-				LOG.info("url-Parameter osmid vorhanden ===" + request.getParameter("osmid"));
+				LOG.info("url-Parameter osmid vorhanden ===" + request.getParameter("osmid") + "===");
 				paramosmid = request.getParameter("osmid");
+				paramosmid = paramosmid.replace("Node ", "n");
+				paramosmid = paramosmid.replace("Way ", "w");
+				paramosmid = paramosmid.replace("Relation ", "r");
+				LOG.info("osmid normiert ===" + paramosmid + "===");
 			}
+
 			if(request.getParameter("objektart") != null) {
-				LOG.info("url-Parameter dhid vorhanden ===" + request.getParameter("objektart"));
+				LOG.info("url-Parameter dhid vorhanden ===" + request.getParameter("objektart") + "===");
 				paramobjektart = request.getParameter("objektart");
 				if((paramobjektart == null) || paramobjektart.isEmpty()) {
 					String fehlertext = "Parameter objektart ist nicht angegeben";
@@ -587,8 +585,10 @@ public class pseudoobjekt extends HttpServlet {
 		}
 
 		if((paramosmid == null) || paramosmid.isEmpty()) {
+			LOG.info("paramosmid ist leer, also Ende mit Verarbeitung");
 			return;
 		}
+		LOG.info("paramosmid ist gefüllt, daher jetzt speichern des OSM-Bezugs...");
 
 		String insertOsmObjektbezugSql = "INSERT INTO osmobjektbezug (objekt_id, osmid, osmstatus, subobjektart) "
 				+ "VALUES(?, ?, 'offen', 'Hauptobjekt') RETURNING id;";
@@ -611,6 +611,7 @@ public class pseudoobjekt extends HttpServlet {
 				insertOsmObjektbezugStmt.close();
 
 				ergebnisJsonObject.put("objektid", pseudoObjektID);
+				ergebnisJsonObject.put("osmdbid", osmdbID);
 				response.getWriter().append(ergebnisJsonObject.toString());
 				response.setStatus(HttpServletResponse.SC_OK);
 				return;
