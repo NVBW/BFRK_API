@@ -177,7 +177,7 @@ public class stopmodell extends HttpServlet {
 		try {
 				// ==================== ermitteln der neuesten Version (ggfs. gibt es auch gar keine Version) =========================
 			String selectneuestesModellSql = "SELECT id, release, mayorversion, minorversion FROM objektmodell "
-				+ "WHERE dhid = ? ORDER BY release ASC, mayorversion ASC, minorversion ASC;";
+				+ "WHERE dhid = ? ORDER BY release ASC, mayorversion ASC, minorversion ASC, zeitstempel;";
 
 			selectneuestesModellStmt = bfrkConn.prepareStatement(selectneuestesModellSql);
 			selectneuestesModellStmt.setString(1, dhid);
@@ -384,7 +384,8 @@ public class stopmodell extends HttpServlet {
 		try {
 			String selectModellSql = "SELECT dhid, release, mayorversion, minorversion, "
 				+ "benutzer, kommentar, zeitstempel, content FROM objektmodell "
-				+ "WHERE dhid = ? AND release = ? AND mayorversion = ? AND minorversion = ?;";
+				+ "WHERE dhid = ? AND release = ? AND mayorversion = ? AND minorversion = ? "
+				+ "ORDER BY zeitstempel DESC;";
 
 			PreparedStatement selectModellStmt = bfrkConn.prepareStatement(selectModellSql);
 			int stmtindex = 1;
@@ -671,7 +672,7 @@ public class stopmodell extends HttpServlet {
 		String insertModellSql = "INSERT INTO objektmodell (dhid, release, mayorversion, minorversion, "
 			+ "benutzer, kommentar, content) VALUES(?, ?, ?, ?, ?, ?, ?::jsonb);";
 
-		
+
 		PreparedStatement insertModellStmt;
 		try {
 			insertModellStmt = bfrkConn.prepareStatement(insertModellSql);
