@@ -162,10 +162,7 @@ public class ExportNachEYEvisObjektpruefung {
 		if(ersteosmid.contains("|"))
 			ersteosmid = ersteosmid.substring(0, ersteosmid.indexOf("|"));
 
-		if((osmId == null) || osmId.isEmpty())
-			return "";
-
-		String osmtyplang = "";
+        String osmtyplang = "";
 		if(ersteosmid.startsWith("n"))
 			osmtyplang = "node";
 		else if(ersteosmid.startsWith("w"))
@@ -329,7 +326,7 @@ public class ExportNachEYEvisObjektpruefung {
 			+ dateiname + "===");
 		Date startzeit = new Date();
 
-		if((dateiname == null) || dateiname.equals(""))
+		if((dateiname == null) || dateiname.isEmpty())
 			return outputListe;
 	
 			// bei EYEvis kann historisch eine Liste von Dateiname mit , (Komma) getrennt vorkommmen, auf Pipe-Zeichen ändern
@@ -366,7 +363,7 @@ public class ExportNachEYEvisObjektpruefung {
                 bildurl = bildurl.replace("/bfrk/haltestelle", "/bfrk_nvbw_intern/haltestelle");
 
                 bildpfadundname = downloadBild(bildurl);
-                if (!bildpfadundname.equals("")) {
+                if (!bildpfadundname.isEmpty()) {
 
                     File bildhandle = new File(bildpfadundname);
                     if (bildhandle.exists()) {
@@ -3758,17 +3755,15 @@ public class ExportNachEYEvisObjektpruefung {
 
 		lon = 0.0;
 		lat = 0.0;
-		if(lon == 0.0) {
-			if(	objektDaten.containsKey(BFRKFeld.Name.OBJ_Parkplatz_Behindertenplaetze_Lon) &&
-				(objektDaten.get(BFRKFeld.Name.OBJ_Parkplatz_Behindertenplaetze_Lon).getZahlWert() != 0.0)) {
-				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));
-				lon = objektDaten.get(BFRKFeld.Name.OBJ_Parkplatz_Behindertenplaetze_Lon).getZahlWert();
-	
-				if(objektDaten.containsKey(BFRKFeld.Name.OBJ_Parkplatz_Behindertenplaetze_Lat))
-					lat = objektDaten.get(BFRKFeld.Name.OBJ_Parkplatz_Behindertenplaetze_Lat).getZahlWert();
-			}
-		}
-		if(lon == 0.0) {
+        if (objektDaten.containsKey(Name.OBJ_Parkplatz_Behindertenplaetze_Lon) &&
+                (objektDaten.get(Name.OBJ_Parkplatz_Behindertenplaetze_Lon).getZahlWert() != 0.0)) {
+            LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(Name.HST_DHID));
+            lon = objektDaten.get(Name.OBJ_Parkplatz_Behindertenplaetze_Lon).getZahlWert();
+
+            if (objektDaten.containsKey(Name.OBJ_Parkplatz_Behindertenplaetze_Lat))
+                lat = objektDaten.get(Name.OBJ_Parkplatz_Behindertenplaetze_Lat).getZahlWert();
+        }
+        if(lon == 0.0) {
 			if(	haltestelleDaten.containsKey(BFRKFeld.Name.HST_Soll_Lon) &&
 				(haltestelleDaten.get(BFRKFeld.Name.HST_Soll_Lon).getZahlWert() != 0.0)) {
 				LOG.warning("Objekt notdürftig mit DIVA-Koordinate besetzt, DHID:  " + haltestelleDaten.get(BFRKFeld.Name.HST_DHID));

@@ -1210,9 +1210,10 @@ if(hstMerkmale.containsKey(BFRKFeld.Name.Objektart))
 				
 				ExportNachEYEvisObjektpruefung exportNachEYEvisPruefung = null;
 				try {
+						// ab 04/2026 nur noch öffentlich verfügbare Bilder verwenden
 					exportNachEYEvisPruefung = new ExportNachEYEvisObjektpruefung(
 						paramBilderkopieren,
-						Bildquellenart.downloadprivateundpublic, workbook);
+						Bildquellenart.downloadpublic, workbook);
 					exportNachEYEvisPruefung.setBildDownloadverzeichnis(paramBilderzielverzeichnis + File.separator + "temp");
 					exportNachEYEvisPruefung.setBilderZielverzeichnis(paramBilderzielverzeichnis);
 					exportNachEYEvisPruefung.setEYEvisVorlage(paramEYEvisVorlage);
