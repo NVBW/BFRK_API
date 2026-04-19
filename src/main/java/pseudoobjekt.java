@@ -432,8 +432,10 @@ public class pseudoobjekt extends HttpServlet {
 						&&	!paramobjektart.equals("Weg")
 						&&	!paramobjektart.equals("BuR")
 						&&	!paramobjektart.equals("Parkplatz")
-						&&	!paramobjektart.equals("Gleisquerung")) {
-						String fehlertext = "Parameter objektart hat keinen gültigen Wert, sondern '" + paramobjektart + "'";
+						&&	!paramobjektart.equals("Gleisquerung")
+						&&	!paramobjektart.equals("Taxistand")) {
+						String fehlertext = "Parameter objektart hat keinen gültigen Wert, sondern '" + paramobjektart + "'. " +
+								"Zulässige Werte sind Aufzug, BuR, Gleisquerung, Parkplatz, Rampe, Rolltreppe, Taxistand, Treppe, Weg";
 						ergebnisJsonObject = new JSONObject();
 						ergebnisJsonObject.put("status", "fehler");
 						ergebnisJsonObject.put("fehlertext", fehlertext);
