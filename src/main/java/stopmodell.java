@@ -397,7 +397,7 @@ public class stopmodell extends HttpServlet {
 
 			ResultSet selectModellRS = selectModellStmt.executeQuery();
 
-			JSONObject ergebnisJsonObject = new JSONObject();
+			JSONObject ergebnisJsonObject = null;
 
 			if(selectModellRS.next()) {
 				String content = selectModellRS.getString("content");
@@ -423,8 +423,17 @@ public class stopmodell extends HttpServlet {
 			selectModellRS.close();
 			selectModellStmt.close();
 
-			response.getWriter().append(ergebnisJsonObject.toString());
-			response.setStatus(HttpServletResponse.SC_OK);
+			if(ergebnisJsonObject != null) {
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_OK);
+			} else {
+				LOG.warning("der eigentlich erstellte Graph konnte nicht geholt werden von graphaktualisierung.bereinigeKantenImGraph.");
+				ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "unerwarteter Fehler aufgetreten beim Versuch, den bereinigten Graphen zu holen");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			}
 			return;
 
 		} catch (SQLException e) {
