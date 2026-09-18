@@ -16,11 +16,15 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Logger;
 
 import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.base.Coordinate;
 
 public class OpenStreetMap {
+
+	private static final Logger LOG = NVBWLogger.getLogger(OpenStreetMap.class);
+
 	private static HttpURLConnection conn;
 	private static DateFormat datetime_osm_formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 	private boolean abruferfolgt = false;
@@ -90,7 +94,7 @@ public class OpenStreetMap {
 			else if(osmid.startsWith("r"))
 				osmtyp = "relation";
 			else {
-				NVBWLogger.warning("in getOSMKoordinate fehlt in OSM-Id der Typ-Prefix, ABBRUCH");
+				LOG.warning("in getOSMKoordinate fehlt in OSM-Id der Typ-Prefix, ABBRUCH");
 				return returnkoordinate;
 			}
 
@@ -112,7 +116,7 @@ public class OpenStreetMap {
 					StandardCharsets.UTF_8.toString());
 
 				url = new URL(overpassrequest);
-				NVBWLogger.fine("Overpass-Anfrage ===" + overpassrequest + "=== ...");
+				LOG.fine("Overpass-Anfrage ===" + overpassrequest + "=== ...");
 	
 				if(conn == null)
 					conn = (HttpURLConnection) url.openConnection();
@@ -124,15 +128,15 @@ public class OpenStreetMap {
 			
 				// Connection is lazily executed whenever you request any status.
 				int responseCode = ((HttpURLConnection) conn).getResponseCode();
-				NVBWLogger.fine("" + responseCode); // Should be 200
+				LOG.fine("" + responseCode); // Should be 200
 				// ===================================================================================================================
 	
 	
 				long contentlength = 0;
 				Integer headeri = 1;
-				NVBWLogger.info("Header-Fields Ausgabe ...");
+				LOG.info("Header-Fields Ausgabe ...");
 				while(((HttpURLConnection) conn).getHeaderFieldKey(headeri) != null) {
-					NVBWLogger.info("  Header # "+headeri+":  [" 
+					LOG.info("  Header # "+headeri+":  [" 
 						+ ((HttpURLConnection) conn).getHeaderFieldKey(headeri)+"] ==="
 						+ ((HttpURLConnection) conn).getHeaderField(headeri)+"===");
 					if(((HttpURLConnection) conn).getHeaderFieldKey(headeri).equals("Content-Length")) {
@@ -158,7 +162,7 @@ public class OpenStreetMap {
 					}
 					System.out.println("Content  ===" + response.toString() + "===");
 				} else {
-					NVBWLogger.info("HTTP-Response Code nicht 200, sondern " + responseCode
+					LOG.info("HTTP-Response Code nicht 200, sondern " + responseCode
 						+ ", für Bild-Url ===" + overpassrequest + "===");
 						// keine Url zurückgeben, weil nicht alles in Ordnung
 					overpassrequest = "";
@@ -167,22 +171,22 @@ public class OpenStreetMap {
 	
 				rd.close();
 			} catch (FileNotFoundException e) {
-				NVBWLogger.finest("Overpass-Request wurde nicht gefunden (FileNotFoundException)" + "\t"
+				LOG.finest("Overpass-Request wurde nicht gefunden (FileNotFoundException)" + "\t"
 						+ overpassrequest + "\t" + e.toString());
 					overpassrequest = "";
 					aktion = "FileNotFoundException";
 			} catch (MalformedURLException e) {
-				NVBWLogger.info("Overpass-Request kann nicht heruntergeladen werden (MalformedURLException)" + "\t"
+				LOG.info("Overpass-Request kann nicht heruntergeladen werden (MalformedURLException)" + "\t"
 					+ overpassrequest + "\t" + e.toString());
 				overpassrequest = "";
 				aktion = "MalformedURLException";
 			} catch (ProtocolException e) {
-				NVBWLogger.info("Overpass-Request kann nicht heruntergeladen werden (ProtocolException)" + "\t"
+				LOG.info("Overpass-Request kann nicht heruntergeladen werden (ProtocolException)" + "\t"
 					+ overpassrequest + "\t" + e.toString());
 				overpassrequest = "";
 				aktion = "ProtocolException";
 			} catch (IOException e) {
-				NVBWLogger.info("Overpass-Request kann nicht heruntergeladen werden (ProtocolException)" + "\t"
+				LOG.info("Overpass-Request kann nicht heruntergeladen werden (ProtocolException)" + "\t"
 					+ overpassrequest + "\t" + e.toString());
 				overpassrequest = "";
 				aktion = "IOException";
@@ -251,7 +255,7 @@ public class OpenStreetMap {
 		else if(osmidmitprefix.startsWith("r"))
 			osmtyp = "relation";
 		else {
-			NVBWLogger.warning("in getOSMKoordinate fehlt in OSM-Id der Typ-Prefix, ABBRUCH");
+			LOG.warning("in getOSMKoordinate fehlt in OSM-Id der Typ-Prefix, ABBRUCH");
 			return abruferfolgreich;
 		}
 
@@ -272,7 +276,7 @@ public class OpenStreetMap {
 				StandardCharsets.UTF_8.toString());
 
 			url = new URL(overpassrequest);
-			NVBWLogger.fine("Overpass-Anfrage ===" + overpassrequest + "=== ...");
+			LOG.fine("Overpass-Anfrage ===" + overpassrequest + "=== ...");
 
 			if(conn == null)
 				conn = (HttpURLConnection) url.openConnection();
@@ -284,15 +288,15 @@ public class OpenStreetMap {
 		
 			// Connection is lazily executed whenever you request any status.
 			int responseCode = ((HttpURLConnection) conn).getResponseCode();
-			NVBWLogger.fine("" + responseCode); // Should be 200
+			LOG.fine("" + responseCode); // Should be 200
 			// ===================================================================================================================
 
 
 			long contentlength = 0;
 			Integer headeri = 1;
-			NVBWLogger.info("Header-Fields Ausgabe ...");
+			LOG.info("Header-Fields Ausgabe ...");
 			while(((HttpURLConnection) conn).getHeaderFieldKey(headeri) != null) {
-				NVBWLogger.info("  Header # "+headeri+":  [" 
+				LOG.info("  Header # "+headeri+":  [" 
 					+ ((HttpURLConnection) conn).getHeaderFieldKey(headeri)+"] ==="
 					+ ((HttpURLConnection) conn).getHeaderField(headeri)+"===");
 				if(((HttpURLConnection) conn).getHeaderFieldKey(headeri).equals("Content-Length")) {
@@ -326,7 +330,7 @@ public class OpenStreetMap {
 						try {
 							this.objektzeitstempel = datetime_osm_formatter.parse(felder[6]);
 						} catch (Exception e) {
-							NVBWLogger.warning("OSM-Zeitstempel ist nicht parseable, Content ==="
+							LOG.warning("OSM-Zeitstempel ist nicht parseable, Content ==="
 								+ felder[6] + "===");
 						}
 					}
@@ -335,7 +339,7 @@ public class OpenStreetMap {
 				abruferfolgreich = true;
 				this.abruferfolgt = true;
 			} else {
-				NVBWLogger.info("HTTP-Response Code nicht 200, sondern " + responseCode
+				LOG.info("HTTP-Response Code nicht 200, sondern " + responseCode
 					+ ", für Bild-Url ===" + overpassrequest + "===");
 					// keine Url zurückgeben, weil nicht alles in Ordnung
 				overpassrequest = "";
@@ -344,22 +348,22 @@ public class OpenStreetMap {
 
 			rd.close();
 		} catch (FileNotFoundException e) {
-			NVBWLogger.finest("Overpass-Request wurde nicht gefunden (FileNotFoundException)" + "\t"
+			LOG.finest("Overpass-Request wurde nicht gefunden (FileNotFoundException)" + "\t"
 					+ overpassrequest + "\t" + e.toString());
 				overpassrequest = "";
 				abruferfolgreich = false;
 		} catch (MalformedURLException e) {
-			NVBWLogger.info("Overpass-Request kann nicht heruntergeladen werden (MalformedURLException)" + "\t"
+			LOG.info("Overpass-Request kann nicht heruntergeladen werden (MalformedURLException)" + "\t"
 				+ overpassrequest + "\t" + e.toString());
 			overpassrequest = "";
 			abruferfolgreich = false;
 		} catch (ProtocolException e) {
-			NVBWLogger.info("Overpass-Request kann nicht heruntergeladen werden (ProtocolException)" + "\t"
+			LOG.info("Overpass-Request kann nicht heruntergeladen werden (ProtocolException)" + "\t"
 				+ overpassrequest + "\t" + e.toString());
 			overpassrequest = "";
 			abruferfolgreich = false;
 		} catch (IOException e) {
-			NVBWLogger.info("Overpass-Request kann nicht heruntergeladen werden (ProtocolException)" + "\t"
+			LOG.info("Overpass-Request kann nicht heruntergeladen werden (ProtocolException)" + "\t"
 				+ overpassrequest + "\t" + e.toString());
 			overpassrequest = "";
 			abruferfolgreich = false;

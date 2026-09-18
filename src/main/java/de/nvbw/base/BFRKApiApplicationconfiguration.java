@@ -6,6 +6,10 @@ import java.io.Reader;
 import java.util.Properties;
 import java.util.logging.Level;
 
+@Deprecated
+/**
+ * entfällt ab 13.02.2026, weil keine zusätzlichen Konfgurationseinstellungen mehr notwendig sind
+ */
 public class BFRKApiApplicationconfiguration extends Applicationconfiguration {
 
 	public String authorisierungsid = "";
@@ -24,7 +28,7 @@ public class BFRKApiApplicationconfiguration extends Applicationconfiguration {
 		System.out.println("current dir, is it good?   ===" + userdir);
 		
 		if(File.separator.equals("\\"))
-			configuration_filename = "C:\\Users\\SEI\\eclipse-workspace\\BFRK_API\\bfrk_api.properties";
+			configuration_filename = "C:\\Users\\SEI\\IdeaProjects\\BFRK_API\\bfrk_api.properties";
 		else
 			configuration_filename = "/daten/NVBWAdmin/bfrk_api_home/bfrk_api.properties";
 

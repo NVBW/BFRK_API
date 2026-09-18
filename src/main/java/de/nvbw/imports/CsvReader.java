@@ -11,12 +11,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import de.nvbw.base.NVBWLogger;
 
 
 public class CsvReader {
-	
+	private static final Logger LOG = NVBWLogger.getLogger(CsvReader.class);
+
 	private Map<Integer, String> headercolumns = new HashMap<>();
 
 	private static String[] removeAt(int k, String[] arr) {
@@ -45,7 +47,7 @@ public class CsvReader {
 			while ((line = dateireader.readLine()) != null) {
 				filelineno++;
 				if ( ( filelineno % 1000 ) == 0 )
-					NVBWLogger.fine("reading File line #" + filelineno);
+					LOG.fine("reading File line #" + filelineno);
 				if(line.equals(""))
 					continue;
 				if(line.indexOf("\"") != -1) {
@@ -97,7 +99,7 @@ public class CsvReader {
 				
 				String[] columns = null;
 				if ( line.indexOf(splitsequence) == -1 ) {
-					System.out.println("ERROR: column separator not '" + splitsequence + "'");
+					LOG.severe("ERROR: column separator not '" + splitsequence + "'");
 					dateireader.close();
 					return zeilen;
 				}
@@ -135,11 +137,11 @@ public class CsvReader {
 				}
 				zeilen.add(zeile);
 			} // end of loop over all lines of trip-file
-			NVBWLogger.info("Read File Number of lines: " + filelineno + ", File " + filename);
+			LOG.info("Read File Number of lines: " + filelineno + ", File " + filename);
 			dateireader.close();
 		} catch (IOException ioe) {
-			NVBWLogger.severe("Fehler bei Datei lesen");
-			NVBWLogger.severe(ioe.toString());
+			LOG.severe("Fehler bei Datei lesen");
+			LOG.severe(ioe.toString());
 		}
 		return zeilen;
 	}

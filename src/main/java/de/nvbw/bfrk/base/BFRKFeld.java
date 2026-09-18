@@ -4,11 +4,14 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.logging.Logger;
 
 import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.OpenDataCSVExportwriter;
 
 public class BFRKFeld {
+	private static final Logger LOG = NVBWLogger.getLogger(BFRKFeld.class);
+
 	static private DateFormat date_de_formatter = new SimpleDateFormat("dd.MM.yyyy");
 
 	public enum Datentyp {Boolean, Numeric, String, Date, unset};
@@ -253,6 +256,7 @@ public class BFRKFeld {
 		HST_weitereBilder_Foto3_Kommentar (Datentyp.String),
 		
 		OBJ_Beschreibung (Datentyp.String),
+		OBJ_Pseudoobjekt (Datentyp.Boolean),
 
 		// Aufzug  (3.2.9)
 		OBJ_Aufzug_Vorhanden_D2090 (Datentyp.Boolean),
@@ -296,6 +300,7 @@ public class BFRKFeld {
 		OBJ_Engstelle_Vorhanden (Datentyp.Boolean),
 		OBJ_Engstelle_Durchgangsbreite_cm_D2080 (Datentyp.Numeric),
 		OBJ_Engstelle_Bewegflaeche_cm_D2081 (Datentyp.Numeric),
+		OBJ_Engstelle_OSMID (Datentyp.String),
 
 			// Objekt Fahrkartenautomat
 		OBJ_Kartenautomat_Vorhanden (Datentyp.Boolean),
@@ -303,24 +308,28 @@ public class BFRKFeld {
 		OBJ_Kartenautomat_Lon (Datentyp.Numeric),
 		OBJ_Kartenautomat_Lat (Datentyp.Numeric),
 		OBJ_Kartenautomat_Entwerter (Datentyp.Boolean),
+		OBJ_Kartenautomat_OSMID (Datentyp.String),
 
 			// Gleisquerung (3.2.4 Höhengleicher Bahnsteigzugang)
 		OBJ_Gleisquerung_Vorhanden_D2040 (Datentyp.Boolean),
 		OBJ_Gleisquerung_Verbindungsfunktion (Datentyp.String),
 		OBJ_Gleisquerung_Breite_cm (Datentyp.Numeric),
+		OBJ_Gleisquerung_OSMID (Datentyp.String),
 
 			// Informationsstelle   (3.1.3)
 		OBJ_Infostelle_Vorhanden_D1030 (Datentyp.Boolean),
 		OBJ_Infostelle_Art_D1031 (Datentyp.String),
 		OBJ_Infostelle_Stufenfrei_D1032 (Datentyp.Boolean),
-		
+		OBJ_Infostelle_OSMID (Datentyp.String),
+
 			// Leihrad    (BW-Zusatzmerkmal)
 		OBJ_Leihradanlage_Vorhanden (Datentyp.Boolean),
 		OBJ_Leihradanlage_Art (Datentyp.String),
 		OBJ_Leihradanlage_Notizen (Datentyp.String),
 		OBJ_Leihradanlage_lon (Datentyp.Numeric),
 		OBJ_Leihradanlage_lat (Datentyp.Numeric),
-		
+		OBJ_Leihradanlage_OSMID (Datentyp.String),
+
 			// Parpkplatz (3.1.5)
 		OBJ_Parkplatz_oeffentlichVorhanden_D1050 (Datentyp.Boolean),
 		OBJ_Parkplatz_Eigentuemer (Datentyp.String),
@@ -347,6 +356,7 @@ public class BFRKFeld {
 		OBJ_Parkplatz_Foto_Kommentar (Datentyp.String),
 		OBJ_Parkplatz_Behindertenplaetze_Laenge_cm_Kommentar (Datentyp.String),	// neu ab SPNV 2024
 		OBJ_Parkplatz_Behindertenplaetze_Breite_cm_Kommentar (Datentyp.String),	// neu ab SPNV 2024
+		OBJ_Parkplatz_OSMID (Datentyp.String),
 
 /* zu Parkplatz-Öffnungszeiten
  * https://github.com/simonpoole/OpeningHoursParser
@@ -373,6 +383,7 @@ public class Main {
 		OBJ_Rampe_Breite_cm_D2123 (Datentyp.Numeric),
 		OBJ_Rampe_Neigung_prozent_D2124 (Datentyp.Numeric),
 		OBJ_Rampe_Querneigung_prozent (Datentyp.Numeric),
+		OBJ_Rampe_OSMID (Datentyp.String),
 
 			// Rolltreppe   (3.2.13)
 		OBJ_Rolltreppe_Vorhanden_D2130 (Datentyp.Boolean), 
@@ -380,7 +391,8 @@ public class Main {
 		OBJ_Rolltreppe_Fahrtrichtung_D2132 (Datentyp.String),
 		OBJ_Rolltreppe_WechselndeRichtung_D2133 (Datentyp.String),
 		OBJ_Rolltreppe_Laufzeit_sek_D2134 (Datentyp.Numeric),
-		
+		OBJ_Rolltreppe_OSMID (Datentyp.String),
+
 		// Stations- / Haltestellenplan   (3.2.1)
 		OBJ_Stationsplan_Vorhanden_D1030 (Datentyp.Boolean),
 		OBJ_Stationsplan_Bodenindikatorart (Datentyp.String),
@@ -388,17 +400,20 @@ public class Main {
 		OBJ_Stationsplan_Fahrplanakustisch (Datentyp.Boolean),
 		OBJ_Stationsplan_Lon (Datentyp.Numeric),
 		OBJ_Stationsplan_Lat (Datentyp.Numeric),
-		
+		OBJ_Stationsplan_OSMID (Datentyp.String),
+
 			// Taxi-Stand   (3.1.6)
 		OBJ_Taxistand_Vorhanden_D1060 (Datentyp.Boolean),
 		OBJ_Taxistand_Lon (Datentyp.Numeric),
 		OBJ_Taxistand_Lat (Datentyp.Numeric),
+		OBJ_Taxistand_OSMID (Datentyp.String),
 
 			// Toilette   (3.1.7)
 		OBJ_Toilette_Vorhanden_D1070 (Datentyp.Boolean), 
 		OBJ_Toilette_Rollstuhltauglich (Datentyp.String),
 		OBJ_Toilette_Lokalschluessel_Notiz (Datentyp.String),
 		OBJ_Toilette_Oeffnungszeiten_Beschreibung_D1075 (Datentyp.String),
+		OBJ_Toilette_OSMID (Datentyp.String),
 
 			// 3.2.11 Treppe
 		OBJ_Treppe_Vorhanden_D2110 (Datentyp.Boolean),
@@ -412,12 +427,14 @@ public class Main {
 		OBJ_Treppe_ZielBlinde_rechts (Datentyp.Boolean),	// ab SPNV 2024
 		OBJ_Treppe_ZielBlinde_mittig (Datentyp.Boolean),	// ab SPNV 2024
 		OBJ_Treppe_Radschieberille (Datentyp.Boolean),
-		
+		OBJ_Treppe_OSMID (Datentyp.String),
+
 			// Fahrkartennverkaufsstelle   (3.1.2)
 		OBJ_Verkaufsstelle_Vorhanden_D1020 (Datentyp.Boolean),
 		OBJ_Verkaufsstelle_Art_D1021 (Datentyp.String),
 		OBJ_Verkaufsstelle_stufenfrei_D1022 (Datentyp.Boolean),
-		
+		OBJ_Verkaufsstelle_OSMID (Datentyp.String),
+
 			// Wege niveaugleich   (3.2.2)
 		OBJ_Weg_Vorhanden (Datentyp.Boolean),
 		OBJ_Weg_Art (Datentyp.String),
@@ -429,7 +446,8 @@ public class Main {
 		OBJ_Weg_Neigung_prozent (Datentyp.Numeric),
 		OBJ_Weg_Querneigung_prozent (Datentyp.Numeric),
 		OBJ_Weg_Verbindungsfunktion (Datentyp.String),
-		
+		OBJ_Weg_OSMID (Datentyp.String),
+
 			// Notiz-Objekt (neu ab 11/2021)
 		OBJ_Notiz_Objektart (Datentyp.String),
 		OBJ_Notiz_Inhalt (Datentyp.String),
@@ -781,7 +799,7 @@ public class Main {
 			else
 				return false;
 		} else {
-			NVBWLogger.severe("Programmierfehler in getBooleanWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getBooleanWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return false;
 	}
@@ -793,7 +811,7 @@ public class Main {
 			else
 				return OpenDataCSVExportwriter.EXPORT_BOOLEAN_FALSE;
 		} else {
-			NVBWLogger.severe("Programmierfehler in getBooleanWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getBooleanWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return "nein";
 	}
@@ -805,7 +823,7 @@ public class Main {
 			else
 				return "no";
 		} else {
-			NVBWLogger.severe("Programmierfehler in getBooleanWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getBooleanWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return "no";
 	}
@@ -822,12 +840,12 @@ public class Main {
 					return returnwert;
 				}
 				catch (NumberFormatException numerror) {
-					NVBWLogger.severe("Fehler bei Konvertierung nach double-Typ, Original ist " + this.feldwert);
+					LOG.severe("Fehler bei Konvertierung nach double-Typ, Original ist " + this.feldwert);
 					return returnwert;
 				}
 			}
 		} else {
-			NVBWLogger.severe("Programmierfehler in getZahlWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getZahlWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return returnwert;
 	}
@@ -842,12 +860,12 @@ public class Main {
 					return returnwert;
 				}
 				catch (NumberFormatException numerror) {
-					NVBWLogger.severe("Fehler bei Konvertierung nach double-Typ, Original ist " + this.feldwert);
+					LOG.severe("Fehler bei Konvertierung nach double-Typ, Original ist " + this.feldwert);
 					return returnwert;
 				}
 			}
 		} else {
-			NVBWLogger.severe("Programmierfehler in getZahlWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getZahlWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return returnwert;
 	}
@@ -865,12 +883,12 @@ public class Main {
 					return returnwert;
 				}
 				catch (NumberFormatException numerror) {
-					NVBWLogger.severe("Fehler bei Konvertierung nach Integer, Original ist " + this.feldwert);
+					LOG.severe("Fehler bei Konvertierung nach Integer, Original ist " + this.feldwert);
 					return returnwert;
 				}
 			}
 		} else {
-			NVBWLogger.severe("Programmierfehler in getIntWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getIntWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return returnwert;
 	}
@@ -886,12 +904,12 @@ public class Main {
 					return returnwert;
 				}
 				catch (NumberFormatException numerror) {
-					NVBWLogger.severe("Fehler bei Konvertierung nach Integer, Original ist " + this.feldwert);
+					LOG.severe("Fehler bei Konvertierung nach Integer, Original ist " + this.feldwert);
 					return returnwert;
 				}
 			}
 		} else {
-			NVBWLogger.severe("Programmierfehler in getIntWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getIntWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return returnwert;
 	}
@@ -914,7 +932,7 @@ public class Main {
 				return this.feldwert;
 			}
 		} else {
-			NVBWLogger.severe("Programmierfehler in getTextWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getTextWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return "";
 	}
@@ -928,12 +946,12 @@ public class Main {
 				datumwert = date_de_formatter.parse(this.feldwert);
 				return datumwert;
 			} catch (ParseException e) {
-				NVBWLogger.warning("in Klasse BFRKFeld, Methode getDatumWert kann das Datum "
+				LOG.warning("in Klasse BFRKFeld, Methode getDatumWert kann das Datum "
 					+ "im Textformat nicht konvertiert werden, Text aus DB ist ===" + this.feldwert + "===");
 				return null;
 			}
 		} else {
-			NVBWLogger.severe("Programmierfehler in getTextWert, Typ von Feld " + this.feldname + " ist " + this.typ);
+			LOG.severe("Programmierfehler in getTextWert, Typ von Feld " + this.feldname + " ist " + this.typ);
 		}
 		return null;
 	}

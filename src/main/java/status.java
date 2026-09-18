@@ -11,10 +11,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import de.nvbw.graph.Grapherzeugung;
 import org.json.JSONObject;
 
 import de.nvbw.bfrk.util.DBVerbindung;
-import de.nvbw.diva.graph.Grapherzeugung;
+
 
 /**
  * Servlet implementation class haltestelle

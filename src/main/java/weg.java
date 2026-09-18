@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -13,10 +14,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import de.nvbw.base.NVBWLogger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.base.BFRKFeld;
 import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
@@ -33,6 +34,7 @@ import de.nvbw.bfrk.util.ReaderBase;
 public class weg extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
+	private static final Logger LOG = NVBWLogger.getLogger(weg.class);
     private static Connection bfrkConn = null;
 
     /**
@@ -40,11 +42,10 @@ public class weg extends HttpServlet {
      */
     public weg() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     /**
-     * initialization on servlett startup
+     * initialization on servlet startup
      * - connect to bfrk DB
      */
     @Override
@@ -61,35 +62,52 @@ public class weg extends HttpServlet {
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				System.out.println("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.severe("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-					response.getWriter().append("FEHLER: keine DB-Verbindung offen");
+					LOG.severe("es konnte keine DB-Verbindung herstellt werden");
+					JSONObject ergebnisJsonObject = new JSONObject();
+					ergebnisJsonObject.put("status", "fehler");
+					ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren");
+					response.getWriter().append(ergebnisJsonObject.toString());
+					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					return;
 				}
 			}
 		} catch (SQLException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei SQLException " + e1.toString());
+			LOG.severe("SQLException aufgetreten, " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		} catch (IOException e1) {
-			response.getWriter().append("FEHLER: keine DB-Verbindung offen, bei IOException " + e1.toString());
+			LOG.severe("IOException aufgetreten, " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unbekannter Fehler aufgetreten, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
 
 		long paramObjektid = 0;
 		if(request.getParameter("dhid") != null) {
-			System.out.println("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
+			LOG.info("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
 			paramObjektid = Long.parseLong(request.getParameter("dhid"));
 		} else {
-			System.out.println("url-Parameter dhid fehlt ...");
+			LOG.info("url-Parameter dhid fehlt ...");
 			String requesturi = request.getRequestURI();
-			System.out.println("requesturi ===" + requesturi + "===");
-			if(requesturi.indexOf("/weg") != -1) {
+			LOG.info("requesturi ===" + requesturi + "===");
+			if(requesturi.contains("/weg")) {
 				int startpos = requesturi.indexOf("/weg");
-				System.out.println("startpos #1: " + startpos);
+				LOG.info("startpos #1: " + startpos);
 				if(requesturi.indexOf("/",startpos + 1) != -1) {
 					paramObjektid = Long.parseLong(requesturi.substring(requesturi.indexOf("/",startpos + 1) + 1));
-					System.out.println("Versuch, Objektid zu extrahieren ===" + paramObjektid + "===");
+					LOG.info("Versuch, Objektid zu extrahieren ===" + paramObjektid + "===");
 				}
 			}
 		}
@@ -138,7 +156,7 @@ public class weg extends HttpServlet {
 			selectHaltestelleStmt = bfrkConn.prepareStatement(selectHaltestelleSql);
 			selectHaltestelleStmt.setLong(1, paramObjektid);
 			selectHaltestelleStmt.setLong(2, paramObjektid);
-			System.out.println("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
+			LOG.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
 
 			ResultSet selectMerkmaleRS = selectHaltestelleStmt.executeQuery();
 
@@ -153,55 +171,50 @@ public class weg extends HttpServlet {
 				double osmlon = selectMerkmaleRS.getDouble("osmlon");
 				double osmlat = selectMerkmaleRS.getDouble("osmlat");
 
-				if(name.equals("OBJ_Weg_Art")) {
-					if(wert.equals("weg")) {
-						merkmaleJsonObject.put("art", "niveaugleicher Weg");
-					} else if(wert.equals("ueberfuehrung")) {
-						merkmaleJsonObject.put("art", "Überführung");
-					} else if(	wert.equals("unterfuehrung")) {
-						merkmaleJsonObject.put("art", "Unterführung");
-					} else {
-						NVBWLogger.warning("in Servlet " + this.getServletName() 
-						+ " unerwarteter Wert bei Merkmal Name '" + name + "'" 
-						+ ", Wert '" + wert + "'");
-					}
-				} else if(name.equals("OBJ_Weg_beleuchtet"))
-					merkmaleJsonObject.put("beleuchtet", wert.equals("true"));
-				else if(name.equals("OBJ_Weg_ueberdacht")) {
-					if(wert.equals("dach_hoch")) {
-						merkmaleJsonObject.put("ueberdacht", "hohes Dach");
-					} else if(wert.equals("dach_niedrig")) {
-						merkmaleJsonObject.put("ueberdacht", "niedriges Dach");
-					} else if(	wert.equals("ohne_dach")) {
-						merkmaleJsonObject.put("ueberdacht", "nein");
-					} else {
-						NVBWLogger.warning("unerwarteter Wert bei Merkmal Name '" + name + "'" 
-						+ ", Wert '" + wert + "'");
-					}
-				} else if(name.equals("OBJ_Weg_Breite_cm_D2021"))
-					merkmaleJsonObject.put("breite_cm", (int) Double.parseDouble(wert));
-				else if(name.equals("OBJ_Weg_Laenge_cm_D2020"))
-					merkmaleJsonObject.put("laenge_cm", (int) Double.parseDouble(wert));
-				else if(name.equals("OBJ_Weg_Hoehe_cm"))
-					merkmaleJsonObject.put("hoehe_cm", (int) Double.parseDouble(wert));
-				else if(name.equals("OBJ_Weg_Neigung_prozent"))
-					merkmaleJsonObject.put("laengsneigung_prozent", Double.parseDouble(wert));
-				else if(name.equals("OBJ_Weg_Querneigung_prozent"))
-					merkmaleJsonObject.put("querneigung_prozent", Double.parseDouble(wert));
-				else if(name.equals("OBJ_Weg_Verbindungsfunktion"))
-					merkmaleJsonObject.put("verbindungsfunktion", wert);
-				else if(name.equals("OBJ_Weg_Foto"))
-					merkmaleJsonObject.put("objekt_Foto", Bild.getBildUrl(wert, dhid));
-				else if(name.equals("OBJ_Weg_ID_Foto"))
-					merkmaleJsonObject.put("id_Foto", Bild.getBildUrl(wert, dhid));
-				else if(name.equals("OBJ_Weg_Richtung1_Foto"))
-					merkmaleJsonObject.put("richtung1_Foto", Bild.getBildUrl(wert, dhid));
-				else if(name.equals("OBJ_Weg_Richtung2_Foto"))
-					merkmaleJsonObject.put("richtung2_Foto", Bild.getBildUrl(wert, dhid));
-				else
-					NVBWLogger.warning("in Servlet " + this.getServletName() 
-						+ " nicht verarbeitetes Merkmal Name '" + name + "'" 
-						+ ", Wert '" + wert + "'");
+                switch (name) {
+                    case "OBJ_Weg_Art" -> {
+                        switch (wert) {
+                            case "weg" -> merkmaleJsonObject.put("art", "niveaugleicher Weg");
+                            case "ueberfuehrung" -> merkmaleJsonObject.put("art", "Überführung");
+                            case "unterfuehrung" -> merkmaleJsonObject.put("art", "Unterführung");
+                            default -> LOG.warning("in Servlet " + this.getServletName()
+                                    + " unerwarteter Wert bei Merkmal Name '" + name + "'"
+                                    + ", Wert '" + wert + "'");
+                        }
+                    }
+                    case "OBJ_Weg_beleuchtet" -> merkmaleJsonObject.put("beleuchtet", wert.equals("true"));
+                    case "OBJ_Weg_ueberdacht" -> {
+                        if (wert.equals("dach_hoch")) {
+                            merkmaleJsonObject.put("ueberdacht", "hohes Dach");
+                        } else if (wert.equals("dach_niedrig")) {
+                            merkmaleJsonObject.put("ueberdacht", "niedriges Dach");
+                        } else if (wert.equals("ohne_dach")) {
+                            merkmaleJsonObject.put("ueberdacht", "nein");
+                        } else {
+                            LOG.warning("unerwarteter Wert bei Merkmal Name '" + name + "'"
+                                    + ", Wert '" + wert + "'");
+                        }
+                    }
+                    case "OBJ_Weg_Breite_cm_D2021" ->
+                            merkmaleJsonObject.put("breite_cm", (int) Double.parseDouble(wert));
+                    case "OBJ_Weg_Laenge_cm_D2020" ->
+                            merkmaleJsonObject.put("laenge_cm", (int) Double.parseDouble(wert));
+                    case "OBJ_Weg_Hoehe_cm" -> merkmaleJsonObject.put("hoehe_cm", (int) Double.parseDouble(wert));
+                    case "OBJ_Weg_Neigung_prozent" ->
+                            merkmaleJsonObject.put("laengsneigung_prozent", Double.parseDouble(wert));
+                    case "OBJ_Weg_Querneigung_prozent" ->
+                            merkmaleJsonObject.put("querneigung_prozent", Double.parseDouble(wert));
+                    case "OBJ_Weg_Verbindungsfunktion" -> merkmaleJsonObject.put("verbindungsfunktion", wert);
+                    case "OBJ_Weg_Foto" -> merkmaleJsonObject.put("objekt_Foto", Bild.getBildUrl(wert, dhid));
+                    case "OBJ_Weg_ID_Foto" -> merkmaleJsonObject.put("id_Foto", Bild.getBildUrl(wert, dhid));
+                    case "OBJ_Weg_Richtung1_Foto" ->
+                            merkmaleJsonObject.put("richtung1_Foto", Bild.getBildUrl(wert, dhid));
+                    case "OBJ_Weg_Richtung2_Foto" ->
+                            merkmaleJsonObject.put("richtung2_Foto", Bild.getBildUrl(wert, dhid));
+                    default -> LOG.warning("in Servlet " + this.getServletName()
+                            + " nicht verarbeitetes Merkmal Name '" + name + "'"
+                            + ", Wert '" + wert + "'");
+                }
 
 				if(osmids != null) {
 					merkmaleJsonObject.put("koordinatenqualitaet", "validierte-Position");
@@ -209,8 +222,7 @@ public class weg extends HttpServlet {
 					merkmaleJsonObject.put("lat", osmlat);
 					List<String> osmlinksArray = OpenStreetMap.getHyperlinksAsArray(osmids);
 					JSONArray osmlinksJA = new JSONArray();
-					for(int osmlinkindex = 0; osmlinkindex < osmlinksArray.size(); osmlinkindex++)
-						osmlinksJA.put(osmlinksArray.get(osmlinkindex));
+                    for (String s : osmlinksArray) osmlinksJA.put(s);
 					merkmaleJsonObject.put("osmlinks", osmlinksJA);
 				} else
 					merkmaleJsonObject.put("koordinatenqualitaet", "Objekt-Rohposition");
@@ -223,9 +235,14 @@ public class weg extends HttpServlet {
 				return;
 			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.out.println("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten, bitte Administrator informieren: "
+					+ e.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
 		}
 		response.getWriter().append(merkmaleJsonObject.toString());
 	}
@@ -234,10 +251,13 @@ public class weg extends HttpServlet {
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		LOG.info("Request angekommen in /weg doPost ...");
 
-		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		response.setCharacterEncoding("UTF-8");
-		response.getWriter().append("POST Request ist nicht erlaubt");
-		return;
+		JSONObject ergebnisJsonObject = new JSONObject();
+		ergebnisJsonObject.put("status", "fehler");
+		ergebnisJsonObject.put("fehlertext", "POST Request /weg ist nicht vorhanden");
+		response.getWriter().append(ergebnisJsonObject.toString());
+		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 	}
 }

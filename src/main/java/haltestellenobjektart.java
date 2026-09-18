@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -26,7 +27,8 @@ import de.nvbw.bfrk.util.DBVerbindung;
 		)
 public class haltestellenobjektart extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-       
+
+	private static final Logger LOG = NVBWLogger.getLogger(stopmodell.class);
     private static Connection bfrkConn = null;
 
     public static int SC_NOTFOUND = 404;
@@ -36,7 +38,6 @@ public class haltestellenobjektart extends HttpServlet {
      */
     public haltestellenobjektart() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     /**
@@ -61,14 +62,14 @@ public class haltestellenobjektart extends HttpServlet {
 
 		JSONObject resultObjectJson = new JSONObject();
 
-		NVBWLogger.info("===== Request /haltestellenobjektart GET ...");
+		LOG.info("===== Request /haltestellenobjektart GET ...");
 
 		try {
 			if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-				NVBWLogger.info("keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
+				LOG.info("keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-					NVBWLogger.severe("keine DB-Verbindung hergestellt");
+					LOG.severe("keine DB-Verbindung hergestellt");
 					JSONObject errorObjektJson = new JSONObject();
 					errorObjektJson.put("subject", "Datenbankverbindung nicht möglich, bitte später nochmal versuchen");
 					errorObjektJson.put("message", "DB-Verbindung fehlt");
@@ -81,8 +82,8 @@ public class haltestellenobjektart extends HttpServlet {
 				}
 			}
 		} catch (SQLException e1) {
-			NVBWLogger.severe("bei DB-init SQLException aufgetreten, Details folgen ...");
-			NVBWLogger.severe(e1.toString());
+			LOG.severe("bei DB-init SQLException aufgetreten, Details folgen ...");
+			LOG.severe(e1.toString());
 			JSONObject errorObjektJson = new JSONObject();
 			errorObjektJson.put("subject", "SQLException bei Aufbau Datenbankverbindung aufgetreten, bitte später nochmal versuchen");
 			errorObjektJson.put("message", "DB-Verbindung SQLException");
@@ -93,8 +94,8 @@ public class haltestellenobjektart extends HttpServlet {
 			response.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
 			return;
 		} catch (IOException e1) {
-			NVBWLogger.severe("bei DB-init IOException aufgetreten, Details folgen ...");
-			NVBWLogger.severe(e1.toString());
+			LOG.severe("bei DB-init IOException aufgetreten, Details folgen ...");
+			LOG.severe(e1.toString());
 			JSONObject errorObjektJson = new JSONObject();
 			errorObjektJson.put("subject", "IOException bei Aufbau Datenbankverbindung aufgetreten, bitte später nochmal versuchen");
 			errorObjektJson.put("message", "DB-Verbindung IOException");
@@ -108,17 +109,17 @@ public class haltestellenobjektart extends HttpServlet {
 
 		String paramDHID = null;
 		if(request.getParameter("dhid") != null) {
-			NVBWLogger.info("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
+			LOG.info("url-Parameter dhid vorhanden ===" + request.getParameter("dhid"));
 			paramDHID = URLDecoder.decode(request.getParameter("dhid"),"UTF-8");
 		} else {
-			NVBWLogger.info("url-Parameter dhid fehlt ...");
+			LOG.info("url-Parameter dhid fehlt ...");
 			String requesturi = request.getRequestURI();
-			NVBWLogger.info("requesturi ===" + requesturi + "===");
-			if(requesturi.indexOf("/haltestellenobjektart") != -1) {
+			LOG.info("requesturi ===" + requesturi + "===");
+			if(requesturi.contains("/haltestellenobjektart")) {
 				int startpos = requesturi.indexOf("/haltestellenobjektart");
 				if(requesturi.indexOf("/",startpos + 1) != -1) {
 					paramDHID = requesturi.substring(requesturi.indexOf("/",startpos + 1) + 1);
-					NVBWLogger.info("Versuch, dhid zu extrahieren ===" + paramDHID + "===");
+					LOG.info("Versuch, dhid zu extrahieren ===" + paramDHID + "===");
 				}
 			}
 		}
@@ -136,11 +137,11 @@ public class haltestellenobjektart extends HttpServlet {
 		String paramOevart = "";
 		String paramObjektart = "";
 		if(request.getParameter("oevart") != null) {
-			NVBWLogger.info("url-Parameter oevart vorhanden ===" + request.getParameter("oevart"));
+			LOG.info("url-Parameter oevart vorhanden ===" + request.getParameter("oevart"));
 			paramOevart = URLDecoder.decode(request.getParameter("oevart"),"UTF-8");
-			if(paramOevart.toUpperCase().equals("O"))
+			if(paramOevart.equalsIgnoreCase("O"))
 				paramObjektart = "Haltestelle";
-			else if(paramOevart.toUpperCase().equals("S"))
+			else if(paramOevart.equalsIgnoreCase("S"))
 				paramObjektart = "Bahnhof";
 			else {
 				JSONObject errorObjektJson = new JSONObject();
@@ -176,7 +177,7 @@ public class haltestellenobjektart extends HttpServlet {
 			selectHaltestelleStmt = bfrkConn.prepareStatement(selectHaltestelleSql);
 			selectHaltestelleStmt.setString(1, paramDHID);
 			selectHaltestelleStmt.setString(2, paramObjektart);
-			NVBWLogger.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
+			LOG.info("Haltestelle query: " + selectHaltestelleStmt.toString() + "===");
 
 			ResultSet selectHaltestelleRS = selectHaltestelleStmt.executeQuery();
 
@@ -205,10 +206,10 @@ public class haltestellenobjektart extends HttpServlet {
 				return;
 			}
 		} catch (SQLException e) {
-			NVBWLogger.severe("bei DB-Query SQLException aufgetreten, Details folgen ...");
-			NVBWLogger.severe(e.toString());
+			LOG.severe("bei DB-Query SQLException aufgetreten, Details folgen ...");
+			LOG.severe(e.toString());
 			if(selectHaltestelleStmt != null)
-				NVBWLogger.severe("DB-Query war: " + selectHaltestelleStmt.toString());
+				LOG.severe("DB-Query war: " + selectHaltestelleStmt.toString());
 			JSONObject errorObjektJson = new JSONObject();
 			errorObjektJson.put("subject", "SQLException bei Datenbankabfrage aufgetreten, bitte nochmal versuchen");
 			errorObjektJson.put("message", "DB-Abfrage SQLException");
@@ -226,23 +227,14 @@ public class haltestellenobjektart extends HttpServlet {
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		LOG.info("Request angekommen in /notiz doPost ...");
 
-		response.setContentType("application/json");
 		response.setCharacterEncoding("UTF-8");
-		response.setHeader("Access-Control-Allow-Origin", "*");
-		response.setHeader("Access-Control-Allow-Headers", "*");
-
-		JSONObject resultObjectJson = new JSONObject();
-
-		JSONObject errorObjektJson = new JSONObject();
-		errorObjektJson.put("subject", "unzulässiger Request-Typ POST verwendet");
-		errorObjektJson.put("message", "Request-Typ Fehler");
-		errorObjektJson.put("messageId", 50);
-		resultObjectJson.put("error", errorObjektJson);
-		response.setCharacterEncoding("UTF-8");
-		response.getWriter().append(resultObjectJson.toString());
-		response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
-		return;
+		JSONObject ergebnisJsonObject = new JSONObject();
+		ergebnisJsonObject.put("status", "fehler");
+		ergebnisJsonObject.put("fehlertext", "POST Request /notiz ist nicht vorhanden");
+		response.getWriter().append(ergebnisJsonObject.toString());
+		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 	}
 
 }

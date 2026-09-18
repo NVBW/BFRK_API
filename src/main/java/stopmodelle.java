@@ -1,8 +1,5 @@
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -10,9 +7,9 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
-import javax.servlet.ServletInputStream;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -21,12 +18,9 @@ import javax.servlet.http.HttpServletResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import de.nvbw.base.Applicationconfiguration;
 import de.nvbw.base.NVBWLogger;
-import de.nvbw.bfrk.base.BFRKFeld;
-import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
-import de.nvbw.bfrk.util.OpenStreetMap;
-import de.nvbw.bfrk.util.ReaderBase;
 
 
 /**
@@ -36,10 +30,12 @@ import de.nvbw.bfrk.util.ReaderBase;
 			urlPatterns = {"/stopmodelle/*"}
 		)
 public class stopmodelle extends HttpServlet {
-	private static DateFormat datetime_rfc3339_formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-
 	private static final long serialVersionUID = 1L;
 
+	private static DateFormat datetime_rfc3339_formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+	private static final Logger LOG = NVBWLogger.getLogger(stopmodelle.class);
+	private static Applicationconfiguration configuration = new Applicationconfiguration();
     private static Connection bfrkConn = null;
 
     /**
@@ -47,16 +43,15 @@ public class stopmodelle extends HttpServlet {
      */
     public stopmodelle() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     /**
-     * initialization on servlett startup
+     * initialization on servlet startup
      * - connect to bfrk DB
      */
     @Override
     public void init() {
-    	bfrkConn = DBVerbindung.getDBVerbindung();
+		bfrkConn = DBVerbindung.getDBVerbindung();
     }
 
 
@@ -91,7 +86,7 @@ public class stopmodelle extends HttpServlet {
 			try {
 				selectModellStmt = bfrkConn.prepareStatement(selectModellSql);
 				selectModellStmt.setString(1, dhid);
-				System.out.println("Objektmodell query: " + selectModellStmt.toString() + "===");
+				LOG.info("Objektmodell query: " + selectModellStmt.toString() + "===");
 
 				ResultSet selectModellRS = selectModellStmt.executeQuery();
 
@@ -128,12 +123,12 @@ public class stopmodelle extends HttpServlet {
 				selectModellStmt.close();
 
 			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				System.out.println("SQLException::: " + e.toString());
-				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-				response.setCharacterEncoding("UTF-8");
-				response.getWriter().append("DB Abruffehler aufgetreten");
+				LOG.severe("SQLException::: " + e.toString());
+				JSONObject ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "SQL-Fehler aufgetreten, bitte Administrator informieren.");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 				return;
 			}
 		}
@@ -151,8 +146,11 @@ public class stopmodelle extends HttpServlet {
 		response.setHeader("Access-Control-Allow-Methods", "GET, PUT, OPTIONS");
 		response.setHeader("Access-Control-Allow-Headers", "*");
 
+		JSONObject ergebnisJsonObject = new JSONObject();
+		ergebnisJsonObject.put("status", "fehler");
+		ergebnisJsonObject.put("fehlertext", "POST Request /stopmodelle ist nicht vorhanden");
+		response.getWriter().append(ergebnisJsonObject.toString());
 		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-		response.setCharacterEncoding("UTF-8");
-		response.getWriter().append("Für diesen Request gibt es nur GET Request-Typ");
+		return;
 	}
 }

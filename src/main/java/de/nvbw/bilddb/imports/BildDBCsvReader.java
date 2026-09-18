@@ -1,12 +1,12 @@
 package de.nvbw.bilddb.imports;
 
-
 import java.io.File;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.logging.Logger;
 
 import de.nvbw.base.NVBWLogger;
 import de.nvbw.bilddb.csvreader.Image;
@@ -19,8 +19,8 @@ import de.nvbw.bilddb.model.BildDBImage;
  *
  */
 public class BildDBCsvReader {
+	private static final Logger LOG = NVBWLogger.getLogger(BildDBCsvReader.class);
 
-	
 	private Iterator<Entry<String, BildDBImage>> bildIterator = null;
 
 	private String filename = "";
@@ -47,10 +47,10 @@ public class BildDBCsvReader {
 			imageList = new HashMap<>();
 			
 			Date endtime = new Date();
-			NVBWLogger.info("Nach Speicherallokierung, dauerte " + (endtime.getTime() - starttime.getTime())/1000 + " sek.");
+			LOG.info("Nach Speicherallokierung, dauerte " + (endtime.getTime() - starttime.getTime())/1000 + " sek.");
 			
 		} catch (Exception e) {
-			NVBWLogger.severe("in Klasse BildDBCsvReader, Methode execute Exception aufgetreten, Details: " + e.toString());
+			LOG.severe("in Klasse BildDBCsvReader, Methode execute Exception aufgetreten, Details: " + e.toString());
 			return;
 		}
 		
@@ -59,7 +59,7 @@ public class BildDBCsvReader {
 		if(new File(dateiname).exists())
 			imageList = Image.read(dateiname);
 
-		NVBWLogger.info("Anzahl Bilder Metadaten: " + imageList.size());
+		LOG.info("Anzahl Bilder Metadaten: " + imageList.size());
 	}
 
 
@@ -94,7 +94,7 @@ public class BildDBCsvReader {
 		BildDBImage actstop = null;
 
 		if(bildIterator == null) {
-			NVBWLogger.severe("Methode getNextStop aufgerufen, obwohl zuerst mit getFirstStop() begonnen werden muß");
+			LOG.severe("Methode getNextStop aufgerufen, obwohl zuerst mit getFirstStop() begonnen werden muß");
 			return null;
 		}
 

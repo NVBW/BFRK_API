@@ -1,11 +1,11 @@
 
 import java.io.IOException;
-import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -13,15 +13,14 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import de.nvbw.base.NVBWLogger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import de.nvbw.base.NVBWLogger;
-import de.nvbw.bfrk.base.BFRKFeld;
+import de.nvbw.base.Applicationconfiguration;
 import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
 import de.nvbw.bfrk.util.OpenStreetMap;
-import de.nvbw.bfrk.util.ReaderBase;
 
 
 /**
@@ -33,6 +32,8 @@ import de.nvbw.bfrk.util.ReaderBase;
 public class engstelle extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
+	private static final Logger LOG = NVBWLogger.getLogger(engstelle.class);
+	private static Applicationconfiguration configuration = new Applicationconfiguration();
     private static Connection bfrkConn = null;
 
 
@@ -41,16 +42,15 @@ public class engstelle extends HttpServlet {
      */
     public engstelle() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     /**
-     * initialization on servlett startup
+     * initialization on servlet startup
      * - connect to bfrk DB
      */
     @Override
     public void init() {
-    	bfrkConn = DBVerbindung.getDBVerbindung();
+		bfrkConn = DBVerbindung.getDBVerbindung();
     }
 
 
@@ -64,14 +64,22 @@ public class engstelle extends HttpServlet {
 				System.out.println("FEHLER: keine DB-Verbindung offen, es wird versucht, DB-init aufzurufen");
 				init();
 				if((bfrkConn == null) || !bfrkConn.isValid(5)) {
-					response.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
-					response.addHeader("Application-Note", "Database connection lost");
+					JSONObject ergebnisJsonObject = new JSONObject();
+					ergebnisJsonObject.put("status", "fehler");
+					ergebnisJsonObject.put("fehlertext", "keine DB-Verbindung verfügbar, bitte Administrator informieren");
+					response.getWriter().append(ergebnisJsonObject.toString());
+					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					return;
 				}
 			}
 		} catch (Exception e1) {
-			response.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
-			response.addHeader("Application-Note", "Database connection lost");
+			LOG.severe("Exception aufgetreten in engstelle doGet, " + e1.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unbekannter Fehler aufgetreten, bitte Administrator informieren: "
+					+ e1.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			return;
 		}
 
@@ -83,7 +91,7 @@ public class engstelle extends HttpServlet {
 			System.out.println("url-Parameter dhid fehlt ...");
 			String requesturi = request.getRequestURI();
 			System.out.println("requesturi ===" + requesturi + "===");
-			if(requesturi.indexOf("/engstelle") != -1) {
+			if(requesturi.contains("/engstelle")) {
 				int startpos = requesturi.indexOf("/engstelle");
 				System.out.println("startpos #1: " + startpos);
 				if(requesturi.indexOf("/",startpos + 1) != -1) {
@@ -163,21 +171,20 @@ public class engstelle extends HttpServlet {
 					continue;
 				}
 
-				if(name.equals("OBJ_Engstelle_Durchgangsbreite_cm_D2080"))
-					merkmaleJsonObject.put("durchgangsbreite_cm", (int) Double.parseDouble(wert));
-				else if(name.equals("OBJ_Engstelle_Bewegflaeche_cm_D2081"))
-					merkmaleJsonObject.put("bewegflaeche_cm", (int) Double.parseDouble(wert));
-				
-				else if(name.equals("OBJ_Engstelle_Foto"))
-					merkmaleJsonObject.put("objekt_Foto", Bild.getBildUrl(wert, dhid));
-				else if(name.equals("OBJ_Engstelle_Weg1_Foto"))
-					merkmaleJsonObject.put("richtung1_Foto", Bild.getBildUrl(wert, dhid));
-				else if(name.equals("OBJ_Engstelle_Weg2_Foto"))
-					merkmaleJsonObject.put("richtung2_Foto", Bild.getBildUrl(wert, dhid));
-				else
-					NVBWLogger.warning("in Servlet " + this.getServletName() 
-						+ " nicht verarbeitetes Merkmal Name '" + name + "'" 
-						+ ", Wert '" + wert + "'");
+                switch (name) {
+                    case "OBJ_Engstelle_Durchgangsbreite_cm_D2080" ->
+                            merkmaleJsonObject.put("durchgangsbreite_cm", (int) Double.parseDouble(wert));
+                    case "OBJ_Engstelle_Bewegflaeche_cm_D2081" ->
+                            merkmaleJsonObject.put("bewegflaeche_cm", (int) Double.parseDouble(wert));
+                    case "OBJ_Engstelle_Foto" -> merkmaleJsonObject.put("objekt_Foto", Bild.getBildUrl(wert, dhid));
+                    case "OBJ_Engstelle_Weg1_Foto" ->
+                            merkmaleJsonObject.put("richtung1_Foto", Bild.getBildUrl(wert, dhid));
+                    case "OBJ_Engstelle_Weg2_Foto" ->
+                            merkmaleJsonObject.put("richtung2_Foto", Bild.getBildUrl(wert, dhid));
+                    default -> LOG.warning("in Servlet " + this.getServletName()
+                            + " nicht verarbeitetes Merkmal Name '" + name + "'"
+                            + ", Wert '" + wert + "'");
+                }
 
 				if(osmids != null) {
 					merkmaleJsonObject.put("koordinatenqualitaet", "validierte-Position");
@@ -185,8 +192,7 @@ public class engstelle extends HttpServlet {
 					merkmaleJsonObject.put("lat", osmlat);
 					List<String> osmlinksArray = OpenStreetMap.getHyperlinksAsArray(osmids);
 					JSONArray osmlinksJA = new JSONArray();
-					for(int osmlinkindex = 0; osmlinkindex < osmlinksArray.size(); osmlinkindex++)
-						osmlinksJA.put(osmlinksArray.get(osmlinkindex));
+                    for (String s : osmlinksArray) osmlinksJA.put(s);
 					merkmaleJsonObject.put("osmlinks", osmlinksJA);
 				} else
 					merkmaleJsonObject.put("koordinatenqualitaet", "Objekt-Rohposition");
@@ -205,9 +211,13 @@ public class engstelle extends HttpServlet {
 				return;
 			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.out.println("SQLException::: " + e.toString());
+			LOG.severe("SQLException::: " + e.toString());
+			JSONObject ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "SQL-DB Fehler aufgetreten, bitte Administrator informieren");
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
 		}
 		response.getWriter().append(merkmaleJsonObject.toString());
 	}
@@ -217,9 +227,11 @@ public class engstelle extends HttpServlet {
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
-		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		response.setCharacterEncoding("UTF-8");
-		response.getWriter().append("POST Request ist nicht erlaubt");
-		return;
+		JSONObject ergebnisJsonObject = new JSONObject();
+		ergebnisJsonObject.put("status", "fehler");
+		ergebnisJsonObject.put("fehlertext", "POST Request /engstelle ist nicht vorhanden");
+		response.getWriter().append(ergebnisJsonObject.toString());
+		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 	}
 }
