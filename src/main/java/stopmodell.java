@@ -38,6 +38,7 @@ public class stopmodell extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
 	private static final DateFormat date_de_formatter = new SimpleDateFormat("dd.MM.yyyy");
+	private static final DateFormat datetime_iso8601_formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
 	private static final Logger LOG = NVBWLogger.getLogger(stopmodell.class);
 	private static final Applicationconfiguration configuration = new Applicationconfiguration();
@@ -596,6 +597,8 @@ public class stopmodell extends HttpServlet {
 			return;
 		}
 
+
+		// ============= erfolgreich geprüft, das accesstoken gültig ist ==============
 		String dhid = "";
 		String kommentar = "";
 		int release = 0;
@@ -640,12 +643,19 @@ public class stopmodell extends HttpServlet {
 			return;
 		}
 
+		Date zeitstempel = new Date();
+
 		if(metadatenJson.has("graph")) {
 			metagraphJson = (JSONObject) metadatenJson.get("graph");
+
+				// wenn keine vorhandene Version gefunden hat, dann auf 1/0/0 setzen
+			if((release == 0) && (mayorversion == 0) && (minorversion == 0))
+				release = 1;
 
 			metagraphJson.put("release", release);
 			metagraphJson.put("mayorversion", mayorversion);
 			metagraphJson.put("minorversion", minorversion);
+			metagraphJson.put("zeitstempel", datetime_iso8601_formatter.format(zeitstempel));
 			if(metagraphJson.has("kommentar"))
 				kommentar = metagraphJson.getString("kommentar");
 				// Bearbeiter aus Token-Analyse ermittelt und in Graphen integrieren
@@ -667,6 +677,7 @@ public class stopmodell extends HttpServlet {
 		LOG.info("release: " + release);
 		LOG.info("mayorversion: " + mayorversion);
 		LOG.info("minorversion: " + minorversion);
+		LOG.info("zetstempel: " + datetime_iso8601_formatter.format(zeitstempel));
 
 
 		String insertModellSql = "INSERT INTO objektmodell (dhid, release, mayorversion, minorversion, "
