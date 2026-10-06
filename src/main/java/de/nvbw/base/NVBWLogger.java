@@ -50,7 +50,7 @@ public final class NVBWLogger {
 			return;
 		}
 
-		Applicationconfiguration applicationconfiguration = new Applicationconfiguration();
+		BFRKApiApplicationconfiguration applicationconfiguration = new BFRKApiApplicationconfiguration();
 		consoleLevel = applicationconfiguration.logging_console_level;
 		fileLevel = applicationconfiguration.logging_file_level;
 		logFileName = applicationconfiguration.logging_filename;

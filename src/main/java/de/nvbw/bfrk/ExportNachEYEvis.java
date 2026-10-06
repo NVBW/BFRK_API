@@ -56,7 +56,7 @@ import de.nvbw.bfrk.base.BFRKFeld.Name;
 import de.nvbw.bfrk.util.ExportNachEYEvisObjektpruefung;
 import de.nvbw.bfrk.util.ExportNachEYEvisObjektpruefung.Bildquellenart;
 import de.nvbw.bfrk.util.ReaderBase.Objektart;
-import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.BFRKApiApplicationconfiguration;
 
 
 /**
@@ -73,7 +73,7 @@ public class ExportNachEYEvis {
 	public static enum ERHEBUNGSART {EYEvisApp, MentzApp, CSVImport, Ungesetzt};
 
 	private static final Logger LOG = NVBWLogger.getLogger(ExportNachEYEvis.class);
-	static Applicationconfiguration configuration = new Applicationconfiguration();
+	static BFRKApiApplicationconfiguration configuration = new BFRKApiApplicationconfiguration();
 	static Connection bfrkConn = null;
 
 	static DateFormat datetime_de_formatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");

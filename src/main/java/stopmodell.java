@@ -23,7 +23,7 @@ import de.nvbw.graph.Graphaktualisierung;
 import de.nvbw.graph.Grapherzeugung;
 import org.json.JSONObject;
 
-import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.BFRKApiApplicationconfiguration;
 import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.DBVerbindung;
 
@@ -41,7 +41,7 @@ public class stopmodell extends HttpServlet {
 	private static final DateFormat datetime_iso8601_formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
 	private static final Logger LOG = NVBWLogger.getLogger(stopmodell.class);
-	private static final Applicationconfiguration configuration = new Applicationconfiguration();
+	private static final BFRKApiApplicationconfiguration configuration = new BFRKApiApplicationconfiguration();
 	private static Connection bfrkConn = null;
 
 
@@ -56,10 +56,11 @@ public class stopmodell extends HttpServlet {
      * initialization on servlett startup
      * - connect to bfrk DB
      */
-    @Override
+	@Override
     public void init() {
-    	bfrkConn = DBVerbindung.getDBVerbindung();
-    }
+		System.out.println("in stopmodell GET init() ...");
+		bfrkConn = DBVerbindung.getDBVerbindung();
+	}
 
 
 	/**
@@ -514,6 +515,21 @@ public class stopmodell extends HttpServlet {
 			response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 			return;
 		}
+
+        try {
+            DatabaseMetaData dbmetadaten = bfrkConn.getMetaData();
+			LOG.info("in stopmodell/doPut: DB-Verbindung ist: Url ===" + dbmetadaten.getURL() + "===");
+        } catch (SQLException e) {
+			LOG.severe("in stopmodell/doPut: DB-Verbindung kann nicht ermittelt werden, " +
+					"beim DB-Metadatenabruf ist eine Exception aufgetreten, Details " + e.toString());
+			ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unbekannter Fehler aufgetreten, bitte Administrator informieren: "
+					+ e.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
+        }
 
 	    StringBuilder stringBuilder = new StringBuilder();
 	    BufferedReader bufferedReader = null;

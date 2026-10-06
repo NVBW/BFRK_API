@@ -8,9 +8,6 @@ import java.io.InputStreamReader;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -26,7 +23,7 @@ import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.DBVerbindung;
 import org.json.JSONObject;
 
-import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.BFRKApiApplicationconfiguration;
 import de.nvbw.bfrk.ExportNachEYEvis;
 
 /**
@@ -41,7 +38,7 @@ public class eyevisprojektdaten extends HttpServlet {
 	static DateFormat datetime_filesystem_formatter = new SimpleDateFormat("yyyyMMdd_HHmmss");
 
 	private static final Logger LOG = NVBWLogger.getLogger(eyevisprojektdaten.class);
-	private static final Applicationconfiguration configuration = new Applicationconfiguration();
+	private static final BFRKApiApplicationconfiguration configuration = new BFRKApiApplicationconfiguration();
 	private static Connection bfrkConn = null;
 
     /**
@@ -56,9 +53,7 @@ public class eyevisprojektdaten extends HttpServlet {
      * - connect to bfrk DB
      */
     @Override
-    public void init() {
-		bfrkConn = DBVerbindung.getDBVerbindung();
-    }
+	public void init() { bfrkConn = DBVerbindung.getDBVerbindung(); }
 
 
 	/**
