@@ -261,6 +261,11 @@ public class eyevisprojektdaten extends HttpServlet {
 			paramObjektarten = URLDecoder.decode(request.getParameter("objektart"), StandardCharsets.UTF_8);
 			LOG.info("in variable paramOjektarten ===" + paramObjektarten + "===");
 		}
+		if(request.getParameter("objektarten") != null) {
+			LOG.info("url-Parameter objektarten vorhanden ===" + request.getParameter("objektarten") + "===");
+			paramObjektarten = URLDecoder.decode(request.getParameter("objektarten"), StandardCharsets.UTF_8);
+			LOG.info("in variable paramOjektarten ===" + paramObjektarten + "===");
+		}
 
 		if(request.getParameter("eyevisvorlage") != null) {
 			LOG.info("url-Parameter eyevivorlage vorhanden ===" + request.getParameter("eyevisvorlage") + "===");

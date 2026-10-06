@@ -245,7 +245,14 @@ public class fahrradanlagen extends HttpServlet {
 				}
 
                 switch (name) {
-                    case "OBJ_BuR_Anlagentyp" -> merkmaleJsonObject.put("anlagentyp", wert);
+                    case "OBJ_BuR_Anlagentyp" -> {
+						String neuerwert = wert;
+						if(neuerwert.equals("VorderradhalterMitBuegelzusatz"))
+							neuerwert = "Vorderradhalter";
+						if(neuerwert.equals("VorderradhalterOhneBuegelzusatz"))
+							neuerwert = "Vorderradhalter";
+						merkmaleJsonObject.put("anlagentyp", neuerwert);
+					}
                     case "OBJ_BuR_Stellplatzanzahl" ->
                             merkmaleJsonObject.put("stellplatzanzahl", (int) Double.parseDouble(wert));
                     case "OBJ_BuR_Beleuchtet" -> merkmaleJsonObject.put("beleuchtet", wert.equals("true"));
