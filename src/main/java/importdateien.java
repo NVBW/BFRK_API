@@ -38,13 +38,11 @@ public class importdateien extends HttpServlet {
     }
 
     /**
-     * initialization on servlett startup
+     * initialization on servlet startup
      * - connect to bfrk DB
      */
     @Override
-    public void init() {
-    	bfrkConn = DBVerbindung.getDBVerbindung();
-    }
+	public void init() { bfrkConn = DBVerbindung.getDBVerbindung(); }
 
     
     

@@ -162,10 +162,7 @@ public class pseudoobjekt extends HttpServlet {
      * - connect to bfrk DB
      */
     @Override
-    public void init() {
-		LOG.info("Beginn init pseudoobjekt " + new Date());
-		bfrkConn = DBVerbindung.getDBVerbindung();
-    }
+	public void init() { bfrkConn = DBVerbindung.getDBVerbindung(); }
 
 	/**
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)

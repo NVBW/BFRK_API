@@ -9,28 +9,29 @@ import java.sql.Statement;
 import java.util.Date;
 import java.util.logging.Logger;
 
-import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.BFRKApiApplicationconfiguration;
 import de.nvbw.base.NVBWLogger;
 
 public class DBVerbindung {
 	private static final Logger LOG = NVBWLogger.getLogger(DBVerbindung.class);
 
 	private static Connection bfrkConn = null;
-	private static Applicationconfiguration configuration = null;
+	private static BFRKApiApplicationconfiguration configuration = null;
 
 	private static Date dbVerbindungsaufbauzeitpunkt = null;
 	private static String dbname = "";
 	private static String dbnameoeffentlich = "";
 
+
 	public DBVerbindung() {
 		LOG.info("bin im DBVerbindung/constructor zu Beginn ...");
-		internGetDBVerbindung();
 	}
 
 	private static void internGetDBVerbindung() {
 		LOG.info("in DBVerbindung Constructor zu Beginn: " + new Date());
-	
-		configuration = new Applicationconfiguration();
+
+
+		configuration = new BFRKApiApplicationconfiguration();
 	
 		try {
 			LOG.info("Vor Aufruf postgresl-Treiber ...");

@@ -18,7 +18,7 @@ import javax.servlet.http.HttpServletResponse;
 import de.nvbw.base.NVBWLogger;
 import org.json.JSONObject;
 
-import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.BFRKApiApplicationconfiguration;
 
 
 /**
@@ -32,7 +32,7 @@ public class osmdatenauszug extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
 	private static final Logger LOG = NVBWLogger.getLogger(osmdatenauszug.class);
-	private static Applicationconfiguration configuration = new Applicationconfiguration();
+	private static BFRKApiApplicationconfiguration configuration = new BFRKApiApplicationconfiguration();
 	private static String bfrkapihomeVerzeichnis = "";
 
     /**

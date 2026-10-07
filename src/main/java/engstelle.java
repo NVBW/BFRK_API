@@ -17,7 +17,7 @@ import de.nvbw.base.NVBWLogger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.BFRKApiApplicationconfiguration;
 import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
 import de.nvbw.bfrk.util.OpenStreetMap;
@@ -33,7 +33,7 @@ public class engstelle extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
 	private static final Logger LOG = NVBWLogger.getLogger(engstelle.class);
-	private static Applicationconfiguration configuration = new Applicationconfiguration();
+	private static BFRKApiApplicationconfiguration configuration = new BFRKApiApplicationconfiguration();
     private static Connection bfrkConn = null;
 
 
@@ -44,14 +44,12 @@ public class engstelle extends HttpServlet {
         super();
     }
 
-    /**
-     * initialization on servlet startup
-     * - connect to bfrk DB
-     */
-    @Override
-    public void init() {
-		bfrkConn = DBVerbindung.getDBVerbindung();
-    }
+	/**
+	 * initialization on servlet startup
+	 * - connect to bfrk DB
+	 */
+	@Override
+	public void init() { bfrkConn = DBVerbindung.getDBVerbindung(); }
 
 
 	/**

@@ -24,7 +24,7 @@ import org.apache.commons.imaging.common.ImageMetadata.ImageMetadataItem;
 import org.apache.commons.imaging.formats.jpeg.JpegImageMetadata;
 
 import de.nvbw.bfrk.base.BFRKFeld;
-import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.BFRKApiApplicationconfiguration;
 import org.apache.commons.imaging.formats.tiff.TiffImageMetadata;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -32,7 +32,7 @@ public class ReaderBase {
 	public static enum Datentyp {Boolean, Numeric, String}
 
 	private static final Logger LOG = NVBWLogger.getLogger(ReaderBase.class);
-	static Applicationconfiguration configuration = new Applicationconfiguration();
+	static BFRKApiApplicationconfiguration configuration = new BFRKApiApplicationconfiguration();
 	public static Connection bfrkConn = null;
 
 	public enum Objektzustand_Typ {neu, vorhandenveraltet, vorhandenaktuell, nichtvorhanden, ungesetzt}
