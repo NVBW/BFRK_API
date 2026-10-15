@@ -26,7 +26,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.BFRKApiApplicationconfiguration;
 import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
@@ -45,7 +45,7 @@ public class aufzug_livestatus extends HttpServlet {
 	private static final DateFormat datetime_iso8601_formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
 	private static final Logger LOG = NVBWLogger.getLogger(aufzug_livestatus.class);
-	private static Applicationconfiguration configuration = new Applicationconfiguration();
+	private static BFRKApiApplicationconfiguration configuration = new BFRKApiApplicationconfiguration();
     private static Connection bfrkConn = null;
 
 	private static HttpURLConnection conn = null;
@@ -64,9 +64,7 @@ public class aufzug_livestatus extends HttpServlet {
 	 * - connect to bfrk DB
 	 */
 	@Override
-	public void init() {
-		bfrkConn = DBVerbindung.getDBVerbindung();
-	}
+	public void init() { bfrkConn = DBVerbindung.getDBVerbindung(); }
 
 
 	private String getFastaAufzugzustand(long fastaid) {

@@ -17,8 +17,12 @@ public class Bild {
     private static Connection bfrkConn = null;
 
     public Bild() {
-    	if(bfrkConn == null)
-    		bfrkConn = DBVerbindung.getDBVerbindung();
+    	if(bfrkConn == null) {
+			bfrkConn = DBVerbindung.getDBVerbindung();
+			if(bfrkConn == null) {
+				LOG.severe("in Klasse Bild gibt es keine DB-Verbindung, ABBRUCH");
+			}
+		}
     }
 
 	public static void setDBConnection(Connection connection) {

@@ -18,7 +18,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.BFRKApiApplicationconfiguration;
 import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.DBVerbindung;
 
@@ -35,7 +35,7 @@ public class stopmodelle extends HttpServlet {
 	private static DateFormat datetime_rfc3339_formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
 	private static final Logger LOG = NVBWLogger.getLogger(stopmodelle.class);
-	private static Applicationconfiguration configuration = new Applicationconfiguration();
+	private static BFRKApiApplicationconfiguration configuration = new BFRKApiApplicationconfiguration();
     private static Connection bfrkConn = null;
 
     /**
@@ -50,9 +50,7 @@ public class stopmodelle extends HttpServlet {
      * - connect to bfrk DB
      */
     @Override
-    public void init() {
-		bfrkConn = DBVerbindung.getDBVerbindung();
-    }
+	public void init() { bfrkConn = DBVerbindung.getDBVerbindung(); }
 
 
 	/**

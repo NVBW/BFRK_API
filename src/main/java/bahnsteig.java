@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.json.JSONObject;
 
-import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.BFRKApiApplicationconfiguration;
 import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.Bild;
 import de.nvbw.bfrk.util.DBVerbindung;
@@ -29,7 +29,7 @@ public class bahnsteig extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
 	private static final Logger LOG = NVBWLogger.getLogger(bahnsteig.class);
-	private static Applicationconfiguration configuration = new Applicationconfiguration();
+	private static BFRKApiApplicationconfiguration configuration = new BFRKApiApplicationconfiguration();
 	private static Connection bfrkConn = null;
 
     
@@ -46,9 +46,7 @@ public class bahnsteig extends HttpServlet {
      * - connect to bfrk DB
      */
     @Override
-    public void init() {
-    	bfrkConn = DBVerbindung.getDBVerbindung();
-    }
+    public void init() { bfrkConn = DBVerbindung.getDBVerbindung(); }
 
 
 	/**

@@ -23,7 +23,7 @@ import de.nvbw.graph.Graphaktualisierung;
 import de.nvbw.graph.Grapherzeugung;
 import org.json.JSONObject;
 
-import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.BFRKApiApplicationconfiguration;
 import de.nvbw.base.NVBWLogger;
 import de.nvbw.bfrk.util.DBVerbindung;
 
@@ -38,9 +38,10 @@ public class stopmodell extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
 	private static final DateFormat date_de_formatter = new SimpleDateFormat("dd.MM.yyyy");
+	private static final DateFormat datetime_iso8601_formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
 	private static final Logger LOG = NVBWLogger.getLogger(stopmodell.class);
-	private static final Applicationconfiguration configuration = new Applicationconfiguration();
+	private static final BFRKApiApplicationconfiguration configuration = new BFRKApiApplicationconfiguration();
 	private static Connection bfrkConn = null;
 
 
@@ -55,10 +56,11 @@ public class stopmodell extends HttpServlet {
      * initialization on servlett startup
      * - connect to bfrk DB
      */
-    @Override
+	@Override
     public void init() {
-    	bfrkConn = DBVerbindung.getDBVerbindung();
-    }
+		System.out.println("in stopmodell GET init() ...");
+		bfrkConn = DBVerbindung.getDBVerbindung();
+	}
 
 
 	/**
@@ -397,7 +399,7 @@ public class stopmodell extends HttpServlet {
 
 			ResultSet selectModellRS = selectModellStmt.executeQuery();
 
-			JSONObject ergebnisJsonObject = new JSONObject();
+			JSONObject ergebnisJsonObject = null;
 
 			if(selectModellRS.next()) {
 				String content = selectModellRS.getString("content");
@@ -423,8 +425,17 @@ public class stopmodell extends HttpServlet {
 			selectModellRS.close();
 			selectModellStmt.close();
 
-			response.getWriter().append(ergebnisJsonObject.toString());
-			response.setStatus(HttpServletResponse.SC_OK);
+			if(ergebnisJsonObject != null) {
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_OK);
+			} else {
+				LOG.warning("der eigentlich erstellte Graph konnte nicht geholt werden von graphaktualisierung.bereinigeKantenImGraph.");
+				ergebnisJsonObject = new JSONObject();
+				ergebnisJsonObject.put("status", "fehler");
+				ergebnisJsonObject.put("fehlertext", "unerwarteter Fehler aufgetreten beim Versuch, den bereinigten Graphen zu holen");
+				response.getWriter().append(ergebnisJsonObject.toString());
+				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			}
 			return;
 
 		} catch (SQLException e) {
@@ -504,6 +515,21 @@ public class stopmodell extends HttpServlet {
 			response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 			return;
 		}
+
+        try {
+            DatabaseMetaData dbmetadaten = bfrkConn.getMetaData();
+			LOG.info("in stopmodell/doPut: DB-Verbindung ist: Url ===" + dbmetadaten.getURL() + "===");
+        } catch (SQLException e) {
+			LOG.severe("in stopmodell/doPut: DB-Verbindung kann nicht ermittelt werden, " +
+					"beim DB-Metadatenabruf ist eine Exception aufgetreten, Details " + e.toString());
+			ergebnisJsonObject = new JSONObject();
+			ergebnisJsonObject.put("status", "fehler");
+			ergebnisJsonObject.put("fehlertext", "unbekannter Fehler aufgetreten, bitte Administrator informieren: "
+					+ e.toString());
+			response.getWriter().append(ergebnisJsonObject.toString());
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			return;
+        }
 
 	    StringBuilder stringBuilder = new StringBuilder();
 	    BufferedReader bufferedReader = null;
@@ -596,6 +622,8 @@ public class stopmodell extends HttpServlet {
 			return;
 		}
 
+
+		// ============= erfolgreich geprüft, das accesstoken gültig ist ==============
 		String dhid = "";
 		String kommentar = "";
 		int release = 0;
@@ -640,17 +668,23 @@ public class stopmodell extends HttpServlet {
 			return;
 		}
 
+		Date zeitstempel = new Date();
+
 		if(metadatenJson.has("graph")) {
 			metagraphJson = (JSONObject) metadatenJson.get("graph");
+
+				// wenn keine vorhandene Version gefunden hat, dann auf 1/0/0 setzen
+			if((release == 0) && (mayorversion == 0) && (minorversion == 0))
+				release = 1;
 
 			metagraphJson.put("release", release);
 			metagraphJson.put("mayorversion", mayorversion);
 			metagraphJson.put("minorversion", minorversion);
+			metagraphJson.put("zeitstempel", datetime_iso8601_formatter.format(zeitstempel));
 			if(metagraphJson.has("kommentar"))
 				kommentar = metagraphJson.getString("kommentar");
 				// Bearbeiter aus Token-Analyse ermittelt und in Graphen integrieren
 			metagraphJson.put("bearbeiter", bearbeiter);
-			LOG.info("im empfangenen Graph bearbeiter gesetzt: " + metagraphJson.getString("bearbeiter"));
 	    } else {
 	    	LOG.warning("Json-Content hatte keine metadaten-Struktur");
 			ergebnisJsonObject = new JSONObject();
@@ -667,7 +701,11 @@ public class stopmodell extends HttpServlet {
 		LOG.info("release: " + release);
 		LOG.info("mayorversion: " + mayorversion);
 		LOG.info("minorversion: " + minorversion);
+		LOG.info("zetstempel: " + datetime_iso8601_formatter.format(zeitstempel));
 
+		String selectModellSql = "SELECT release, mayorversion, minorversion FROM objektmodell "
+			+ "WHERE dhid = ? "
+			+ "ORDER BY release DESC, mayorversion DESC, minorversion DESC LIMIT 1;";
 
 		String insertModellSql = "INSERT INTO objektmodell (dhid, release, mayorversion, minorversion, "
 			+ "benutzer, kommentar, content) VALUES(?, ?, ?, ?, ?, ?, ?::jsonb);";

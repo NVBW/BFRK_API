@@ -1,7 +1,5 @@
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -18,7 +16,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import de.nvbw.base.Applicationconfiguration;
+import de.nvbw.base.BFRKApiApplicationconfiguration;
 import de.nvbw.base.NVBWLogger;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -40,7 +38,7 @@ public class fahrradanlagen extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
 	private static final Logger LOG = NVBWLogger.getLogger(fahrradanlagen.class);
-	private static Applicationconfiguration configuration = new Applicationconfiguration();
+	private static BFRKApiApplicationconfiguration configuration = new BFRKApiApplicationconfiguration();
 	private static Connection bfrkConn = null;
 
 
@@ -56,9 +54,7 @@ public class fahrradanlagen extends HttpServlet {
      * - connect to bfrk DB
      */
     @Override
-    public void init() {
-    	bfrkConn = DBVerbindung.getDBVerbindung();
-    }
+	public void init() { bfrkConn = DBVerbindung.getDBVerbindung(); }
 
 
 	/**
@@ -245,7 +241,14 @@ public class fahrradanlagen extends HttpServlet {
 				}
 
                 switch (name) {
-                    case "OBJ_BuR_Anlagentyp" -> merkmaleJsonObject.put("anlagentyp", wert);
+                    case "OBJ_BuR_Anlagentyp" -> {
+						String neuerwert = wert;
+						if(neuerwert.equals("VorderradhalterMitBuegelzusatz"))
+							neuerwert = "Vorderradhalter";
+						if(neuerwert.equals("VorderradhalterOhneBuegelzusatz"))
+							neuerwert = "Vorderradhalter";
+						merkmaleJsonObject.put("anlagentyp", neuerwert);
+					}
                     case "OBJ_BuR_Stellplatzanzahl" ->
                             merkmaleJsonObject.put("stellplatzanzahl", (int) Double.parseDouble(wert));
                     case "OBJ_BuR_Beleuchtet" -> merkmaleJsonObject.put("beleuchtet", wert.equals("true"));

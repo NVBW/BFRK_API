@@ -42,9 +42,7 @@ public class kreise extends HttpServlet {
      * - connect to bfrk DB
      */
     @Override
-    public void init() {
-    	bfrkConn = DBVerbindung.getDBVerbindung();
-    }
+    public void init() { bfrkConn = DBVerbindung.getDBVerbindung(); }
 
 
 	/**
