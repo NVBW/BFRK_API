@@ -44,7 +44,7 @@ public class informationsstelle extends HttpServlet {
     }
 
     /**
-     * initialization on servlett startup
+     * initialization on servlet startup
      * - connect to bfrk DB
      */
     @Override

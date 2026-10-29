@@ -53,7 +53,7 @@ public class stopmodell extends HttpServlet {
     }
 
     /**
-     * initialization on servlett startup
+     * initialization on servlet startup
      * - connect to bfrk DB
      */
 	@Override
@@ -701,7 +701,7 @@ public class stopmodell extends HttpServlet {
 		LOG.info("release: " + release);
 		LOG.info("mayorversion: " + mayorversion);
 		LOG.info("minorversion: " + minorversion);
-		LOG.info("zetstempel: " + datetime_iso8601_formatter.format(zeitstempel));
+		LOG.info("zeitstempel: " + datetime_iso8601_formatter.format(zeitstempel));
 
 		String selectModellSql = "SELECT release, mayorversion, minorversion FROM objektmodell "
 			+ "WHERE dhid = ? "
