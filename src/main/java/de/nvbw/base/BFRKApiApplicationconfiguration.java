@@ -132,7 +132,7 @@ public class BFRKApiApplicationconfiguration {
 			if( prop.getProperty("logging_file_level") != null)
 				this.logging_file_level = Level.parse(prop.getProperty("logging_file_level"));
 
-			
+
 			System.out.println("Info:  .servername                              ==="+this.servername+"===");
 			System.out.println("Info:  .application_homedir                     ==="+this.application_homedir+"===");
 			System.out.println("Info:  .application_datadir                     ==="+this.application_datadir+"===");
