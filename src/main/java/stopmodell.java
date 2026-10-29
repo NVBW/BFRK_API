@@ -56,8 +56,11 @@ public class stopmodell extends HttpServlet {
      * initialization on servlet startup
      * - connect to bfrk DB
      */
-    @Override
-    public void init() { bfrkConn = DBVerbindung.getDBVerbindung(); }
+	@Override
+    public void init() {
+		System.out.println("in stopmodell GET init() ...");
+		bfrkConn = DBVerbindung.getDBVerbindung();
+	}
 
 
 	/**
@@ -677,11 +680,11 @@ public class stopmodell extends HttpServlet {
 			metagraphJson.put("release", release);
 			metagraphJson.put("mayorversion", mayorversion);
 			metagraphJson.put("minorversion", minorversion);
+			metagraphJson.put("zeitstempel", datetime_iso8601_formatter.format(zeitstempel));
 			if(metagraphJson.has("kommentar"))
 				kommentar = metagraphJson.getString("kommentar");
 				// Bearbeiter aus Token-Analyse ermittelt und in Graphen integrieren
 			metagraphJson.put("bearbeiter", bearbeiter);
-			LOG.info("im empfangenen Graph bearbeiter gesetzt: " + metagraphJson.getString("bearbeiter"));
 	    } else {
 	    	LOG.warning("Json-Content hatte keine metadaten-Struktur");
 			ergebnisJsonObject = new JSONObject();
@@ -698,6 +701,7 @@ public class stopmodell extends HttpServlet {
 		LOG.info("release: " + release);
 		LOG.info("mayorversion: " + mayorversion);
 		LOG.info("minorversion: " + minorversion);
+		LOG.info("zeitstempel: " + datetime_iso8601_formatter.format(zeitstempel));
 
 		String selectModellSql = "SELECT release, mayorversion, minorversion FROM objektmodell "
 			+ "WHERE dhid = ? "
